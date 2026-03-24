@@ -7,7 +7,12 @@
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build:cap": "CAPACITOR_BUILD=true vite build --config vite.config.ts",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npm run build:cap && npx cap sync ios && npx cap open ios",
+    "cap:android": "npm run build:cap && npx cap sync android && npx cap open android",
+    "cap:init": "npx cap add ios && npx cap add android"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -75,6 +80,16 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "@capacitor/android": "^7.2.0",
+    "@capacitor/app": "^7.0.1",
+    "@capacitor/cli": "^7.2.0",
+    "@capacitor/core": "^7.2.0",
+    "@capacitor/haptics": "^7.0.1",
+    "@capacitor/ios": "^7.2.0",
+    "@capacitor/preferences": "^7.0.1",
+    "@capacitor/share": "^7.0.1",
+    "@capacitor/splash-screen": "^7.0.1",
+    "@capacitor/status-bar": "^7.0.1",
     "@supabase/supabase-js": "^2.99.3",
     "uuid": "^13.0.0",
     "zustand": "^5.0.12"

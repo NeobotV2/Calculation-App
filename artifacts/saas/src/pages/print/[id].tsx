@@ -3,9 +3,11 @@ import { useRoute, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { canUsePDF } from "@/lib/feature-gates";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Printer } from "lucide-react";
+import { ArrowLeft, Printer, Share2 } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import { sharePrintView } from "@/lib/native-share";
+import { isNative } from "@/lib/capacitor";
 
 export default function PrintView() {
   const [, params] = useRoute("/print/:id");
@@ -48,8 +50,9 @@ export default function PrintView() {
         <Button variant="ghost" size="icon" onClick={() => setLocation(`/auswertung/${project.id}`)} className="-ml-2">
           <ArrowLeft size={20} />
         </Button>
-        <Button onClick={() => window.print()} size="sm" className="gap-2">
-          <Printer size={16} /> Drucken / PDF
+        <Button onClick={() => sharePrintView()} size="sm" className="gap-2">
+          {isNative ? <Share2 size={16} /> : <Printer size={16} />}
+          {isNative ? "Teilen" : "Drucken / PDF"}
         </Button>
       </div>
 

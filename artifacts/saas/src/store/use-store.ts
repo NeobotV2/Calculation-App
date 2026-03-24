@@ -1,6 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
+import capacitorStorage from "@/lib/capacitor-storage";
 
 export type FrequencyKey =
   | "monthly"
@@ -446,6 +447,7 @@ export const useStore = create<AppState>()(
     }),
     {
       name: "cleancalc-storage",
+      storage: createJSONStorage(() => capacitorStorage),
       version: 3,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;

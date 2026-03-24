@@ -30,6 +30,7 @@ import AGB from "@/pages/agb";
 import NotFound from "@/pages/not-found";
 import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/legacy-redirect";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { useAndroidBack } from "@/hooks/use-android-back";
 
 function SessionLoader() {
   const { isLoading } = useAuth();
@@ -83,6 +84,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function DataSync() {
   useSupabaseSync();
+  useAndroidBack();
   return null;
 }
 

@@ -124,6 +124,23 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 - `src/components/layout/BottomNav.tsx` — 5-tab bottom navigation
 - `src/components/layout/PageTransition.tsx` — Framer Motion page wrapper
 
+**Capacitor (Native App):**
+- App ID: `com.cleancalc.pro`
+- Custom URL scheme: `cleancalcpro://`
+- Config: `capacitor.config.ts`
+- Build: `pnpm --filter @workspace/saas run build:cap` (sets `CAPACITOR_BUILD=true`, base path `./`)
+- Init native projects: `pnpm --filter @workspace/saas run cap:init` (requires Xcode/Android Studio locally)
+- Open iOS: `pnpm --filter @workspace/saas run cap:ios`
+- Open Android: `pnpm --filter @workspace/saas run cap:android`
+- Platform detection: `src/lib/capacitor.ts` — `isNative`, `isIOS`, `isAndroid`, `isWeb`
+- Storage: `src/lib/capacitor-storage.ts` — uses `@capacitor/preferences` on native, `localStorage` on web
+- Native share: `src/lib/native-share.ts` — `window.print()` on web, `@capacitor/share` on native
+- Auth redirects: `src/lib/capacitor.ts` `getRedirectUrl()` — uses custom URL scheme on native, `window.location.origin` on web
+- Deep links: `src/main.tsx` handles `appUrlOpen` events from `@capacitor/app`
+- Android back button: `src/hooks/use-android-back.ts` — minimizes app on root, navigates back otherwise
+- Sidebar: uses `localStorage` instead of `document.cookie` (Capacitor-safe)
+- Icon source: `resources/icon.png` (generate sizes with `npx @capacitor/assets generate`)
+
 **Store (Zustand):**
 - Name: `cleancalc-storage`, version 3 with migration
 - Key state: `isLoggedIn`, `isDemo`, `plan` (basic/pro), `customRoomTypes`, `projects`, `templates`

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getRedirectUrl } from "@/lib/capacitor";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthState {
@@ -97,7 +98,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           data: { full_name: name },
-          emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+          emailRedirectTo: getRedirectUrl(),
         },
       });
       if (error) return { error: mapAuthError(error) };
@@ -130,7 +131,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}#/passwort-reset`,
+        redirectTo: getRedirectUrl("#/passwort-reset"),
       });
       if (error) return { error: mapAuthError(error) };
       return {};
@@ -157,7 +158,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         type: "signup",
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+          emailRedirectTo: getRedirectUrl(),
         },
       });
       if (error) return { error: mapAuthError(error) };
