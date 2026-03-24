@@ -100,6 +100,14 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 - `src/components/layout/BottomNav.tsx` — 5-tab bottom navigation
 - `src/components/layout/PageTransition.tsx` — Framer Motion page wrapper
 
+**Store (Zustand):**
+- Name: `cleancalc-storage`, version 3 with migration
+- Key state: `isLoggedIn`, `isDemo`, `plan` (basic/pro), `customRoomTypes`, `projects`, `templates`
+- Methods: CRUD for projects/rooms/templates/customRoomTypes, `exportData`/`importData`/`resetToDefaults`/`resetAll`
+- Feature gates: `canAddProject` (3 max basic), `canAddRoom` (20/project basic), `canUsePDF`, `canUseTemplates`, `canOverridePerformance`
+
+**Shared types:** `src/types/index.ts` re-exports all shared types from store and data files
+
 ---
 
 ### `artifacts/mobile` (`@workspace/mobile`) — Reinigungskalkulator

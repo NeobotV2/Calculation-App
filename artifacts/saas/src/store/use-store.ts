@@ -53,10 +53,19 @@ export interface Template {
   createdAt: string;
 }
 
+export interface CustomRoomType {
+  id: string;
+  name: string;
+  groupId: string;
+  groupName: string;
+  performanceValue: number;
+}
+
 interface AppState {
   hasSeenSplash: boolean;
   hasOnboarded: boolean;
   isLoggedIn: boolean;
+  isDemo: boolean;
   user: { name: string; email: string; role: string } | null;
   plan: "basic" | "pro";
 
@@ -66,6 +75,7 @@ interface AppState {
   defaultFrequency: FrequencyKey;
   pdfHeader: string;
   pdfFooter: string;
+  customRoomTypes: CustomRoomType[];
 
   projects: Project[];
   templates: Template[];
@@ -88,11 +98,18 @@ interface AppState {
   updateRoom: (projectId: string, roomId: string, room: Partial<Room>) => void;
   deleteRoom: (projectId: string, roomId: string) => void;
 
+  addCustomRoomType: (rt: Omit<CustomRoomType, "id">) => void;
+  updateCustomRoomType: (id: string, data: Partial<Omit<CustomRoomType, "id">>) => void;
+  deleteCustomRoomType: (id: string) => void;
+
   addTemplate: (name: string, rooms: Omit<Room, "id">[]) => void;
   deleteTemplate: (id: string) => void;
   renameTemplate: (id: string, name: string) => void;
   loadTemplate: (templateId: string, projectName: string) => string;
 
+  exportData: () => string;
+  importData: (json: string) => boolean;
+  resetToDefaults: () => void;
   resetAll: () => void;
 }
 
@@ -154,6 +171,7 @@ export const useStore = create<AppState>()(
       hasSeenSplash: false,
       hasOnboarded: false,
       isLoggedIn: false,
+      isDemo: true,
       user: null,
       plan: "basic",
 
@@ -163,6 +181,7 @@ export const useStore = create<AppState>()(
       defaultFrequency: "5x_week" as FrequencyKey,
       pdfHeader: "",
       pdfFooter: "",
+      customRoomTypes: [],
 
       projects: [],
       templates: [],
@@ -178,8 +197,8 @@ export const useStore = create<AppState>()(
           projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
         })),
 
-      login: (user) => set({ isLoggedIn: true, user: { ...get().user!, ...user } }),
-      logout: () => set({ isLoggedIn: false, user: null }),
+      login: (user) => set({ isLoggedIn: true, isDemo: false, user: { ...get().user!, ...user } }),
+      logout: () => set({ isLoggedIn: false, isDemo: true, user: null }),
       upgradePlan: () => set({ plan: "pro" }),
 
       updateSettings: (data) => set((state) => ({ ...state, ...data })),
@@ -315,14 +334,80 @@ export const useStore = create<AppState>()(
         return newId;
       },
 
+      addCustomRoomType: (rt) =>
+        set((state) => ({
+          customRoomTypes: [...state.customRoomTypes, { ...rt, id: uuidv4() }],
+        })),
+
+      updateCustomRoomType: (id, data) =>
+        set((state) => ({
+          customRoomTypes: state.customRoomTypes.map((r) =>
+            r.id === id ? { ...r, ...data } : r
+          ),
+        })),
+
+      deleteCustomRoomType: (id) =>
+        set((state) => ({
+          customRoomTypes: state.customRoomTypes.filter((r) => r.id !== id),
+        })),
+
+      exportData: () => {
+        const s = get();
+        return JSON.stringify({
+          companyName: s.companyName,
+          hourlyRate: s.hourlyRate,
+          vatRate: s.vatRate,
+          defaultFrequency: s.defaultFrequency,
+          pdfHeader: s.pdfHeader,
+          pdfFooter: s.pdfFooter,
+          customRoomTypes: s.customRoomTypes,
+          projects: s.projects,
+          templates: s.templates,
+        }, null, 2);
+      },
+
+      importData: (json) => {
+        try {
+          const data = JSON.parse(json);
+          if (!data || typeof data !== "object") return false;
+          const updates: Partial<AppState> = {};
+          if (data.companyName) updates.companyName = data.companyName;
+          if (data.hourlyRate) updates.hourlyRate = data.hourlyRate;
+          if (data.vatRate !== undefined) updates.vatRate = data.vatRate;
+          if (data.defaultFrequency) updates.defaultFrequency = data.defaultFrequency;
+          if (data.pdfHeader !== undefined) updates.pdfHeader = data.pdfHeader;
+          if (data.pdfFooter !== undefined) updates.pdfFooter = data.pdfFooter;
+          if (Array.isArray(data.customRoomTypes)) updates.customRoomTypes = data.customRoomTypes;
+          if (Array.isArray(data.projects)) updates.projects = data.projects;
+          if (Array.isArray(data.templates)) updates.templates = data.templates;
+          set(updates);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+
+      resetToDefaults: () =>
+        set({
+          companyName: "Meine Reinigungsfirma",
+          hourlyRate: 22.50,
+          vatRate: 0,
+          defaultFrequency: "5x_week" as FrequencyKey,
+          pdfHeader: "",
+          pdfFooter: "",
+          customRoomTypes: [],
+        }),
+
       resetAll: () =>
         set({
           hasOnboarded: false,
           hasSeenSplash: false,
           isLoggedIn: false,
+          isDemo: true,
           user: null,
           projects: [],
           templates: [],
+          customRoomTypes: [],
           plan: "basic",
           companyName: "Meine Reinigungsfirma",
           hourlyRate: 22.50,
@@ -334,24 +419,31 @@ export const useStore = create<AppState>()(
     }),
     {
       name: "cleancalc-storage",
-      version: 2,
+      version: 3,
       migrate: (persisted: any, version: number) => {
+        let state = persisted as any;
         if (version < 2) {
-          const old = persisted as any;
-          return {
-            ...old,
-            vatRate: old.vatRate ?? 0,
-            defaultFrequency: old.defaultFrequency ?? "5x_week",
-            pdfHeader: old.pdfHeader ?? "",
-            pdfFooter: old.pdfFooter ?? "",
-            templates: old.templates ?? [],
-            projects: (old.projects ?? []).map((p: any) => ({
+          state = {
+            ...state,
+            vatRate: state.vatRate ?? 0,
+            defaultFrequency: state.defaultFrequency ?? "5x_week",
+            pdfHeader: state.pdfHeader ?? "",
+            pdfFooter: state.pdfFooter ?? "",
+            templates: state.templates ?? [],
+            projects: (state.projects ?? []).map((p: any) => ({
               ...p,
               status: p.status ?? "active",
             })),
           };
         }
-        return persisted as any;
+        if (version < 3) {
+          state = {
+            ...state,
+            isDemo: state.isDemo ?? !state.isLoggedIn,
+            customRoomTypes: state.customRoomTypes ?? [],
+          };
+        }
+        return state;
       },
     }
   )

@@ -1,0 +1,381 @@
+Arbeite auf der bereits vorhandenen App weiter. Baue das Backend jetzt korrekt und produktreif aus. Bitte nicht neu von Null beginnen, sondern die bestehende Codebase erweitern und stabilisieren.
+
+Wichtig:
+Ich brauche jetzt kein reines UI Upgrade mehr, sondern ein funktionierendes echtes Backend für Auth, Nutzer, Objekte, Räume, Vorlagen, Planlogik und Datenpersistenz.
+Bitte setze die bestehenden Screens an ein echtes Datenmodell und eine saubere Backend Logik an.
+
+Ziel:
+Die App soll nicht nur optisch funktionieren, sondern technisch korrekt als echtes SaaS Produkt.
+Anmeldung per E Mail muss funktionieren.
+Registrierung muss funktionieren.
+Login muss funktionieren.
+Abmeldung muss funktionieren.
+Passwort vergessen muss funktionieren.
+Session muss nach Reload erhalten bleiben.
+Objekte, Räume, Vorlagen und Einstellungen müssen sauber pro Nutzer gespeichert werden.
+
+Technologieentscheidung:
+Nutze Supabase als Backend für:
+Auth
+Postgres Datenbank
+Row Level Security
+spätere Storage Vorbereitung
+
+Wenn in der bestehenden App bereits ein anderes Backend begonnen wurde, prüfe es kritisch.
+Wenn es nicht sauber oder nicht stabil ist, migriere auf Supabase.
+Bitte die App aber nicht optisch zerstören, sondern die vorhandene Frontend Struktur mit einem sauberen Backend verbinden.
+
+Bitte jetzt diese Backend Aufgaben vollständig umsetzen:
+
+1. Supabase korrekt integrieren
+Richte Supabase sauber ein.
+Nutze Environment Variablen für:
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+
+Erstelle eine saubere Supabase Client Datei.
+Baue einen stabilen Auth Provider oder Auth Store.
+Session muss beim App Start geprüft und wiederhergestellt werden.
+Kein kaputter Demo State nach Reload.
+
+2. Echte Anmeldung per E Mail
+Baue folgende Flows funktional:
+Registrierung per E Mail und Passwort
+Login per E Mail und Passwort
+Logout
+Passwort vergessen
+Passwort zurücksetzen
+Optional Magic Link Vorbereitung, falls einfach integrierbar
+
+Wichtig:
+Wenn E Mail Bestätigung aktiv ist, soll der Flow sauber behandelt werden.
+Zeige dem Nutzer klare Status Meldungen wie:
+Bitte bestätige deine E Mail
+Anmeldung erfolgreich
+Passwort Reset E Mail wurde versendet
+Ungültige Zugangsdaten
+E Mail bereits registriert
+
+3. Nutzerprofil und Firmenprofil
+Lege eine saubere Struktur an für:
+auth user
+profile
+company
+
+Vorschlag:
+profiles
+id
+email
+full_name optional
+role
+company_id
+plan
+created_at
+updated_at
+
+companies
+id
+name
+default_hourly_rate
+currency
+vat_rate optional
+branding_enabled
+created_at
+updated_at
+
+Beim ersten Signup:
+Nutzer anlegen
+Firma anlegen oder Demo Firma übernehmen
+Profil mit Firma verknüpfen
+
+4. Objekte und Räume in echter Datenbank speichern
+Bisherige lokale Daten sollen nicht nur im localStorage liegen.
+Bitte echte Tabellen anlegen für:
+
+cleaning_objects
+id
+company_id
+created_by
+name
+customer_name optional
+location optional
+notes optional
+hourly_rate
+status
+created_at
+updated_at
+archived_at optional
+
+rooms
+id
+object_id
+company_id
+name
+room_type_code
+room_group_code
+area_m2
+frequency_code
+base_m2_per_hour
+effective_m2_per_hour
+monthly_hours
+monthly_price
+sort_order
+created_at
+updated_at
+
+Wichtig:
+CRUD vollständig funktional machen.
+Objekt erstellen
+Objekt bearbeiten
+Objekt löschen
+Objekt archivieren
+Objekt duplizieren
+Raum hinzufügen
+Raum bearbeiten
+Raum löschen
+
+5. Vorlagen in Datenbank speichern
+Lege eine Tabelle an für Vorlagen:
+templates
+id
+company_id
+created_by
+name
+object_snapshot_json
+created_at
+updated_at
+
+Vorlagen sollen aus einem Objekt erzeugt werden können.
+Vorlagen sollen geladen, umbenannt und gelöscht werden können.
+Wenn Basic Nutzer Vorlagen nutzen wollen, greift die Pro Sperrlogik.
+
+6. Einstellungen in Datenbank speichern
+Lege eine Tabelle an für App Einstellungen oder Firmen Einstellungen:
+company_settings
+company_id
+default_hourly_rate
+currency
+vat_rate
+plan
+branding_logo_url optional
+pdf_header optional
+pdf_footer optional
+updated_at
+
+Die Einstellungsseite soll nicht nur localStorage ändern, sondern echte Datenbankwerte schreiben und lesen.
+
+7. Demo Modus sauber mit echter Migration
+Behalte einen Demo Modus für unregistrierte Nutzer.
+Aber:
+Wenn der Nutzer sich registriert oder einloggt, sollen seine lokalen Demo Daten optional in die Datenbank übernommen werden.
+
+Bitte baue einen sauberen Migrations Flow:
+Demo Daten gefunden
+Möchtest du diese in dein Konto übernehmen?
+Ja / Nein
+
+Bei Ja:
+Objekte, Räume, Einstellungen lokal in DB importieren
+Dann localStorage sauber bereinigen oder markieren
+
+8. Row Level Security korrekt einrichten
+Das ist sehr wichtig.
+Bitte alle Tabellen mit sauberer Row Level Security absichern.
+Ein Nutzer darf nur seine eigenen Firmen bzw. Firmendaten sehen.
+Ein Nutzer darf nur Objekte seiner Firma sehen.
+Ein Nutzer darf nur Räume seiner Firma sehen.
+Ein Nutzer darf nur Vorlagen seiner Firma sehen.
+
+Bitte die nötigen SQL Policies und Migrationsdateien anlegen.
+
+9. Basic und Pro Logik backendseitig absichern
+Die Sperrlogik darf nicht nur im Frontend liegen.
+Bitte servernah bzw. datenbanknah prüfen:
+Basic maximal 3 Objekte
+Basic maximal 20 Räume pro Objekt
+Basic keine Vorlagen
+Basic kein PDF Export
+Basic kein Leistungswert Override
+
+Wenn ein Nutzer diese Grenzen erreicht, soll die App eine saubere Meldung bekommen.
+Nicht nur Frontend Warnung, sondern echte Absicherung der Geschäftslogik.
+
+10. Service Layer sauber aufbauen
+Bitte nicht überall direkt Supabase Calls verstreuen.
+Baue einen sauberen Service Layer, zum Beispiel:
+authService
+profileService
+companyService
+objectService
+roomService
+templateService
+settingsService
+planService
+
+Jeder Service soll verständliche Methoden haben.
+Keine chaotische Abfragelogik direkt in den Pages.
+
+11. Route Guards und Session Handling
+Geschützte App Bereiche sollen nur zugänglich sein, wenn:
+Demo Modus aktiv ist
+oder
+gültige Session aktiv ist
+
+Bitte baue:
+Auth Guard
+Guest Guard
+App Guard
+
+Wenn nicht eingeloggt:
+Weiterleitung zu Login oder Demo
+Wenn Session abläuft:
+sauberer Logout oder Reauth Flow
+Kein White Screen
+Kein 404
+Kein inkonsistenter UI State
+
+12. E Mail Templates und Statusmeldungen vorbereiten
+Nutze Supabase Auth E Mail Flow.
+Bitte baue im Frontend passende Seiten und Zustände:
+Registriert, bitte E Mail prüfen
+E Mail bestätigt
+Passwort Reset angefordert
+Passwort erfolgreich geändert
+Login fehlgeschlagen
+Account existiert bereits
+
+Falls möglich:
+eine schöne Confirm Email Success Page
+eine schöne Reset Password Page
+
+13. Fehlerbehandlung robust machen
+Bitte saubere Error States einbauen für:
+fehlende Internetverbindung
+ungültige Login Daten
+abgelaufener Reset Link
+fehlende Session
+Datenbankfehler
+Auth Fehler
+Policy Fehler
+
+Zeige dem Nutzer keine rohen technischen Fehlermeldungen.
+Zeige klare, hochwertige deutsche Meldungen.
+
+14. Loading und Synchronisierung
+Die App soll sich stabil anfühlen.
+Baue:
+globalen Session Loading State
+Skeleton Loader
+optimistische Updates nur dort, wo sinnvoll
+sauberes Refetching nach CRUD Aktionen
+keine doppelten Einträge
+keine veralteten Summen
+keine Inkonsistenzen zwischen Objektliste, Detailseite und Auswertung
+
+15. Datenmodell und Migrationsdateien
+Bitte lege saubere SQL Migrations an oder eine dokumentierte Initialisierung für Supabase.
+Ich möchte eine nachvollziehbare Struktur für:
+profiles
+companies
+company_settings
+cleaning_objects
+rooms
+templates
+subscriptions optional vorbereitet
+
+Zusätzlich bitte eine README Sektion ergänzen:
+Welche Tabellen angelegt werden
+Welche Env Variablen benötigt werden
+Wie ich Supabase verbinde
+Wie ich Auth E Mails teste
+Wie ich lokal und in Replit starte
+
+16. Subscription Vorbereitung
+Wenn noch kein echtes Stripe Backend gebaut wird, ist das okay.
+Aber die Architektur soll vorbereitet sein.
+
+Lege eine saubere Tabelle oder Struktur an für:
+subscriptions
+company_id
+plan
+status
+current_period_end optional
+created_at
+updated_at
+
+Planwerte:
+demo
+basic
+pro
+
+Bitte den Plan zuverlässig im Frontend verfügbar machen.
+Das Konto Screen soll echte Planwerte lesen.
+Nicht nur statischen Mock Text.
+
+17. Print und PDF Berechtigung vorbereiten
+Wenn PDF Export aktuell noch über Print to PDF läuft, ist das okay.
+Aber die Berechtigung muss an den Plan gekoppelt sein.
+Basic darf den finalen Export nicht vollständig nutzen.
+Pro darf ihn nutzen.
+Zeige bei Basic ein hochwertiges Upgrade Modal.
+
+18. Code Qualität
+Bitte den bestehenden Code aufräumen.
+Trenne klar:
+auth
+db
+services
+store
+types
+pages
+components
+features
+hooks
+lib
+
+TypeScript Typen sauber pflegen.
+Keine Any Hölle.
+Keine ungenutzten wilden States.
+Keine doppelten Datenquellen für dieselben Objekte.
+
+19. Testbare Akzeptanzkriterien
+Bitte so umsetzen, dass folgende Punkte danach funktionieren:
+
+Registrierung mit E Mail und Passwort
+Login mit E Mail und Passwort
+Logout
+Passwort vergessen Flow
+Session bleibt nach Reload erhalten
+Objekte werden pro Nutzer gespeichert
+Räume werden pro Objekt gespeichert
+Vorlagen werden gespeichert
+Einstellungen werden gespeichert
+Demo Daten können in ein echtes Konto übernommen werden
+Basic Limits greifen korrekt
+Pro Status wird korrekt angezeigt
+Keine 404 mehr durch Auth oder geschützte Routen
+App funktioniert in Replit stabil
+
+20. Design bei Auth Screens
+Die neuen Auth Screens sollen zum bestehenden Look passen.
+Apple inspiriert
+ruhig
+hochwertig
+mobile first
+keine Standard Bootstrap Formulare
+große klare Eingabefelder
+gute Abstände
+stimmige Fehlermeldungen
+wertige CTA Buttons
+
+Wichtige Reihenfolge:
+1. Auth und Session
+2. Datenmodell und Supabase Tabellen
+3. Objekte und Räume an DB anbinden
+4. Demo Migration
+5. Basic Pro Backend Gates
+6. Vorlagen und Einstellungen
+7. Fehlerbehandlung und Finetuning
+
+Bitte beginne jetzt direkt mit der Umsetzung in der bestehenden App.
+Ich möchte eine funktionierende, echte Backend Anbindung und keine reine Mock Oberfläche mehr.

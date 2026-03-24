@@ -6,8 +6,9 @@ import { DEFAULT_ROOM_TYPES } from "@/data/room-types";
 import { FREQUENCY_LABELS, calcRoom } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { canOverridePerformance } from "@/lib/feature-gates";
+import { UpgradeModal } from "@/components/upgrade-modal";
 import { useStore, type FrequencyKey, type Room } from "@/store/use-store";
-import { X } from "lucide-react";
+import { X, Lock } from "lucide-react";
 
 interface RoomEditorSheetProps {
   open: boolean;
@@ -19,6 +20,7 @@ interface RoomEditorSheetProps {
 
 export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }: RoomEditorSheetProps) {
   const defaultFrequency = useStore(s => s.defaultFrequency);
+  const customRoomTypes = useStore(s => s.customRoomTypes);
   const [name, setName] = useState("");
   const [typeId, setTypeId] = useState(DEFAULT_ROOM_TYPES[0].id);
   const [area, setArea] = useState("");
@@ -45,7 +47,8 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
     }
   }, [editRoom, open, defaultFrequency]);
 
-  const selectedType = DEFAULT_ROOM_TYPES.find(t => t.id === typeId) || DEFAULT_ROOM_TYPES[0];
+  const allRoomTypes = [...DEFAULT_ROOM_TYPES, ...customRoomTypes];
+  const selectedType = allRoomTypes.find(t => t.id === typeId) || DEFAULT_ROOM_TYPES[0];
 
   const areaNum = useMemo(() => {
     const parsed = parseFloat(area.replace(",", "."));
@@ -96,9 +99,11 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
     setName(""); setArea(""); setLength(""); setWidth(""); setCustomPerf("");
   };
 
-  const canOverride = canOverridePerformance().allowed;
+  const overrideGate = canOverridePerformance();
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <>
@@ -127,7 +132,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Raumart</label>
                 <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {DEFAULT_ROOM_TYPES.map(t => (
+                  {allRoomTypes.map(t => (
                     <button
                       key={t.id}
                       onClick={() => setTypeId(t.id)}
@@ -174,12 +179,19 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                 </select>
               </div>
 
-              {canOverride && (
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">Leistungswert überschreiben (m²/h)</label>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Leistungswert überschreiben (m²/h)</label>
+                {overrideGate.allowed ? (
                   <Input inputMode="decimal" value={customPerf} onChange={e => setCustomPerf(e.target.value)} placeholder={selectedType.performanceValue.toString()} className="bg-card h-12" />
-                </div>
-              )}
+                ) : (
+                  <button
+                    onClick={() => setUpgradeOpen(true)}
+                    className="w-full h-12 rounded-xl border border-border/40 bg-card px-4 text-sm text-muted-foreground flex items-center gap-2 hover:bg-secondary transition-colors"
+                  >
+                    <Lock size={14} /> Pro-Feature — tippen zum Upgraden
+                  </button>
+                )}
+              </div>
 
               {preview && (
                 <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex justify-between items-center">
@@ -202,5 +214,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
         </>
       )}
     </AnimatePresence>
+    <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={overrideGate.reason || ""} />
+    </>
   );
 }

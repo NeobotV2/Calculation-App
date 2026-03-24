@@ -18,6 +18,7 @@ export default function Konto() {
   const logout = useStore((s) => s.logout);
   const resetAll = useStore((s) => s.resetAll);
   const isLoggedIn = useStore((s) => s.isLoggedIn);
+  const isDemo = useStore((s) => s.isDemo);
 
   const [showReset, setShowReset] = useState(false);
 
@@ -44,7 +45,7 @@ export default function Konto() {
       </div>
 
       <div className="p-6 space-y-6">
-        {!isLoggedIn && (
+        {isDemo && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-start gap-3">
             <AlertTriangle size={20} className="text-yellow-500 shrink-0 mt-0.5" />
             <div>
