@@ -182,6 +182,33 @@ export default function ObjektDetail() {
           ))}
         </div>
 
+        <div className="bg-card border border-border/20 rounded-2xl p-5 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm tracking-tight">Auswertung</h3>
+            <Link href={`/auswertung/${project.id}`}>
+              <span className="text-xs text-primary font-medium">Details →</span>
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-muted-foreground text-xs">Jahreskosten</p>
+              <p className="font-semibold text-foreground">{formatCurrency(totals.annualCost)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Stunden/Monat</p>
+              <p className="font-semibold text-foreground">{formatNumber(totals.hours, 1)} h</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Preis pro m²</p>
+              <p className="font-semibold text-foreground">{formatCurrency(totals.pricePerSqm)}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground text-xs">Gesamtfläche</p>
+              <p className="font-semibold text-foreground">{formatNumber(totals.area, 0)} m²</p>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-lg tracking-tight">Räume ({project.rooms.length})</h3>

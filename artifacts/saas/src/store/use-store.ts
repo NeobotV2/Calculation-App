@@ -82,7 +82,7 @@ interface AppState {
 
   setHasSeenSplash: () => void;
   completeOnboarding: (data: { role: string; companyName: string; hourlyRate: number; loadDemo: boolean }) => void;
-  login: (user: { name: string; email: string }) => void;
+  login: (user: { name: string; email: string; role?: string }) => void;
   logout: () => void;
   upgradePlan: () => void;
   updateSettings: (data: Partial<{ companyName: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
@@ -198,7 +198,7 @@ export const useStore = create<AppState>()(
         })),
 
       // TODO: Replace with Supabase auth — call supabase.auth.signInWithPassword(), then set user from session
-      login: (user) => set({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email } }),
+      login: (user) => set((state) => ({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email, role: user.role || state.user?.role || "Benutzer" } })),
       // TODO: Replace with supabase.auth.signOut()
       logout: () => set({ isLoggedIn: false, isDemo: true, user: null }),
       // TODO: Replace with Stripe checkout / Supabase subscription update

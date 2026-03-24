@@ -10,10 +10,12 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const login = useStore(s => s.login);
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    login({ name: "Demo User", email: email || "demo@example.com" });
+    // TODO: Replace with Supabase auth — call supabase.auth.signInWithPassword()
+    login({ name: name || "Benutzer", email: email || "demo@example.com" });
     setLocation("/");
   };
 
@@ -30,6 +32,15 @@ export default function Login() {
         <p className="text-muted-foreground text-lg text-center mb-10">Melde dich an, um fortzufahren.</p>
 
         <form onSubmit={handleLogin} className="space-y-5">
+          <div>
+            <Input 
+              type="text" 
+              placeholder="Name" 
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="h-14 bg-card border-border/50 text-base"
+            />
+          </div>
           <div>
             <Input 
               type="email" 
