@@ -35,7 +35,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-muted-foreground mb-6 max-w-xs text-sm">
             Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.
           </p>
-          {this.state.error && (
+          {this.state.error && import.meta.env.DEV && (
             <div className="mb-6 p-3 bg-card border border-border/40 rounded-xl max-w-sm w-full">
               <p className="text-xs text-muted-foreground font-mono break-all">{this.state.error.message}</p>
             </div>

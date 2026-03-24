@@ -1,15 +1,12 @@
-import { useLocation } from "wouter";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export default function Impressum() {
-  const [, setLocation] = useLocation();
-
   return (
     <PageTransition className="min-h-screen bg-background">
       <div className="safe-header bg-background/95 sticky top-0 z-40 border-b border-border/20 px-4 pt-12 pb-3 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/konto")} className="-ml-2">
+        <Button variant="ghost" size="icon" onClick={() => window.history.back()} className="-ml-2">
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-2xl font-semibold tracking-tight">Impressum</h1>
