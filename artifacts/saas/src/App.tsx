@@ -20,6 +20,7 @@ import Einstellungen from "@/pages/einstellungen";
 import Konto from "@/pages/konto";
 import Upgrade from "@/pages/upgrade";
 import NotFound from "@/pages/not-found";
+import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/legacy-redirect";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -68,6 +69,8 @@ function AppRouter() {
         <Route path="/einstellungen" component={Einstellungen} />
         <Route path="/konto" component={Konto} />
         <Route path="/upgrade" component={Upgrade} />
+        <Route path="/kalkulation" component={KalkulationListRedirect} />
+        <Route path="/kalkulation/:id" component={KalkulationDetailRedirect} />
         <Route component={NotFound} />
       </Switch>
     </AnimatePresence>

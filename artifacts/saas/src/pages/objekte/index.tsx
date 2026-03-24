@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject } from "@/lib/feature-gates";
-import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Calendar } from "lucide-react";
+import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Calendar, Edit3 } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -22,9 +22,12 @@ export default function ObjekteList() {
   const archiveProject = useStore((s) => s.archiveProject);
   const restoreProject = useStore((s) => s.restoreProject);
   const deleteProject = useStore((s) => s.deleteProject);
+  const updateProject = useStore((s) => s.updateProject);
   const plan = useStore((s) => s.plan);
 
   const [search, setSearch] = useState("");
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameName, setRenameName] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "archived">("all");
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
@@ -156,6 +159,9 @@ export default function ObjekteList() {
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(null)} />
                     <div className="absolute top-12 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[180px]">
+                      <button onClick={() => { setRenameId(p.id); setRenameName(p.name); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                        <Edit3 size={16} className="text-muted-foreground" /> Umbenennen
+                      </button>
                       <button onClick={() => { handleDuplicate(p.id); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                         <Copy size={16} className="text-muted-foreground" /> Duplizieren
                       </button>
@@ -188,6 +194,20 @@ export default function ObjekteList() {
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
       <ConfirmDialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)} title="Objekt löschen?" description="Das Objekt und alle zugehörigen Räume werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
+
+      {renameId && (
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setRenameId(null)} />
+          <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[70] bg-card border border-border/40 rounded-3xl p-6 max-w-sm mx-auto">
+            <h3 className="font-semibold text-lg mb-4">Objekt umbenennen</h3>
+            <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus className="bg-background h-12 mb-4" onKeyDown={(e) => { if (e.key === "Enter" && renameName.trim()) { updateProject(renameId, { name: renameName.trim() }); toast.success("Umbenannt"); setRenameId(null); } }} />
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => setRenameId(null)} className="flex-1 h-12">Abbrechen</Button>
+              <Button onClick={() => { if (renameName.trim()) { updateProject(renameId, { name: renameName.trim() }); toast.success("Umbenannt"); setRenameId(null); } }} className="flex-1 h-12">Speichern</Button>
+            </div>
+          </div>
+        </>
+      )}
 
       <BottomNav />
     </PageTransition>

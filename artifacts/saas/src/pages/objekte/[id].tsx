@@ -35,6 +35,7 @@ export default function ObjektDetail() {
   const [customerInput, setCustomerInput] = useState("");
   const [locationInput, setLocationInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
+  const [rateInput, setRateInput] = useState("");
   const [showInfo, setShowInfo] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | undefined>();
@@ -65,10 +66,12 @@ export default function ObjektDetail() {
   };
 
   const handleSaveInfo = () => {
+    const parsedRate = rateInput ? parseFloat(rateInput.replace(",", ".")) : undefined;
     updateProject(project.id, {
       customer: customerInput.trim() || undefined,
       location: locationInput.trim() || undefined,
       notes: notesInput.trim() || undefined,
+      hourlyRate: parsedRate && parsedRate > 0 ? parsedRate : undefined,
     });
     toast.success("Objektinfo gespeichert");
     setShowInfo(false);
@@ -129,7 +132,7 @@ export default function ObjektDetail() {
         <>
           <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
           <div className="absolute top-24 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
-            <button onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" /> Info bearbeiten</button>
+            <button onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" /> Info bearbeiten</button>
             <button onClick={() => { const gate = canAddProject(); if (!gate.allowed) { setUpgradeReason(gate.reason || ""); setUpgradeOpen(true); } else { duplicateProject(project.id); toast.success("Dupliziert"); } setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
             <button onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" /> Als Vorlage speichern</button>
             <button onClick={() => {
@@ -260,6 +263,11 @@ export default function ObjektDetail() {
               <div>
                 <label className="text-sm font-medium mb-1 block">Standort</label>
                 <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} placeholder="z.B. Berlin, Musterstraße 1" className="bg-card h-11" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Stundensatz (€/h)</label>
+                <Input value={rateInput} onChange={(e) => setRateInput(e.target.value)} inputMode="decimal" placeholder={`Standard: ${hourlyRate.toString().replace(".", ",")} €/h`} className="bg-card h-11" />
+                <p className="text-xs text-muted-foreground mt-1 ml-1">Leer = globaler Standard ({hourlyRate.toString().replace(".", ",")} €/h)</p>
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Notizen</label>
