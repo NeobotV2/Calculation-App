@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import capacitorStorage from "@/lib/capacitor-storage";
+import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate } from "@/lib/hourly-rate-calc";
 
 export type FrequencyKey =
   | "monthly"
@@ -80,6 +81,7 @@ interface AppState {
   pdfHeader: string;
   pdfFooter: string;
   customRoomTypes: CustomRoomType[];
+  hourlyRateConfig: HourlyRateConfig;
 
   projects: Project[];
   templates: Template[];
@@ -91,6 +93,7 @@ interface AppState {
   // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
   upgradePlan: () => void;
   updateSettings: (data: Partial<{ companyName: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
+  updateHourlyRateConfig: (config: HourlyRateConfig) => void;
 
   addProject: (name: string, customer?: string) => string;
   updateProject: (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "rooms">>) => void;
@@ -189,6 +192,7 @@ export const useStore = create<AppState>()(
       pdfHeader: "",
       pdfFooter: "",
       customRoomTypes: [],
+      hourlyRateConfig: getDefaultConfig(),
 
       projects: [],
       templates: [],
@@ -217,6 +221,7 @@ export const useStore = create<AppState>()(
             projects: [],
             templates: [],
             customRoomTypes: [],
+            hourlyRateConfig: getDefaultConfig(),
             plan: "basic",
             companyName: "Meine Reinigungsfirma",
             hourlyRate: 22.50,
@@ -231,6 +236,14 @@ export const useStore = create<AppState>()(
       upgradePlan: () => set({ plan: "pro" }),
 
       updateSettings: (data) => set((state) => ({ ...state, ...data })),
+
+      updateHourlyRateConfig: (config) => {
+        const breakdown = calcHourlyRate(config);
+        set({
+          hourlyRateConfig: config,
+          hourlyRate: Math.round(breakdown.stundenverrechnungssatz * 100) / 100,
+        });
+      },
 
       addProject: (name, customer) => {
         const id = uuidv4();
@@ -390,6 +403,7 @@ export const useStore = create<AppState>()(
           pdfHeader: s.pdfHeader,
           pdfFooter: s.pdfFooter,
           customRoomTypes: s.customRoomTypes,
+          hourlyRateConfig: s.hourlyRateConfig,
           projects: s.projects,
           templates: s.templates,
         }, null, 2);
@@ -407,6 +421,7 @@ export const useStore = create<AppState>()(
           if (data.pdfHeader !== undefined) updates.pdfHeader = data.pdfHeader;
           if (data.pdfFooter !== undefined) updates.pdfFooter = data.pdfFooter;
           if (Array.isArray(data.customRoomTypes)) updates.customRoomTypes = data.customRoomTypes;
+          if (data.hourlyRateConfig) updates.hourlyRateConfig = data.hourlyRateConfig;
           if (Array.isArray(data.projects)) updates.projects = data.projects;
           if (Array.isArray(data.templates)) updates.templates = data.templates;
           set(updates);
@@ -425,6 +440,7 @@ export const useStore = create<AppState>()(
           pdfHeader: "",
           pdfFooter: "",
           customRoomTypes: [],
+          hourlyRateConfig: getDefaultConfig(),
         }),
 
       resetAll: () =>
@@ -437,6 +453,7 @@ export const useStore = create<AppState>()(
           projects: [],
           templates: [],
           customRoomTypes: [],
+          hourlyRateConfig: getDefaultConfig(),
           plan: "basic",
           companyName: "Meine Reinigungsfirma",
           hourlyRate: 22.50,
@@ -451,7 +468,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 3,
+      version: 4,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -473,6 +490,12 @@ export const useStore = create<AppState>()(
             ...state,
             isDemo: state.isDemo ?? !state.isLoggedIn,
             customRoomTypes: state.customRoomTypes ?? [],
+          };
+        }
+        if (version < 4) {
+          state = {
+            ...state,
+            hourlyRateConfig: state.hourlyRateConfig ?? getDefaultConfig(),
           };
         }
         return state;

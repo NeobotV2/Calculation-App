@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3 } from "lucide-react";
+import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { AppFooter } from "@/components/layout/AppFooter";
 
@@ -215,7 +215,20 @@ export default function Einstellungen() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Standard-Stundensatz (€/h)</label>
-              <Input value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12" />
+              <div className="flex gap-2">
+                <Input value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12 flex-1" />
+                <button
+                  onClick={() => setLocation("/stundensatz")}
+                  className="h-12 px-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-primary hover:bg-primary/15 transition-colors shrink-0"
+                >
+                  <Calculator size={16} />
+                  <span className="text-sm font-medium">Kalkulieren</span>
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5 ml-1">
+                Nutze den Kalkulator für eine professionelle Stundensatz-Berechnung.
+              </p>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">MwSt.-Satz (%)</label>

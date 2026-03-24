@@ -22,6 +22,7 @@ import AuswertungDetail from "@/pages/auswertung/[id]";
 import Vorlagen from "@/pages/vorlagen";
 import PrintView from "@/pages/print/[id]";
 import Einstellungen from "@/pages/einstellungen";
+import Kalkulation from "@/pages/kalkulation";
 import Konto from "@/pages/konto";
 import Upgrade from "@/pages/upgrade";
 import Impressum from "@/pages/impressum";
@@ -108,6 +109,7 @@ function AppRouter() {
         <Route path="/vorlagen" component={Vorlagen} />
         <Route path="/print/:id" component={PrintView} />
         <Route path="/einstellungen" component={Einstellungen} />
+        <Route path="/stundensatz" component={Kalkulation} />
         <Route path="/konto" component={Konto} />
         <Route path="/upgrade" component={Upgrade} />
         <Route path="/impressum" component={Impressum} />

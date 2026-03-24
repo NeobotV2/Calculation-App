@@ -5,7 +5,7 @@ import { calcProjectTotals } from "@/lib/calc";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Sparkles } from "lucide-react";
+import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Sparkles, Calculator } from "lucide-react";
 import { ListSkeleton, CardSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -114,6 +114,7 @@ export default function Home() {
             {[
               { href: "/objekte", icon: Plus, label: "Neues Objekt", accent: true },
               { href: "/objekte", icon: Building2, label: "Alle Objekte" },
+              { href: "/stundensatz", icon: Calculator, label: "Stundensatz" },
               { href: "/auswertung", icon: BarChart3, label: "Auswertung" },
               { href: "/vorlagen", icon: BookOpen, label: "Vorlagen", pro: plan === "basic" },
               { href: plan === "basic" ? "/upgrade" : "/auswertung", icon: FileText, label: "PDF-Export", pro: plan === "basic" },
