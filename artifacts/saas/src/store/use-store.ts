@@ -197,7 +197,7 @@ export const useStore = create<AppState>()(
           projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
         })),
 
-      login: (user) => set({ isLoggedIn: true, isDemo: false, user: { ...get().user!, ...user } }),
+      login: (user) => set({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email } }),
       logout: () => set({ isLoggedIn: false, isDemo: true, user: null }),
       upgradePlan: () => set({ plan: "pro" }),
 

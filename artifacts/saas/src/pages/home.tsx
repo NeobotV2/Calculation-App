@@ -115,7 +115,7 @@ export default function Home() {
               { href: "/objekte", icon: Building2, label: "Alle Objekte" },
               { href: "/auswertung", icon: BarChart3, label: "Auswertung" },
               { href: "/vorlagen", icon: BookOpen, label: "Vorlagen", pro: plan === "basic" },
-              { href: "/print/export", icon: FileText, label: "PDF-Export", pro: plan === "basic" },
+              { href: plan === "basic" ? "/upgrade" : "/auswertung", icon: FileText, label: "PDF-Export", pro: plan === "basic" },
               { href: "/einstellungen", icon: Settings, label: "Einstellungen" },
               ...(plan === "basic" ? [{ href: "/upgrade", icon: Sparkles, label: "Upgrade", accent: false as boolean }] : []),
             ].map((a) => (
