@@ -48,6 +48,36 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Artifacts
+
+### `artifacts/mobile` (`@workspace/mobile`) — Reinigungskalkulator
+
+German-language mobile app for commercial cleaning companies to calculate maintenance cleaning quotes. Built with Expo Router (React Native).
+
+**Features:**
+- Three tabs: Kalkulation, Auswertung, Einstellungen
+- Add/edit/delete rooms with: name, room type, area, cleaning frequency, performance value
+- Automatic calculation: monthly hours, monthly cost, annual cost per room and totals
+- KPI cards: total area, monthly price, annual price, monthly hours, price/m²
+- Editable project name, hourly rate, company name
+- Room types with performance values editable in settings
+- Demo data loader and reset all function
+- Data persists with AsyncStorage (no backend needed)
+- Dark mode UI with teal accent (#00C2A8)
+
+**Key files:**
+- `app/(tabs)/index.tsx` — main calculation screen
+- `app/(tabs)/summary.tsx` — results/summary screen
+- `app/(tabs)/settings.tsx` — settings screen
+- `context/CalcContext.tsx` — shared state (rooms, settings, actions)
+- `utils/calc.ts` — pure calculation logic + German number formatting
+- `data/seed.ts` — default room types, groups, frequencies
+- `types/index.ts` — TypeScript types
+- `components/RoomFormModal.tsx` — add/edit room modal
+- `components/KpiCard.tsx` — KPI display card
+- `components/RoomCard.tsx` — room list item
+- `constants/colors.ts` — dark mode theme
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
