@@ -32,6 +32,9 @@ export interface Room {
   frequency: FrequencyKey;
   typePerformance: number;
   customPerformance?: number;
+  soilingLevel?: string;
+  furnishingLevel?: string;
+  floorType?: string;
 }
 
 export interface Project {
@@ -128,19 +131,19 @@ const DEMO_PROJECT: Project = {
   rooms: [
     {
       id: "r1", name: "Großraumbüro EG", typeId: "t1", typeName: "Großraumbüro",
-      groupId: "g1", groupName: "Büro & Verwaltung", area: 250, frequency: "5x_week", typePerformance: 350,
+      groupId: "g1", groupName: "Büro & Verwaltung", area: 250, frequency: "5x_week", typePerformance: 250,
     },
     {
       id: "r2", name: "Meetingraum Alpha", typeId: "t3", typeName: "Besprechungsraum",
-      groupId: "g1", groupName: "Büro & Verwaltung", area: 45, frequency: "3x_week", typePerformance: 300,
+      groupId: "g1", groupName: "Büro & Verwaltung", area: 45, frequency: "3x_week", typePerformance: 220,
     },
     {
       id: "r3", name: "WC Herren", typeId: "t5", typeName: "WC / Sanitär klein",
-      groupId: "g2", groupName: "Sanitär", area: 15, frequency: "5x_week", typePerformance: 50,
+      groupId: "g2", groupName: "Sanitär", area: 15, frequency: "5x_week", typePerformance: 60,
     },
     {
       id: "r4", name: "Teeküche", typeId: "t11", typeName: "Teeküche",
-      groupId: "g4", groupName: "Küche & Sozial", area: 20, frequency: "5x_week", typePerformance: 120,
+      groupId: "g4", groupName: "Küche & Sozial", area: 20, frequency: "5x_week", typePerformance: 100,
     },
   ],
 };
@@ -155,16 +158,16 @@ const DEMO_PROJECT_2: Project = {
   updatedAt: new Date(Date.now() - 86400000).toISOString(),
   rooms: [
     {
-      id: "r5", name: "Wartezimmer", typeId: "t16", typeName: "Arztpraxis",
+      id: "r5", name: "Wartezimmer", typeId: "t34", typeName: "Wartezimmer (Praxis)",
       groupId: "g6", groupName: "Medizin & Labor", area: 40, frequency: "5x_week", typePerformance: 120,
     },
     {
-      id: "r6", name: "Behandlungsraum 1", typeId: "t16", typeName: "Arztpraxis",
-      groupId: "g6", groupName: "Medizin & Labor", area: 25, frequency: "5x_week", typePerformance: 120,
+      id: "r6", name: "Behandlungsraum 1", typeId: "t31", typeName: "Behandlungsraum",
+      groupId: "g6", groupName: "Medizin & Labor", area: 25, frequency: "5x_week", typePerformance: 90,
     },
     {
       id: "r7", name: "WC Patienten", typeId: "t5", typeName: "WC / Sanitär klein",
-      groupId: "g2", groupName: "Sanitär", area: 8, frequency: "5x_week", typePerformance: 50,
+      groupId: "g2", groupName: "Sanitär", area: 8, frequency: "5x_week", typePerformance: 60,
     },
   ],
 };

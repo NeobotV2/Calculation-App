@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DEFAULT_ROOM_TYPES } from "@/data/room-types";
-import { FREQUENCY_LABELS, calcRoom } from "@/lib/calc";
+import { DEFAULT_ROOM_TYPES, DEFAULT_ROOM_GROUPS } from "@/data/room-types";
+import { SURCHARGE_DEFINITIONS, getTotalModifier } from "@/data/surcharges";
+import { FREQUENCY_LABELS, calcRoom, getEffectivePerformance } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { canOverridePerformance } from "@/lib/feature-gates";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { useStore, type FrequencyKey, type Room } from "@/store/use-store";
-import { X, Lock } from "lucide-react";
+import { X, Lock, ChevronDown, SlidersHorizontal, Search } from "lucide-react";
 
 interface RoomEditorSheetProps {
   open: boolean;
@@ -29,6 +30,14 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
   const [freq, setFreq] = useState<FrequencyKey>(defaultFrequency);
   const [customPerf, setCustomPerf] = useState("");
 
+  const [soilingLevel, setSoilingLevel] = useState<string | undefined>();
+  const [furnishingLevel, setFurnishingLevel] = useState<string | undefined>();
+  const [floorType, setFloorType] = useState<string | undefined>();
+  const [showSurcharges, setShowSurcharges] = useState(false);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null>(null);
+
   useEffect(() => {
     if (editRoom) {
       setName(editRoom.name);
@@ -36,6 +45,11 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
       setArea(editRoom.area.toString().replace(".", ","));
       setFreq(editRoom.frequency);
       setCustomPerf(editRoom.customPerformance ? editRoom.customPerformance.toString() : "");
+      setSoilingLevel(editRoom.soilingLevel);
+      setFurnishingLevel(editRoom.furnishingLevel);
+      setFloorType(editRoom.floorType);
+      const hasSurcharges = editRoom.soilingLevel || editRoom.furnishingLevel || editRoom.floorType;
+      setShowSurcharges(!!hasSurcharges);
     } else {
       setName("");
       setTypeId(DEFAULT_ROOM_TYPES[0].id);
@@ -44,10 +58,34 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
       setWidth("");
       setFreq(defaultFrequency);
       setCustomPerf("");
+      setSoilingLevel(undefined);
+      setFurnishingLevel(undefined);
+      setFloorType(undefined);
+      setShowSurcharges(false);
     }
+    setSearchQuery("");
+    setSelectedGroupFilter(null);
   }, [editRoom, open, defaultFrequency]);
 
-  const allRoomTypes = [...DEFAULT_ROOM_TYPES, ...customRoomTypes];
+  const allRoomTypes = useMemo(() => [...DEFAULT_ROOM_TYPES, ...customRoomTypes], [customRoomTypes]);
+
+  const allGroups = useMemo(() => {
+    const groupIds = new Set(allRoomTypes.map(t => t.groupId));
+    return DEFAULT_ROOM_GROUPS.filter(g => groupIds.has(g.id));
+  }, [allRoomTypes]);
+
+  const filteredRoomTypes = useMemo(() => {
+    let types = allRoomTypes;
+    if (selectedGroupFilter) {
+      types = types.filter(t => t.groupId === selectedGroupFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      types = types.filter(t => t.name.toLowerCase().includes(q) || t.groupName.toLowerCase().includes(q));
+    }
+    return types;
+  }, [allRoomTypes, selectedGroupFilter, searchQuery]);
+
   const selectedType = allRoomTypes.find(t => t.id === typeId) || DEFAULT_ROOM_TYPES[0];
 
   const areaNum = useMemo(() => {
@@ -63,6 +101,14 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
     }
   }, [length, width]);
 
+  const surcharges = useMemo(() => ({
+    soilingLevel,
+    furnishingLevel,
+    floorType,
+  }), [soilingLevel, furnishingLevel, floorType]);
+
+  const totalModifier = getTotalModifier(surcharges);
+
   const preview = useMemo(() => {
     if (areaNum <= 0) return null;
     const perfVal = customPerf ? parseFloat(customPerf.replace(",", ".")) : undefined;
@@ -77,9 +123,12 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
       frequency: freq,
       typePerformance: selectedType.performanceValue,
       customPerformance: perfVal && perfVal > 0 ? perfVal : undefined,
+      soilingLevel,
+      furnishingLevel,
+      floorType,
     };
     return calcRoom(room, hourlyRate);
-  }, [areaNum, freq, selectedType, hourlyRate, customPerf, name, typeId]);
+  }, [areaNum, freq, selectedType, hourlyRate, customPerf, name, typeId, soilingLevel, furnishingLevel, floorType]);
 
   const handleSave = () => {
     if (areaNum <= 0) return;
@@ -95,12 +144,28 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
       frequency: freq,
       typePerformance: selectedType.performanceValue,
       customPerformance: perfVal && perfVal > 0 ? perfVal : undefined,
+      soilingLevel: soilingLevel || undefined,
+      furnishingLevel: furnishingLevel || undefined,
+      floorType: floorType || undefined,
     });
     setName(""); setArea(""); setLength(""); setWidth(""); setCustomPerf("");
+    setSoilingLevel(undefined); setFurnishingLevel(undefined); setFloorType(undefined);
   };
 
   const overrideGate = canOverridePerformance();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const surchargeSetters: Record<string, (v: string | undefined) => void> = {
+    soilingLevel: setSoilingLevel,
+    furnishingLevel: setFurnishingLevel,
+    floorType: setFloorType,
+  };
+
+  const surchargeValues: Record<string, string | undefined> = {
+    soilingLevel,
+    furnishingLevel,
+    floorType,
+  };
 
   return (
     <>
@@ -131,17 +196,51 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
             <div className="px-6 pb-6 space-y-5">
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Raumart</label>
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {allRoomTypes.map(t => (
+
+                <div className="relative mb-2">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Raumart suchen…"
+                    className="bg-card h-10 pl-9 text-sm"
+                  />
+                </div>
+
+                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1">
+                  <button
+                    onClick={() => setSelectedGroupFilter(null)}
+                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!selectedGroupFilter ? "bg-primary text-primary-foreground" : "bg-card border border-border/40 text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Alle
+                  </button>
+                  {allGroups.map(g => (
+                    <button
+                      key={g.id}
+                      onClick={() => setSelectedGroupFilter(selectedGroupFilter === g.id ? null : g.id)}
+                      className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedGroupFilter === g.id ? "bg-primary text-primary-foreground" : "bg-card border border-border/40 text-muted-foreground hover:text-foreground"}`}
+                    >
+                      {g.name}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mt-2">
+                  {filteredRoomTypes.map(t => (
                     <button
                       key={t.id}
                       onClick={() => setTypeId(t.id)}
                       className={`p-3 rounded-xl border text-sm text-left transition-colors ${typeId === t.id ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-card hover:bg-secondary text-foreground"}`}
                     >
                       <div className="font-medium truncate">{t.name}</div>
-                      <div className="text-[11px] opacity-70 mt-0.5">{t.performanceValue} m²/h · {t.groupName}</div>
+                      <div className="text-[11px] opacity-70 mt-0.5">{t.performanceValue} m²/h</div>
                     </button>
                   ))}
+                  {filteredRoomTypes.length === 0 && (
+                    <div className="col-span-2 text-center py-6 text-sm text-muted-foreground">
+                      Keine Raumarten gefunden
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -190,6 +289,83 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                   >
                     <Lock size={14} /> Pro-Feature — tippen zum Upgraden
                   </button>
+                )}
+              </div>
+
+              <div className="border border-border/30 rounded-2xl overflow-hidden">
+                <button
+                  onClick={() => setShowSurcharges(!showSurcharges)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-secondary transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <SlidersHorizontal size={16} className="text-muted-foreground" />
+                    Zu-/Abschläge
+                    {totalModifier !== 0 && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${totalModifier > 0 ? "bg-green-500/10 text-green-400" : "bg-orange-500/10 text-orange-400"}`}>
+                        {totalModifier > 0 ? "+" : ""}{Math.round(totalModifier * 100)}%
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown size={16} className={`text-muted-foreground transition-transform ${showSurcharges ? "rotate-180" : ""}`} />
+                </button>
+
+                {showSurcharges && (
+                  <div className="px-4 py-4 space-y-4 bg-card/50 border-t border-border/20">
+                    {SURCHARGE_DEFINITIONS.map(def => (
+                      <div key={def.category}>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{def.label}</label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {def.options.map(opt => {
+                            const isSelected = surchargeValues[def.category] === opt.id;
+                            const isDefault = opt.id === def.defaultId;
+                            const isActive = isSelected || (!surchargeValues[def.category] && isDefault);
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => {
+                                  const setter = surchargeSetters[def.category];
+                                  if (setter) {
+                                    setter(isDefault ? undefined : (isSelected ? undefined : opt.id));
+                                  }
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive ? "bg-primary text-primary-foreground" : "bg-background border border-border/40 text-muted-foreground hover:text-foreground"}`}
+                              >
+                                {opt.label}
+                                {opt.modifier !== 0 && (
+                                  <span className="ml-1 opacity-70">
+                                    ({opt.modifier > 0 ? "+" : ""}{Math.round(opt.modifier * 100)}%)
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+
+                    {preview && (
+                      <div className="pt-2 border-t border-border/20">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Basis-Leistungswert:</span>
+                          <span className="font-medium text-foreground">{customPerf ? parseFloat(customPerf.replace(",", ".")) || selectedType.performanceValue : selectedType.performanceValue} m²/h</span>
+                        </div>
+                        {totalModifier !== 0 && (
+                          <>
+                            <div className="flex items-center justify-between text-xs mt-1">
+                              <span className="text-muted-foreground">Anpassung:</span>
+                              <span className={`font-medium ${totalModifier > 0 ? "text-green-400" : "text-orange-400"}`}>
+                                {totalModifier > 0 ? "+" : ""}{Math.round(totalModifier * 100)}%
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs mt-1">
+                              <span className="text-muted-foreground">Eff. Leistungswert:</span>
+                              <span className="font-semibold text-primary">{formatNumber(preview.effectivePerformance, 0)} m²/h</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 

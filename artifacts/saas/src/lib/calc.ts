@@ -1,4 +1,5 @@
 import { Room, FrequencyKey, Project } from "@/store/use-store";
+import { calcAdjustedPerformance } from "@/data/surcharges";
 
 export const FREQUENCY_FACTORS: Record<FrequencyKey, number> = {
   monthly: 1,
@@ -24,8 +25,19 @@ export const FREQUENCY_LABELS: Record<FrequencyKey, string> = {
   "7x_week": "7x wöchentlich (täglich)",
 };
 
+export function getEffectivePerformance(room: Room): number {
+  const basePerf = room.customPerformance || room.typePerformance;
+  const surcharges = {
+    soilingLevel: room.soilingLevel,
+    furnishingLevel: room.furnishingLevel,
+    floorType: room.floorType,
+  };
+  const hasSurcharges = surcharges.soilingLevel || surcharges.furnishingLevel || surcharges.floorType;
+  return hasSurcharges ? calcAdjustedPerformance(basePerf, surcharges) : basePerf;
+}
+
 export function calcRoom(room: Room, hourlyRate: number) {
-  const perf = room.customPerformance || room.typePerformance;
+  const perf = getEffectivePerformance(room);
   const timePerCleaning = perf > 0 ? room.area / perf : 0;
   const factor = FREQUENCY_FACTORS[room.frequency];
   const monthlyHours = timePerCleaning * factor;
@@ -36,6 +48,7 @@ export function calcRoom(room: Room, hourlyRate: number) {
     monthlyHours,
     monthlyCost,
     annualCost: monthlyCost * 12,
+    effectivePerformance: perf,
   };
 }
 

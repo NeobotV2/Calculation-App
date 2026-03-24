@@ -27,6 +27,9 @@ interface DbRoom {
   frequency: string;
   type_performance: number;
   custom_performance: number | null;
+  soiling_level: string | null;
+  furnishing_level: string | null;
+  floor_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -53,6 +56,9 @@ function dbObjectToProject(obj: DbObject, rooms: DbRoom[]): Project {
       frequency: r.frequency as Room["frequency"],
       typePerformance: Number(r.type_performance),
       customPerformance: r.custom_performance ? Number(r.custom_performance) : undefined,
+      soilingLevel: r.soiling_level || undefined,
+      furnishingLevel: r.furnishing_level || undefined,
+      floorType: r.floor_type || undefined,
     })),
   };
 }
@@ -174,6 +180,9 @@ export async function duplicateObject(id: string): Promise<string | null> {
       frequency: r.frequency,
       type_performance: r.type_performance,
       custom_performance: r.custom_performance,
+      soiling_level: r.soiling_level,
+      furnishing_level: r.furnishing_level,
+      floor_type: r.floor_type,
     }));
     await supabase.from("rooms").insert(newRooms);
   }
@@ -200,6 +209,9 @@ export async function addRoom(objectId: string, room: Omit<Room, "id">): Promise
       frequency: room.frequency,
       type_performance: room.typePerformance,
       custom_performance: room.customPerformance || null,
+      soiling_level: room.soilingLevel || null,
+      furnishing_level: room.furnishingLevel || null,
+      floor_type: room.floorType || null,
     })
     .select("id")
     .single();
@@ -219,6 +231,9 @@ export async function updateRoom(roomId: string, updates: Partial<Room>): Promis
   if (updates.frequency !== undefined) dbUpdates.frequency = updates.frequency;
   if (updates.typePerformance !== undefined) dbUpdates.type_performance = updates.typePerformance;
   if (updates.customPerformance !== undefined) dbUpdates.custom_performance = updates.customPerformance || null;
+  if (updates.soilingLevel !== undefined) dbUpdates.soiling_level = updates.soilingLevel || null;
+  if (updates.furnishingLevel !== undefined) dbUpdates.furnishing_level = updates.furnishingLevel || null;
+  if (updates.floorType !== undefined) dbUpdates.floor_type = updates.floorType || null;
 
   const { error } = await supabase.from("rooms").update(dbUpdates).eq("id", roomId);
   return !error;

@@ -46,6 +46,8 @@ All packages extend a base `tsconfig.base.json` with `composite: true`. The root
 -   **Purpose**: Full-featured web application for commercial cleaning companies, primarily for the German market.
 -   **UI/UX**: Mobile-first design using React, Vite, and Tailwind CSS v4. Features a dark premium theme (muted teal, dark background) and Inter font.
 -   **Data Management**: Dual-path data handling with Supabase for authenticated users (PostgreSQL backend) and Zustand with localStorage for demo mode.
+-   **Calculation Engine**: Room-based cost calculation with 52+ default room types across 12 groups (BIV/RAL-based Leistungswerte), Zu-/Abschläge system (Verschmutzungsgrad, Möblierungsgrad, Bodenbelag) that adjusts effective performance values, and configurable hourly rate. Core formula: `area / effectivePerf * frequencyFactor * hourlyRate`.
+-   **Room Types Data**: `src/data/room-types.ts` — 12 groups (Büro, Sanitär, Verkehrsflächen, Küche/Sozial, Lager/Technik, Medizin/Labor, Sonderflächen, Schule/Bildung, Hotel/Gastronomie, Einzelhandel, Industrie/Produktion, Öffentliche Gebäude). Surcharges defined in `src/data/surcharges.ts`.
 -   **Routing**: Hash-based routing using `wouter` for `#/path` URLs.
 -   **Authentication**: Supabase-based authentication (email/password) with session persistence, password reset, and email confirmation. AuthGuard manages redirects based on user state (splash, onboarding, home).
 -   **Feature Gates**: Implements plan-based feature gates (Basic vs. Pro) limiting projects, rooms per project, PDF export, and template usage.
