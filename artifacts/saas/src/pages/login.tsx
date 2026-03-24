@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { hasDemoData, getDemoData, migrateDemoData } from "@/services/migration-service";
 import { toast } from "sonner";
 
@@ -85,9 +85,9 @@ export default function Login() {
       <PageTransition className="min-h-screen bg-background flex flex-col px-6">
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
           <div className="flex justify-center mb-8">
-            <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-              <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} />
-            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+              CleanCalc <span className="text-primary">Pro</span>
+            </h2>
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-center mb-3 text-foreground">
             Demo-Daten gefunden
@@ -136,10 +136,7 @@ export default function Login() {
     <PageTransition className="min-h-screen bg-background flex flex-col px-6">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
         <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg mb-5">
-            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} />
-          </div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
             CleanCalc <span className="text-primary">Pro</span>
           </h2>
         </div>
