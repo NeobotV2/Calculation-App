@@ -1,0 +1,323 @@
+Arbeite auf der bereits vorhandenen App weiter. Bitte NICHT neu von Null bauen, sondern die bestehende Codebase gezielt vervollständigen, stabilisieren und produktreif machen.
+
+Wichtig:
+Ich möchte jetzt die noch fehlenden Bausteine für ein echtes launchfähiges SaaS Produkt ergänzen.
+Die bestehende Designrichtung soll erhalten bleiben, aber funktional und technisch muss die App jetzt vollständig werden.
+Bitte nicht nur beschreiben, was noch fehlt, sondern direkt umsetzen.
+
+Oberziel:
+Die App soll nach diesem Schritt als echter MVP für erste Nutzer nutzbar sein, mit funktionierendem Auth, echter Datenpersistenz, sauberem Routing, Upgrade Flow, PDF Workflow, Vorlagen, Demo Modus, Onboarding und rechtlichen Basis Seiten.
+
+Bitte in dieser Reihenfolge umsetzen:
+
+1. Stabilität und Routing finalisieren
+Prüfe die bestehende App auf kaputte Routen, inkonsistente Navigation, fehlerhafte Reloads und White Screens.
+Alle wichtigen App Bereiche müssen stabil erreichbar sein:
+Übersicht
+Kalkulation
+Objekte
+Objektdetail
+Globale Auswertung
+Objektbezogene Auswertung
+Konto
+Einstellungen
+Login
+Registrierung
+Passwort vergessen
+Onboarding
+Print Ansicht
+Upgrade / Paywall
+Ungültige Pfade sollen auf eine schöne interne Fehlerseite oder die passende App Route geleitet werden.
+Kein normaler App Screen darf mehr in einem 404 enden.
+
+2. Auth und Backend endgültig korrekt anbinden
+Falls noch nicht vollständig geschehen, verbinde die App sauber mit Supabase.
+Folgende Flows müssen echt funktionieren:
+Registrierung per E Mail und Passwort
+Login per E Mail und Passwort
+Logout
+Passwort vergessen
+Passwort zurücksetzen
+Session Wiederherstellung nach Reload
+Guard für geschützte Bereiche
+Demo Modus für nicht eingeloggte Nutzer
+Baue saubere deutsche Statusmeldungen für alle Auth Zustände.
+Keine Mock Session mehr, wenn echte Auth aktiv ist.
+
+3. Demo Modus mit sauberem Übergang in echtes Konto
+Die App soll im Demo Modus direkt testbar sein.
+Wenn ein Gastnutzer später ein Konto erstellt, soll ein sauberer Migrations Flow erscheinen:
+Demo Daten gefunden
+Möchtest du diese Daten in dein neues Konto übernehmen?
+Ja / Nein
+Bei Ja:
+Objekte, Räume, Einstellungen und Vorlagen, soweit erlaubt, in die Datenbank übernehmen.
+Danach lokale Daten bereinigen oder als migriert markieren.
+
+4. Objekte, Räume und Vorlagen vollständig produktreif machen
+Objekte müssen vollständig CRUD fähig sein:
+Erstellen
+Bearbeiten
+Öffnen
+Duplizieren
+Archivieren
+Löschen
+Suchen
+Filtern
+Sortieren
+Räume müssen vollständig CRUD fähig sein:
+Hinzufügen
+Bearbeiten
+Löschen
+Sortierung speichern
+Summen live neu berechnen
+Vorlagen müssen vollständig funktionieren:
+Aus Objekt speichern
+Vorlage laden
+Vorlage umbenennen
+Vorlage löschen
+Vorlagen sollen für Pro freigeschaltet sein.
+Wenn ein Basic Nutzer Vorlagen anklickt, zeige ein hochwertiges Upgrade Modal.
+
+5. Raum Editor deutlich verbessern
+Der Raum Editor soll sich wie ein hochwertiges iPhone Sheet anfühlen.
+Bitte als Bottom Sheet oder Modal umsetzen, nicht als rohe Formularseite.
+Felder:
+Bezeichnung
+Raumart
+Raumgruppe automatisch aus Raumart
+Fläche in m²
+optional Länge
+optional Breite
+Auto Flächenberechnung bei Länge und Breite
+Häufigkeit
+Leistungswert automatisch
+manueller Override nur für Pro
+Live Anzeige:
+Stunden pro Monat
+Kosten pro Monat
+Validierungen:
+Fläche größer 0
+Raumart Pflicht
+Häufigkeit Pflicht
+Stundensatz größer 0
+
+6. PDF und Angebots Workflow als MVP finalisieren
+Baue eine saubere Angebotsansicht, die druckbar ist und als PDF gespeichert werden kann.
+Mindestens enthalten:
+Firmenname
+Logo Platzhalter oder echtes Branding falls vorhanden
+Objektname
+Kunde
+Standort
+Raumliste
+Raumarten
+Frequenzen
+Leistungswerte
+Monatsstunden
+Monatspreis
+Jahrespreis
+Gesamtfläche
+Gesamtsummen
+Optionales Leistungsverzeichnis pro Position
+Für den MVP reicht ein stabiler Print to PDF Workflow, wenn echter PDF Export noch nicht komplett fertig ist.
+Wichtig:
+Der Export muss sauber an den Plan gekoppelt sein.
+Basic sieht eine Vorschau, aber kein finaler Vollzugriff.
+Pro darf vollständig exportieren.
+
+7. Basic, Pro und Feature Gates wirklich fertig machen
+Die Basic und Pro Logik darf nicht nur optisch sein.
+Sie muss wirklich greifen im Frontend und in der Geschäftslogik.
+Basic:
+maximal 3 Objekte
+maximal 20 Räume pro Objekt
+kein PDF Export
+keine Vorlagen
+kein Branding
+kein Leistungswert Override
+Pro:
+unbegrenzte Objekte
+unbegrenzte Räume
+PDF Export
+Vorlagen
+Branding
+Leistungswert Override
+Cloud Sync Vorbereitung
+Wenn ein Nutzer eine Pro Funktion im Basic Plan auslösen will, zeige ein hochwertiges Upgrade Modal mit Nutzenargumenten.
+Kein stumpfes Blockieren ohne Kontext.
+
+8. Upgrade und Paywall Funnel vervollständigen
+Baue einen professionellen Upgrade Flow.
+Triggerpunkte:
+Beim 4. Objekt
+Beim 21. Raum
+Beim Klick auf PDF Export
+Beim Klick auf Vorlagen
+Beim Klick auf Leistungswert Override
+Beim Klick auf Branding
+Die Paywall soll hochwertig und conversionstark wirken.
+Zeige:
+Aktueller Plan
+Basic Vorteile
+Pro Vorteile
+Klarer CTA
+Späteres Stripe Backend vorbereiten
+Falls Stripe noch nicht live integriert ist, baue eine saubere Mock Checkout Architektur, die leicht ersetzbar ist.
+
+9. Onboarding fertig machen
+Baue ein kurzes aber hochwertiges Onboarding für neue Nutzer:
+Willkommen
+Rolle wählen:
+Inhaber
+Vertrieb
+Objektleitung
+Kalkulation
+Firmenname festlegen
+Standard Stundensatz setzen
+Demo Objekt laden oder leer starten
+Optional Registrierung direkt oder Demo zuerst testen
+Onboarding soll überspringbar sein, aber für Erstnutzer klar führen.
+
+10. Home Screen als echter Produkt Startscreen
+Der Startscreen muss noch stärker als echter Home Screen funktionieren.
+Er soll enthalten:
+Begrüßung
+Firmenname oder Nutzername
+Monatsvolumen
+aktive Objekte
+Durchschnittspreis pro m²
+letztes Objekt mit Öffnen Button
+Schnellaktionen:
+Neues Objekt
+Alle Objekte
+Raumarten
+Vorlagen
+PDF Export
+Upgrade auf Pro
+Sektion letzte Objekte
+Hinweis zum aktuellen Plan
+Schöne Empty States, wenn noch nichts vorhanden ist
+
+11. Konto Bereich vervollständigen
+Der Konto Screen soll nicht nur hübsch aussehen, sondern echte Daten zeigen.
+Bitte ergänzen:
+Name
+E Mail
+Rolle
+Firma
+aktueller Plan
+Planstatus
+Logout
+Konto löschen Vorbereitung
+Passwort ändern Vorbereitung
+Upgrade Bereich
+Plan Vergleich
+Demo Status, wenn Demo aktiv
+Saubere Statusmeldungen bei Session und Abo
+
+12. Einstellungen vervollständigen
+Bitte die Einstellungen auf echtes Produktniveau bringen:
+Firmenname
+Standard Stundensatz
+Währung
+MwSt
+Standard Raumarten
+Raumgruppen
+Leistungswerte
+Frequenzen
+Reset auf Standardwerte
+JSON Import / Export optional
+Nur Pro:
+Branding Bereich
+Logo Upload Platzhalter oder funktional
+PDF Kopfzeile
+PDF Fußzeile
+
+13. Rechtliche Mindestseiten ergänzen
+Baue einfache, saubere rechtliche Basis Seiten als Platzhalter Seiten in der App oder Landing Struktur:
+Impressum
+Datenschutz
+AGB Platzhalter
+Cookie Hinweis Vorbereitung falls nötig
+Diese Seiten müssen sauber erreichbar sein und zum restlichen Design passen.
+
+14. Fehlerbehandlung und UX Polish
+Baue robuste Error und Empty States.
+Bitte ergänzen:
+Toast Meldungen bei Speichern, Löschen, Erstellen, Upgrade nötig
+Confirm Dialoge bei kritischen Aktionen
+Loading Skeletons
+Netzwerkfehler Zustände
+Leere Listen Zustände
+Ungültige Route Zustände
+Abgelaufene Session Zustände
+Keine rohen technischen Fehlermeldungen anzeigen.
+Alles in klarer deutscher Sprache.
+
+15. Apple inspiriertes Feintuning
+Bitte die App weiter beruhigen und veredeln.
+Wichtige Punkte:
+Große Titel
+mehr Luft
+ruhige Karten
+dezentere Borders
+stimmige Safe Areas
+subtile Animationen
+hochwertige Bottom Sheets
+stabile Bottom Navigation
+gute Touch Flächen
+klare visuelle Hierarchie
+Keine lauten Glows
+Keine hektischen Farben
+Es soll wirken wie eine präzise, hochwertige iPhone Business App.
+
+16. Datenmodell und Service Layer aufräumen
+Refactore die bestehende Struktur sauber.
+Bitte logisch trennen in:
+auth
+db
+services
+store
+types
+pages
+components
+features
+hooks
+lib
+Lege oder vervollständige saubere Services an:
+authService
+profileService
+companyService
+objectService
+roomService
+templateService
+settingsService
+planService
+Keine chaotischen Direktzugriffe aus Pages heraus.
+
+17. README und Setup Dokumentation ergänzen
+Bitte ergänze eine klare README Sektion für:
+wie die App gestartet wird
+welche Env Variablen nötig sind
+wie Supabase verbunden wird
+wie Auth getestet wird
+wie Demo Modus funktioniert
+wie Plans und Feature Gates funktionieren
+wie Print to PDF getestet wird
+
+Wichtige Akzeptanzkriterien nach Umsetzung:
+Die App darf auf keiner Hauptseite mehr 404 anzeigen
+Login und Registrierung funktionieren
+Session bleibt nach Reload erhalten
+Objekte und Räume werden korrekt gespeichert
+Globale und objektbezogene Auswertung funktionieren
+Basic Limits greifen korrekt
+Pro Gates greifen korrekt
+Vorlagen funktionieren
+Print / PDF Workflow funktioniert als MVP
+Demo Daten können übernommen werden
+Home, Konto, Einstellungen und Onboarding wirken vollständig
+Die App fühlt sich technisch und visuell wie ein echtes Produkt an
+
+Bitte beginne jetzt direkt mit der Umsetzung in der bestehenden Codebase und liefere eine funktionsfähige, saubere, stabile MVP Plus Version.

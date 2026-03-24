@@ -41,7 +41,7 @@ export function calcRoom(room: Room, hourlyRate: number) {
 
 export function calcProjectTotals(project: Project | undefined, hourlyRate: number) {
   if (!project) {
-    return { area: 0, hours: 0, cost: 0, annualCost: 0, count: 0 };
+    return { area: 0, hours: 0, cost: 0, annualCost: 0, count: 0, pricePerSqm: 0 };
   }
   let area = 0;
   let hours = 0;
