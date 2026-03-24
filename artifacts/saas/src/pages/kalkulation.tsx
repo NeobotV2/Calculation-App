@@ -238,9 +238,8 @@ export default function Kalkulation() {
     (b) => b.id === config.ausfallzeiten.bundeslandId
   );
 
-  const hasChanged =
-    Math.round(breakdown.stundenverrechnungssatz * 100) / 100 !==
-    currentHourlyRate;
+  const hasChanged = JSON.stringify(config) !== JSON.stringify(storedConfig) ||
+    Math.round(breakdown.stundenverrechnungssatz * 100) / 100 !== currentHourlyRate;
 
   return (
     <PageTransition className="min-h-screen pb-28 bg-background">
@@ -337,9 +336,12 @@ export default function Kalkulation() {
           </p>
           <div className="space-y-3">
             {activeSvRates.map((item, idx) => (
-              <div key={item.label} className="flex items-center gap-3">
+              <div key={`${config.employmentType}-${item.label}`} className="flex items-center gap-3">
                 <span className="flex-1 text-sm text-foreground truncate">
                   {item.label}
+                </span>
+                <span className="text-xs text-muted-foreground w-16 text-right tabular-nums shrink-0">
+                  {fmtEuro(config.baseLohn * item.rate / 100)} €
                 </span>
                 <div className="w-24">
                   <NumberInput
