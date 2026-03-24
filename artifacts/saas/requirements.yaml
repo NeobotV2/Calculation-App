@@ -1,0 +1,21 @@
+packages:
+  "framer-motion": "For page transitions, bottom sheet animations, and interactive elements"
+  "zustand": "For robust local state management and localStorage persistence"
+  "lucide-react": "For clean, consistent iconography across the app"
+  "clsx": "For conditional class names"
+  "tailwind-merge": "For merging Tailwind classes safely"
+  "date-fns": "For formatting dates in the objects list"
+  "uuid": "For generating unique IDs for local entities"
+
+images:
+  - path: "artifacts/saas/public/images/logo-icon.png"
+    description: "Minimalist abstract geometric icon of a sweeping motion or broom, premium dark teal and silver gradient on transparent background"
+    aspect_ratio: "1:1"
+  - path: "artifacts/saas/public/images/empty-state.png"
+    description: "Abstract minimal 3D composition of clean organized desk items in dark mode, subtle teal lighting"
+    aspect_ratio: "1:1"
+
+notes:
+  - App is entirely client-side using localStorage via Zustand persist middleware.
+  - No backend API integration is implemented in this MVP.
+  - Mobile-first design paradigm with iOS-like bottom navigation and glassmorphism.

@@ -1,0 +1,493 @@
+Baue mir eine vollständige, mobile first SaaS Web App für Gebäudereiniger, die sich auf dem iPhone wie eine hochwertige native App anfühlt.
+
+Wichtig:
+Erkläre mir nicht nur, was du tun würdest, sondern setze die App direkt vollständig um.
+Erstelle lauffähigen Code, saubere Struktur, funktionierendes Routing, gutes State Management und eine hochwertige UI.
+Die App muss direkt in Replit startbar sein.
+Fehler bitte selbstständig beheben, bis alles sauber läuft.
+
+Produktidee:
+Die App ist ein professionelles Kalkulationssystem für Gebäudereiniger.
+Nutzer sollen Objekte kalkulieren, Räume erfassen, Leistungswerte verwalten, Preise berechnen und später in eine Pro Version upgraden.
+Die App soll sich wie ein echtes Produkt anfühlen, nicht wie ein Demo Rechner.
+
+Markencharakter:
+Premium
+ruhig
+präzise
+vertrauenswürdig
+iPhone first
+angelehnt an hochwertige native iOS Apps
+
+Wichtig zum Design:
+Die App soll NICHT neonlastig, gamerhaft oder verspielt wirken.
+Sie soll sich anfühlen wie eine elegante Business App mit Apple ähnlicher Ruhe und Klarheit.
+Nutze:
+große Titel
+viel Weißraum bzw. Luft
+ruhige Flächen
+subtile Schatten
+abgerundete Karten
+sehr klare Typografie
+systemnahe iOS Optik
+sanfte Animationen
+flüssige Übergänge
+große Touch Targets
+saubere Bottom Navigation
+Blurs und Glass Effekte nur sehr dezent
+
+Design Vorgaben:
+Nutze eine dunkle Premium Oberfläche mit sehr ruhigem Farbsystem.
+Primärfarbe: elegantes Türkis / Mint als Akzent
+Hintergründe: sehr dunkles Navy / Anthrazit
+Typografie: systemnah, hochwertig, lesbar
+Nutze ein Font Stack wie:
+-apple-system, BlinkMacSystemFont, SF Pro Display ähnliche Systemschrift, Inter als Fallback
+Keine lauten Neon Verläufe
+Keine übertriebenen Glow Effekte
+Keine unnötig sichtbaren Borders
+Animationen nur subtil und wertig
+
+Technischer Stack:
+React
+TypeScript
+Vite
+Tailwind CSS
+React Router
+Zustand oder React Context für globalen State
+Framer Motion für hochwertige Animationen
+Supabase für Auth und Datenbank
+Stripe für Basic / Pro Subscription Vorbereitung
+localStorage Fallback für Demo Modus
+saubere Utility Layer
+modulare Komponentenstruktur
+
+App Struktur:
+Baue die App als echtes Produkt mit diesen Hauptbereichen:
+
+1. Splash / Einstieg
+2. Onboarding Funnel
+3. Anmeldung / Registrierung
+4. Home Dashboard
+5. Kalkulation
+6. Auswertung
+7. Objekte
+8. Einstellungen
+9. Konto / Abo
+10. Upgrade / Paywall Screens
+
+Bottom Navigation:
+Home
+Kalkulation
+Objekte
+Auswertung
+Konto
+
+Wichtige Produktseiten im Detail:
+
+1. Splash Screen
+Sehr hochwertig
+Logo zentriert
+Subtile Animation
+Kurzer Satz wie:
+„Objektkalkulation für professionelle Gebäudereiniger“
+
+2. Onboarding Funnel
+Mehrstufiger Funnel, mobil optimiert
+Schritt 1:
+Willkommen + Nutzenversprechen
+„Kalkuliere Unterhaltsreinigung in wenigen Minuten“
+Schritt 2:
+Auswahl des Nutzertyps
+Inhaber
+Vertrieb
+Objektleitung
+Kalkulation
+Schritt 3:
+Firmenname eingeben
+Schritt 4:
+Stundensatz Standard festlegen
+Schritt 5:
+Demo Objekt laden oder leeres Objekt starten
+Schritt 6:
+Optional Registrierung oder erstmal Demo testen
+
+3. Anmeldung / Registrierung
+E-Mail Login
+Passwort Login
+Magic Link Vorbereitung
+Passwort vergessen
+Schöner Apple ähnlicher Login Screen
+Sehr reduziert
+Optional Social Login Vorbereitung
+Demo Modus ohne Login soll ebenfalls möglich sein
+
+4. Home Dashboard
+Dies ist der wichtigste Screen nach dem Login.
+Er soll sich wie ein hochwertiger iPhone Startbildschirm für ein SaaS Produkt anfühlen.
+
+Inhalte:
+Begrüßung mit Firmenname
+z. B. „Guten Morgen, AHAD Cleaning“
+
+Große KPI Karten:
+Objekte aktiv
+Monatsvolumen kalkuliert
+letzte Kalkulation
+Ø Preis pro m²
+Pro Status oder Basic Status
+
+Sektion Schnellaktionen:
+Neues Objekt
+Raum hinzufügen
+Demo laden
+Leistungswerte bearbeiten
+PDF exportieren
+
+Sektion Zuletzt verwendet:
+letzte 3 Objekte
+
+Sektion Hinweise:
+z. B. „Du nutzt aktuell Basic“
+„Upgrade zu Pro für PDF Export, Kundenverwaltung und unbegrenzte Objekte“
+
+5. Kalkulation
+Der Kalkulationsbereich soll das Herzstück sein.
+Baue eine hochwertige, sehr schnelle Eingabemaske.
+
+Funktionen:
+Objektname
+Kunde optional
+Standort optional
+Stundensatz
+Raum hinzufügen
+Räume bearbeiten
+Räume löschen
+Leistungswerte automatisch ziehen
+Monatsstunden je Raum berechnen
+Monatspreis je Raum berechnen
+Jahrespreis gesamt berechnen
+
+Jede Raumkarte enthält:
+Bezeichnung
+Raumart
+Raumgruppe
+Fläche
+Häufigkeit
+Leistungswert
+Std/Monat
+Kosten/Monat
+
+Zusätzlich:
+Bearbeiten per Bottom Sheet oder Sheet Modal
+Sehr mobile Bedienung
+Großer CTA Button „Raum hinzufügen“
+
+Frequenzen:
+monatlich
+14-tägig
+1x pro Woche
+2x pro Woche
+3x pro Woche
+5x pro Woche
+6x pro Woche
+7x pro Woche
+
+6. Auswertung
+Die Auswertung soll hochwertig und managementtauglich wirken.
+
+Zeige:
+Räume gesamt
+Gesamtfläche
+Monatspreis gesamt
+Jahrespreis
+Std/Monat
+Preis pro m²/Monat
+
+Darunter:
+Raumdetails als Tabelle auf Desktop
+Raumdetails als Karten auf Mobile
+
+Zusätzlich in Pro:
+Marge
+Vollkosten
+Deckungsbeitrag
+Sollstunden
+Export PDF
+Angebotsübersicht
+
+7. Objekte
+Baue einen eigenen Bereich für gespeicherte Objekte.
+
+Funktionen:
+Objektliste
+Suche
+Filter
+neueste zuerst
+Objekt öffnen
+Objekt duplizieren
+Objekt archivieren
+Objekt löschen
+
+Jede Objektkarte zeigt:
+Objektname
+Kunde
+Anzahl Räume
+Gesamtfläche
+Monatspreis
+letzte Bearbeitung
+
+8. Einstellungen
+Aktuell schon vorhanden, aber erweitern.
+
+Bereiche:
+Allgemein
+Firmenname
+Standard Stundensatz
+Währung
+Mehrwertsteuer optional
+
+Leistungswerte
+Raumarten verwalten
+Raumgruppen verwalten
+Leistungswert bearbeiten
+neue Raumart anlegen
+neue Raumgruppe anlegen
+
+Frequenzen
+Frequenzen verwalten
+Monatsfaktoren bearbeiten
+
+Branding nur Pro
+Logo Upload Vorbereitung
+PDF Kopfzeile
+Angebotsfußzeile
+
+9. Konto / Abo
+Eigener Bereich für Nutzerkonto und Subscription.
+
+Inhalte:
+Nutzerprofil
+E-Mail
+Firma
+aktueller Plan
+Basic oder Pro
+Upgrade Button
+Abmelden
+Datenschutz
+Impressum Vorbereitung
+
+10. Upgrade / Paywall
+Baue schöne Upgrade Screens, die hochwertig aussehen und nicht billig wirken.
+
+Basic vs Pro:
+
+Basic:
+1 Nutzer
+bis zu 3 Objekte
+bis zu 20 Räume je Objekt
+Standard Raumarten
+Standard Auswertung
+lokale Speicherung
+kein PDF Export
+kein Kundenbereich
+kein Branding
+kein Margin Modus
+
+Pro:
+unbegrenzte Objekte
+unbegrenzte Räume
+Cloud Speicherung
+Kundenverwaltung
+PDF Export
+Angebotsansicht
+eigenes Branding
+Profi Kalkulationsmodus
+Marge
+Vollkosten
+Materialkosten
+Objektleiterzuschlag
+Teamfähigkeit Vorbereitung
+
+Zusätzlicher Modus:
+Demo Modus
+ohne Registrierung nutzbar
+aber mit Limits
+bei Save, PDF oder mehreren Objekten erscheint Upgrade / Registrierung Funnel
+
+Funnel Logik:
+Der Funnel soll auf Conversion optimiert sein.
+
+Empfohlener Ablauf:
+1. Nutzer landet auf App oder Landing Einstieg
+2. sieht klaren Nutzen
+3. startet Demo ohne Hürde
+4. kalkuliert erstes Objekt
+5. sieht Ergebnis
+6. beim Speichern oder Exportieren wird Registrierung verlangt
+7. beim PDF Export, Branding, mehreren Objekten oder Profi Funktionen kommt Pro Upgrade
+
+Wichtige Conversion Momente:
+nach erster erfolgreicher Kalkulation
+beim Klick auf PDF Export
+beim zweiten oder vierten Objekt
+beim Aktivieren von Marge oder Vollkosten
+beim Wunsch nach Cloud Sync
+
+Apple ähnliches UX Verhalten:
+Nutze große Section Titles
+nutze sichere Abstände oben und unten für iPhone
+nutze Sticky Header dezent
+nutze Bottom Sheets für Bearbeitung
+nutze subtile spring animations
+nutze klare Touch Flächen
+nutze Segment Controls wo passend
+nutze saubere Toggle Komponenten
+nutze reduzierte Icons
+nutze hochwertige Skeleton Loader
+nutze subtile Micro Interactions bei Save, Add, Delete
+
+Wichtig:
+Kein billiges Dashboard Feeling.
+Kein Admin Panel Look.
+Kein Bootstrap Look.
+Keine Standard SaaS Templates.
+Es soll sich wie eine echte moderne App anfühlen.
+
+Datenmodell:
+User
+SubscriptionPlan
+Company
+Object
+Room
+RoomGroup
+RoomType
+FrequencyPreset
+AppSettings
+
+Optional vorbereiten:
+Customer
+Offer
+ExportTemplate
+
+Leistungswert Logik:
+Nutze die bereits definierte Leistungswert Datenbank.
+Raumart liefert Basis m²/h.
+Frequenz liefert Monatsfaktor.
+Formeln:
+
+Zeit pro Reinigung = Fläche / Leistungswert
+Monatsstunden = Zeit pro Reinigung * Monatsfaktor
+Kosten pro Monat = Monatsstunden * Stundensatz
+Jahrespreis = Monatspreis * 12
+
+Optional Pro Modus:
+effektiver Leistungswert = Basiswert * Faktoren
+Faktoren:
+Möblierung
+Verschmutzung
+Boden
+Öffentlichkeit
+Maschinenfähigkeit
+Zugänglichkeit
+
+Home Screen Inhalte konkret:
+Header mit Begrüßung
+große Primärkarte mit letztem Objekt
+Schnellaktionen als horizontale Cards
+KPI Grid
+letzte Objekte
+Upgrade Card falls Basic
+Tageshinweis oder smarter Tipp
+CTA „Neue Kalkulation starten“
+
+Mobile UX:
+Alles zuerst für iPhone optimieren
+Maximale Klarheit
+Keine zu kleinen Tabellen
+Wichtige Zahlen groß zeigen
+Bearbeitung per Modal oder Sheet
+Bottom Navigation immer sichtbar
+Floating CTA nur dort, wo sinnvoll
+
+Desktop UX:
+zentrierte max width
+größere Auswertung
+Tabellenansicht zusätzlich
+mehrspaltige Layouts nur, wenn sinnvoll
+
+State und Persistenz:
+Supabase für echte Daten
+localStorage für Gastmodus
+beim Login Datenmigration aus Demo Modus vorbereiten
+
+Subscription Vorbereitung:
+Stripe Integration vorbereiten
+Plan Datenstruktur bauen
+Upgrade Buttons einbauen
+Mock Checkout reicht im MVP, aber Architektur dafür sauber vorbereiten
+
+Landing / Marketing Einstieg optional:
+Baue optional eine erste Landing Ansicht vor dem Login mit:
+Headline
+Subline
+3 Vorteile
+Demo starten
+Anmelden
+Upgrade auf Pro
+Kurze Sektion „Für Gebäudereiniger entwickelt“
+
+Wichtige Komponenten:
+AppShell
+BottomNav
+LargeTitleHeader
+KpiCard
+ActionCard
+ObjectCard
+RoomCard
+RoomEditorSheet
+UpgradeCard
+PlanComparison
+EmptyState
+SettingsSection
+AuthForm
+OnboardingStep
+PaywallModal
+
+Code Qualität:
+Saubere Ordnerstruktur
+components
+pages
+features
+store
+lib
+types
+data
+hooks
+
+Nutze saubere TypeScript Typen.
+Trenne UI, Produktlogik, Auth, Subscription und Kalkulation logisch.
+Baue wiederverwendbare Komponenten.
+Halte den Code erweiterbar.
+
+Initiale Screens, die sofort fertig sein sollen:
+1. Landing / Einstieg
+2. Onboarding
+3. Login / Registrierung
+4. Home Dashboard
+5. Kalkulation
+6. Raum hinzufügen / bearbeiten
+7. Auswertung
+8. Objekte
+9. Einstellungen
+10. Konto / Upgrade
+
+Seed Daten:
+Lade Demo Daten beim ersten Start.
+Nutze professionelle deutsche Bezeichnungen.
+
+Wichtige Abschlussanforderung:
+Die App soll sich wie ein hochwertiges Apple inspiriertes SaaS Produkt anfühlen, speziell für Gebäudereiniger.
+Bitte liefere nicht nur Grundfunktion, sondern einen wirklich überzeugenden ersten MVP mit starkem Premium Gefühl.
+
+Bitte beginne sofort mit der Umsetzung und erstelle die App vollständig.

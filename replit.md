@@ -50,6 +50,33 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ## Artifacts
 
+### `artifacts/saas` (`@workspace/saas`) — CleanCalc Pro Web SaaS
+
+Full-featured German-language SaaS web app for commercial cleaning companies. Mobile-first React + Vite + Tailwind, dark premium theme, all data in localStorage (demo mode), with Stripe/Supabase preparation.
+
+**Screens:**
+- /splash — Animated splash screen
+- /onboarding — 6-step onboarding funnel (user type, company name, hourly rate, demo or fresh start, registration optional)
+- /login, /register — Auth screens (mock auth to localStorage)
+- / — Home dashboard (KPIs, quick actions, recent objects, upgrade card)
+- /kalkulation — Objects list + /kalkulation/:id Object detail with room editor
+- /auswertung/:id — Professional results summary (KPI cards, room table, Pro features preview)
+- /objekte — Objects list with search, filter, archive/delete
+- /einstellungen — Settings (company, room types, groups, frequencies, branding)
+- /konto — Account and subscription status
+- /upgrade — Basic vs Pro plan comparison with mock checkout
+
+**Stack:** React, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Zustand, Lucide React, Wouter routing, shadcn/ui
+**State:** Zustand with localStorage persistence (no backend needed)
+**Key files:**
+- `src/App.tsx` — routing (Wouter, with AuthGuard)
+- `src/store/use-store.ts` — Zustand store (all state + localStorage)
+- `src/lib/calc.ts` — calculation logic (monthlyHours, monthlyCost, annualCost)
+- `src/pages/` — all screens
+- `src/components/layout/BottomNav.tsx` — bottom navigation
+
+---
+
 ### `artifacts/mobile` (`@workspace/mobile`) — Reinigungskalkulator
 
 German-language mobile app for commercial cleaning companies to calculate maintenance cleaning quotes. Built with Expo Router (React Native).

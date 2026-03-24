@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/saas/"
+title = "CleanCalc Pro – Gebäudereinigung Kalkulation"
+version = "1.0.0"
+id = "artifacts/saas"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/saas/" ]
+localPort = 19834
+
+[services.development]
+run = "pnpm --filter @workspace/saas run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/saas", "run", "build" ]
+publicDir = "artifacts/saas/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19834"
+BASE_PATH = "/saas/"
