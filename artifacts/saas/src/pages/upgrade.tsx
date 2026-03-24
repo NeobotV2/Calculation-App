@@ -4,15 +4,15 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Crown, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 
 export default function Upgrade() {
   const [, setLocation] = useLocation();
   const upgradePlan = useStore(s => s.upgradePlan);
 
   const handleUpgrade = () => {
-    // Mock checkout
     upgradePlan();
-    alert("Erfolgreich auf PRO upgegradet! (Mock)");
+    toast.success("Erfolgreich auf PRO upgegradet!");
     setLocation("/");
   };
 
