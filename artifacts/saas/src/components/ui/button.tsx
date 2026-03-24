@@ -4,26 +4,22 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-base font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default:
-          "accent-gradient shadow-lg shadow-primary/20 hover:shadow-primary/30 hover:brightness-110",
-        destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20",
-        outline:
-          "border border-white/10 bg-transparent hover:bg-white/5 text-foreground shadow-sm",
-        secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-white/5 text-muted-foreground hover:text-foreground",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "border border-border/50 bg-transparent hover:bg-card text-foreground",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        ghost: "hover:bg-card text-muted-foreground hover:text-foreground border border-transparent",
         link: "text-primary underline-offset-4 hover:underline",
-        glass: "bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 text-foreground"
+        glass: "bg-card border border-border/40 hover:bg-secondary text-foreground"
       },
       size: {
         default: "h-12 px-6 py-3",
-        sm: "h-9 rounded-lg px-4 text-xs",
-        lg: "h-14 rounded-2xl px-8 text-base",
+        sm: "h-10 rounded-lg px-4 text-sm",
+        lg: "h-14 rounded-xl px-8 text-lg",
         icon: "h-12 w-12",
       },
     },

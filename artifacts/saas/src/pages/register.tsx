@@ -20,36 +20,36 @@ export default function Register() {
   return (
     <PageTransition className="min-h-screen bg-background flex flex-col px-6">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-        <h1 className="text-3xl font-display font-bold mb-2">Account erstellen</h1>
-        <p className="text-muted-foreground mb-8">Speichere deine Kalkulationen sicher in der Cloud.</p>
+        <h1 className="text-4xl font-semibold tracking-tight mb-3 text-foreground">Account erstellen</h1>
+        <p className="text-muted-foreground text-lg mb-10">Speichere deine Kalkulationen sicher in der Cloud.</p>
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-5">
           <Input 
             placeholder="Dein Name" 
             value={name}
             onChange={e => setName(e.target.value)}
-            className="h-14"
+            className="h-14 bg-card border-border/50 text-base"
           />
           <Input 
             type="email" 
             placeholder="E-Mail Adresse" 
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="h-14"
+            className="h-14 bg-card border-border/50 text-base"
           />
           <Input 
             type="password" 
             placeholder="Passwort wählen" 
-            className="h-14"
+            className="h-14 bg-card border-border/50 text-base"
           />
           
-          <Button type="submit" className="w-full h-14 text-lg mt-4">
+          <Button type="submit" className="w-full h-14 text-lg mt-6">
             Kostenlos registrieren
           </Button>
         </form>
 
-        <div className="mt-8 text-center">
-          <p className="text-muted-foreground text-sm">
+        <div className="mt-10 text-center">
+          <p className="text-muted-foreground text-base">
             Schon registriert? <Link href="/login" className="text-primary font-medium hover:underline">Anmelden</Link>
           </p>
         </div>
