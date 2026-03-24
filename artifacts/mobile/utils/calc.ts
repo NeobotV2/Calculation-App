@@ -14,7 +14,9 @@ export function getRoomCalculation(
   const roomType = settings.roomTypes.find((rt) => rt.id === room.roomTypeId);
   if (!roomType) return null;
 
-  const roomGroup = settings.roomGroups.find((rg) => rg.id === roomType.groupId);
+  const roomGroup = settings.roomGroups.find(
+    (rg) => rg.id === (room.roomGroupId || roomType.groupId)
+  );
   if (!roomGroup) return null;
 
   const frequencyOption = frequencyOptions.find(

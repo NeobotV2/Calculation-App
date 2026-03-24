@@ -42,6 +42,7 @@ export function RoomFormModal({
 
   const [name, setName] = useState("");
   const [selectedRoomTypeId, setSelectedRoomTypeId] = useState(roomTypes[0]?.id ?? "");
+  const [selectedGroupId, setSelectedGroupId] = useState(roomTypes[0]?.groupId ?? roomGroups[0]?.id ?? "");
   const [area, setArea] = useState("");
   const [frequencyKey, setFrequencyKey] = useState<FrequencyKey>("1x_week");
   const [performanceOverride, setPerformanceOverride] = useState("");
@@ -54,6 +55,7 @@ export function RoomFormModal({
       if (initialRoom) {
         setName(initialRoom.name);
         setSelectedRoomTypeId(initialRoom.roomTypeId);
+        setSelectedGroupId(initialRoom.roomGroupId);
         setArea(String(initialRoom.area));
         setFrequencyKey(initialRoom.frequencyKey);
         setPerformanceOverride(
@@ -62,15 +64,17 @@ export function RoomFormModal({
             : ""
         );
       } else {
+        const firstType = roomTypes[0];
         setName("");
-        setSelectedRoomTypeId(roomTypes[0]?.id ?? "");
+        setSelectedRoomTypeId(firstType?.id ?? "");
+        setSelectedGroupId(firstType?.groupId ?? roomGroups[0]?.id ?? "");
         setArea("");
         setFrequencyKey("1x_week");
         setPerformanceOverride("");
       }
       setErrors({});
     }
-  }, [visible, initialRoom, roomTypes]);
+  }, [visible, initialRoom, roomTypes, roomGroups]);
 
   const validate = useCallback(() => {
     const errs: Record<string, string> = {};
@@ -98,12 +102,13 @@ export function RoomFormModal({
     onSave({
       name: name.trim(),
       roomTypeId: selectedRoomTypeId,
+      roomGroupId: selectedGroupId,
       area: areaNum,
       frequencyKey,
       performanceValueOverride: perfNum,
     });
     onClose();
-  }, [validate, area, performanceOverride, name, selectedRoomTypeId, frequencyKey, onSave, onClose]);
+  }, [validate, area, performanceOverride, name, selectedRoomTypeId, selectedGroupId, frequencyKey, onSave, onClose]);
 
   const handleDelete = useCallback(() => {
     Alert.alert("Raum löschen", "Möchten Sie diesen Raum wirklich löschen?", [
@@ -190,6 +195,7 @@ export function RoomFormModal({
                           key={rt.id}
                           onPress={() => {
                             setSelectedRoomTypeId(rt.id);
+                            setSelectedGroupId(rt.groupId);
                             setPerformanceOverride("");
                           }}
                           style={[
@@ -215,6 +221,36 @@ export function RoomFormModal({
                 </View>
               ))}
             </ScrollView>
+          </Section>
+
+          <Section title="Raumgruppe" color={c}>
+            <View style={styles.freqGrid}>
+              {roomGroups.map((group) => {
+                const selected = selectedGroupId === group.id;
+                return (
+                  <Pressable
+                    key={group.id}
+                    onPress={() => setSelectedGroupId(group.id)}
+                    style={[
+                      styles.freqChip,
+                      {
+                        backgroundColor: selected ? c.accent + "22" : c.card,
+                        borderColor: selected ? c.accent : c.cardBorder,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.freqChipText,
+                        { color: selected ? c.accent : c.textSecondary },
+                      ]}
+                    >
+                      {group.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </Section>
 
           <Section title="Fläche (m²)" color={c} error={errors.area}>

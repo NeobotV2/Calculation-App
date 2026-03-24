@@ -3,8 +3,10 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Colors from "@/constants/colors";
 
+type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
+
 interface EmptyStateProps {
-  icon: string;
+  icon: FeatherIconName;
   title: string;
   subtitle?: string;
 }
@@ -14,7 +16,7 @@ export function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
   return (
     <View style={styles.container}>
       <View style={[styles.iconWrap, { backgroundColor: c.backgroundTertiary }]}>
-        <Feather name={icon as any} size={28} color={c.textTertiary} />
+        <Feather name={icon} size={28} color={c.textTertiary} />
       </View>
       <Text style={[styles.title, { color: c.textSecondary }]}>{title}</Text>
       {subtitle ? (

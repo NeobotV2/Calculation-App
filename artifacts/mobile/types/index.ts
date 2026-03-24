@@ -28,6 +28,7 @@ export interface Room {
   id: string;
   name: string;
   roomTypeId: string;
+  roomGroupId: string;
   area: number;
   frequencyKey: FrequencyKey;
   performanceValueOverride?: number;
