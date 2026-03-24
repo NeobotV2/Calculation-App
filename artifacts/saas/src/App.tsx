@@ -24,8 +24,12 @@ import PrintView from "@/pages/print/[id]";
 import Einstellungen from "@/pages/einstellungen";
 import Konto from "@/pages/konto";
 import Upgrade from "@/pages/upgrade";
+import Impressum from "@/pages/impressum";
+import Datenschutz from "@/pages/datenschutz";
+import AGB from "@/pages/agb";
 import NotFound from "@/pages/not-found";
 import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/legacy-redirect";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 function SessionLoader() {
   const { isLoading } = useAuth();
@@ -58,7 +62,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isReady || isLoading) return;
 
-    const publicRoutes = ["/splash", "/onboarding", "/login", "/register", "/passwort-vergessen", "/passwort-reset"];
+    const publicRoutes = ["/splash", "/onboarding", "/login", "/register", "/passwort-vergessen", "/passwort-reset", "/impressum", "/datenschutz", "/agb"];
     const isPublic = publicRoutes.some((r) => location === r || location.startsWith(r + "/"));
 
     if (isAuthenticated && (location === "/login" || location === "/register")) {
@@ -104,6 +108,9 @@ function AppRouter() {
         <Route path="/einstellungen" component={Einstellungen} />
         <Route path="/konto" component={Konto} />
         <Route path="/upgrade" component={Upgrade} />
+        <Route path="/impressum" component={Impressum} />
+        <Route path="/datenschutz" component={Datenschutz} />
+        <Route path="/agb" component={AGB} />
         <Route path="/kalkulation" component={KalkulationListRedirect} />
         <Route path="/kalkulation/:id" component={KalkulationDetailRedirect} />
         <Route component={NotFound} />
@@ -114,15 +121,17 @@ function AppRouter() {
 
 function App() {
   return (
-    <SupabaseAuthProvider>
-      <WouterRouter hook={useHashLocation}>
-        <DataSync />
-        <AuthGuard>
-          <AppRouter />
-        </AuthGuard>
-        <Toaster position="top-center" />
-      </WouterRouter>
-    </SupabaseAuthProvider>
+    <ErrorBoundary>
+      <SupabaseAuthProvider>
+        <WouterRouter hook={useHashLocation}>
+          <DataSync />
+          <AuthGuard>
+            <AppRouter />
+          </AuthGuard>
+          <Toaster position="top-center" />
+        </WouterRouter>
+      </SupabaseAuthProvider>
+    </ErrorBoundary>
   );
 }
 

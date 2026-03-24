@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle } from "lucide-react";
+import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { BASIC_LIMITS } from "@/lib/feature-gates";
 
@@ -143,6 +143,27 @@ export default function Konto() {
               <Button onClick={() => setLocation("/upgrade")} className="w-full h-14 text-lg">Jetzt auf Pro upgraden</Button>
             )}
           </div>
+        </div>
+
+        <div className="space-y-1">
+          <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-3 ml-1">Rechtliches</h3>
+          {[
+            { href: "/impressum", icon: FileText, label: "Impressum" },
+            { href: "/datenschutz", icon: Shield, label: "Datenschutzerklärung" },
+            { href: "/agb", icon: ScrollText, label: "AGB" },
+          ].map((item) => (
+            <button
+              key={item.href}
+              onClick={() => setLocation(item.href)}
+              className="w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors first:rounded-b-none last:rounded-t-none [&:not(:first-child):not(:last-child)]:rounded-none border-t-0 first:border-t"
+            >
+              <span className="flex items-center gap-3">
+                <item.icon size={16} className="text-muted-foreground" />
+                {item.label}
+              </span>
+              <ChevronRight size={14} className="text-muted-foreground" />
+            </button>
+          ))}
         </div>
 
         <div className="space-y-3 pt-4">

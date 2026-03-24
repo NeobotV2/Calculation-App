@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Crown, X, CheckCircle2, Lock } from "lucide-react";
 import { useStore } from "@/store/use-store";
+import { toast } from "sonner";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -74,7 +75,7 @@ export function UpgradeModal({ open, onClose, reason }: UpgradeModalProps) {
               </div>
 
               <Button
-                onClick={() => { upgradePlan(); onClose(); }}
+                onClick={() => { upgradePlan(); toast.success("Erfolgreich auf PRO upgegradet!"); onClose(); }}
                 size="lg"
                 className="w-full h-14 text-lg mt-2"
               >

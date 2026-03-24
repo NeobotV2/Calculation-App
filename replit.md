@@ -62,7 +62,7 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 
 **Screens:**
 - `#/splash` — Animated splash screen (auto-redirects after 2.5s)
-- `#/onboarding` — 5-step onboarding (role, company name, hourly rate, demo/fresh)
+- `#/onboarding` — 3-step onboarding (role, company+rate, demo/fresh)
 - `#/login`, `#/register` — Auth screens (Supabase auth with demo fallback)
 - `#/passwort-vergessen` — Password reset request
 - `#/passwort-reset` — Set new password (from email link)
@@ -74,8 +74,11 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 - `#/vorlagen` — Templates list (Pro-only, create from saved objects)
 - `#/print/:id` — Print/PDF view (Pro-only, redirects Basic users to /upgrade)
 - `#/einstellungen` — Settings (company, hourly rate, VAT, default frequency, PDF header/footer)
-- `#/konto` — Account & plan status, logout, data reset
+- `#/konto` — Account & plan status, legal links, logout, data reset
 - `#/upgrade` — Pro plan upgrade page with mock checkout
+- `#/impressum` — Legal: Impressum (placeholder)
+- `#/datenschutz` — Legal: Datenschutzerklärung (placeholder)
+- `#/agb` — Legal: AGB (placeholder)
 
 **Feature gates (Basic plan limits):**
 - Max 3 active projects (`canAddProject`)
@@ -109,6 +112,7 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 - `src/components/room-editor-sheet.tsx` — Room add/edit bottom sheet
 - `src/components/upgrade-modal.tsx` — Upgrade prompt modal
 - `src/components/confirm-dialog.tsx` — Destructive action confirmation
+- `src/components/error-boundary.tsx` — React error boundary (German UI)
 - `src/components/layout/BottomNav.tsx` — 5-tab bottom navigation
 - `src/components/layout/PageTransition.tsx` — Framer Motion page wrapper
 
