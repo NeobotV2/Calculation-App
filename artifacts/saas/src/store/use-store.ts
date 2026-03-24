@@ -2,15 +2,15 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 
-export type FrequencyKey = 
-  | "monthly" 
-  | "biweekly" 
-  | "1x_week" 
-  | "2x_week" 
-  | "3x_week" 
-  | "4x_week" 
-  | "5x_week" 
-  | "6x_week" 
+export type FrequencyKey =
+  | "monthly"
+  | "biweekly"
+  | "1x_week"
+  | "2x_week"
+  | "3x_week"
+  | "4x_week"
+  | "5x_week"
+  | "6x_week"
   | "7x_week";
 
 export interface RoomType {
@@ -37,9 +37,20 @@ export interface Project {
   id: string;
   name: string;
   customer?: string;
+  location?: string;
+  notes?: string;
+  hourlyRate?: number;
+  status: "active" | "archived";
   createdAt: string;
   updatedAt: string;
   rooms: Room[];
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  rooms: Omit<Room, "id">[];
+  createdAt: string;
 }
 
 interface AppState {
@@ -48,28 +59,40 @@ interface AppState {
   isLoggedIn: boolean;
   user: { name: string; email: string; role: string } | null;
   plan: "basic" | "pro";
-  
+
   companyName: string;
   hourlyRate: number;
-  
+  vatRate: number;
+  defaultFrequency: FrequencyKey;
+  pdfHeader: string;
+  pdfFooter: string;
+
   projects: Project[];
-  
-  // Actions
+  templates: Template[];
+
   setHasSeenSplash: () => void;
   completeOnboarding: (data: { role: string; companyName: string; hourlyRate: number; loadDemo: boolean }) => void;
   login: (user: { name: string; email: string }) => void;
   logout: () => void;
   upgradePlan: () => void;
-  updateSettings: (data: Partial<{ companyName: string; hourlyRate: number }>) => void;
-  
+  updateSettings: (data: Partial<{ companyName: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
+
   addProject: (name: string, customer?: string) => string;
-  updateProject: (id: string, data: Partial<Project>) => void;
+  updateProject: (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "rooms">>) => void;
   deleteProject: (id: string) => void;
-  
+  duplicateProject: (id: string) => string;
+  archiveProject: (id: string) => void;
+  restoreProject: (id: string) => void;
+
   addRoom: (projectId: string, room: Omit<Room, "id">) => void;
   updateRoom: (projectId: string, roomId: string, room: Partial<Room>) => void;
   deleteRoom: (projectId: string, roomId: string) => void;
-  
+
+  addTemplate: (name: string, rooms: Omit<Room, "id">[]) => void;
+  deleteTemplate: (id: string) => void;
+  renameTemplate: (id: string, name: string) => void;
+  loadTemplate: (templateId: string, projectName: string) => string;
+
   resetAll: () => void;
 }
 
@@ -77,26 +100,52 @@ const DEMO_PROJECT: Project = {
   id: "demo-1",
   name: "Bürogebäude Musterstraße",
   customer: "Muster GmbH",
+  location: "Berlin, Musterstraße 12",
+  status: "active",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   rooms: [
     {
-      id: "r1", name: "Großraumbüro EG", typeId: "t1", typeName: "Großraumbüro", 
-      groupId: "g1", groupName: "Büro & Verwaltung", area: 250, frequency: "5x_week", typePerformance: 350
+      id: "r1", name: "Großraumbüro EG", typeId: "t1", typeName: "Großraumbüro",
+      groupId: "g1", groupName: "Büro & Verwaltung", area: 250, frequency: "5x_week", typePerformance: 350,
     },
     {
-      id: "r2", name: "Meetingraum Alpha", typeId: "t3", typeName: "Besprechungsraum", 
-      groupId: "g1", groupName: "Büro & Verwaltung", area: 45, frequency: "3x_week", typePerformance: 300
+      id: "r2", name: "Meetingraum Alpha", typeId: "t3", typeName: "Besprechungsraum",
+      groupId: "g1", groupName: "Büro & Verwaltung", area: 45, frequency: "3x_week", typePerformance: 300,
     },
     {
-      id: "r3", name: "WC Herren", typeId: "t5", typeName: "WC / Sanitär klein", 
-      groupId: "g2", groupName: "Sanitär", area: 15, frequency: "5x_week", typePerformance: 50
+      id: "r3", name: "WC Herren", typeId: "t5", typeName: "WC / Sanitär klein",
+      groupId: "g2", groupName: "Sanitär", area: 15, frequency: "5x_week", typePerformance: 50,
     },
     {
-      id: "r4", name: "Teeküche", typeId: "t7", typeName: "Teeküche", 
-      groupId: "g3", groupName: "Küche & Sozial", area: 20, frequency: "5x_week", typePerformance: 120
-    }
-  ]
+      id: "r4", name: "Teeküche", typeId: "t11", typeName: "Teeküche",
+      groupId: "g4", groupName: "Küche & Sozial", area: 20, frequency: "5x_week", typePerformance: 120,
+    },
+  ],
+};
+
+const DEMO_PROJECT_2: Project = {
+  id: "demo-2",
+  name: "Arztpraxis Dr. Schmidt",
+  customer: "Dr. Schmidt",
+  location: "München, Hauptstraße 5",
+  status: "active",
+  createdAt: new Date(Date.now() - 86400000).toISOString(),
+  updatedAt: new Date(Date.now() - 86400000).toISOString(),
+  rooms: [
+    {
+      id: "r5", name: "Wartezimmer", typeId: "t16", typeName: "Arztpraxis",
+      groupId: "g6", groupName: "Medizin & Labor", area: 40, frequency: "5x_week", typePerformance: 120,
+    },
+    {
+      id: "r6", name: "Behandlungsraum 1", typeId: "t16", typeName: "Arztpraxis",
+      groupId: "g6", groupName: "Medizin & Labor", area: 25, frequency: "5x_week", typePerformance: 120,
+    },
+    {
+      id: "r7", name: "WC Patienten", typeId: "t5", typeName: "WC / Sanitär klein",
+      groupId: "g2", groupName: "Sanitär", area: 8, frequency: "5x_week", typePerformance: 50,
+    },
+  ],
 };
 
 export const useStore = create<AppState>()(
@@ -107,85 +156,203 @@ export const useStore = create<AppState>()(
       isLoggedIn: false,
       user: null,
       plan: "basic",
-      
+
       companyName: "Meine Reinigungsfirma",
       hourlyRate: 22.50,
-      
+      vatRate: 0,
+      defaultFrequency: "5x_week" as FrequencyKey,
+      pdfHeader: "",
+      pdfFooter: "",
+
       projects: [],
+      templates: [],
 
       setHasSeenSplash: () => set({ hasSeenSplash: true }),
-      
-      completeOnboarding: (data) => set((state) => ({
-        hasOnboarded: true,
-        user: { name: "Demo User", email: "demo@example.com", role: data.role },
-        companyName: data.companyName,
-        hourlyRate: data.hourlyRate,
-        projects: data.loadDemo ? [DEMO_PROJECT] : []
-      })),
+
+      completeOnboarding: (data) =>
+        set(() => ({
+          hasOnboarded: true,
+          user: { name: data.companyName, email: "demo@cleancalc.pro", role: data.role },
+          companyName: data.companyName,
+          hourlyRate: data.hourlyRate,
+          projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
+        })),
 
       login: (user) => set({ isLoggedIn: true, user: { ...get().user!, ...user } }),
       logout: () => set({ isLoggedIn: false, user: null }),
       upgradePlan: () => set({ plan: "pro" }),
-      
+
       updateSettings: (data) => set((state) => ({ ...state, ...data })),
 
       addProject: (name, customer) => {
         const id = uuidv4();
         const newProj: Project = {
-          id, name, customer, rooms: [],
+          id,
+          name,
+          customer,
+          status: "active",
+          rooms: [],
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: new Date().toISOString(),
         };
         set((state) => ({ projects: [newProj, ...state.projects] }));
         return id;
       },
 
-      updateProject: (id, data) => set((state) => ({
-        projects: state.projects.map(p => 
-          p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p
-        )
-      })),
+      updateProject: (id, data) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p
+          ),
+        })),
 
-      deleteProject: (id) => set((state) => ({
-        projects: state.projects.filter(p => p.id !== id)
-      })),
+      deleteProject: (id) =>
+        set((state) => ({
+          projects: state.projects.filter((p) => p.id !== id),
+        })),
 
-      addRoom: (projectId, room) => set((state) => ({
-        projects: state.projects.map(p => 
-          p.id === projectId ? {
-            ...p, 
-            rooms: [...p.rooms, { ...room, id: uuidv4() }],
-            updatedAt: new Date().toISOString()
-          } : p
-        )
-      })),
+      duplicateProject: (id) => {
+        const original = get().projects.find((p) => p.id === id);
+        if (!original) return "";
+        const newId = uuidv4();
+        const dup: Project = {
+          ...original,
+          id: newId,
+          name: `${original.name} (Kopie)`,
+          status: "active",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          rooms: original.rooms.map((r) => ({ ...r, id: uuidv4() })),
+        };
+        set((state) => ({ projects: [dup, ...state.projects] }));
+        return newId;
+      },
 
-      updateRoom: (projectId, roomId, roomData) => set((state) => ({
-        projects: state.projects.map(p => 
-          p.id === projectId ? {
-            ...p,
-            rooms: p.rooms.map(r => r.id === roomId ? { ...r, ...roomData } : r),
-            updatedAt: new Date().toISOString()
-          } : p
-        )
-      })),
+      archiveProject: (id) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, status: "archived" as const, updatedAt: new Date().toISOString() } : p
+          ),
+        })),
 
-      deleteRoom: (projectId, roomId) => set((state) => ({
-        projects: state.projects.map(p => 
-          p.id === projectId ? {
-            ...p,
-            rooms: p.rooms.filter(r => r.id !== roomId),
-            updatedAt: new Date().toISOString()
-          } : p
-        )
-      })),
+      restoreProject: (id) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === id ? { ...p, status: "active" as const, updatedAt: new Date().toISOString() } : p
+          ),
+        })),
 
-      resetAll: () => set({
-        hasOnboarded: false, isLoggedIn: false, user: null, projects: [], plan: "basic"
-      })
+      addRoom: (projectId, room) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  rooms: [...p.rooms, { ...room, id: uuidv4() }],
+                  updatedAt: new Date().toISOString(),
+                }
+              : p
+          ),
+        })),
+
+      updateRoom: (projectId, roomId, roomData) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  rooms: p.rooms.map((r) => (r.id === roomId ? { ...r, ...roomData } : r)),
+                  updatedAt: new Date().toISOString(),
+                }
+              : p
+          ),
+        })),
+
+      deleteRoom: (projectId, roomId) =>
+        set((state) => ({
+          projects: state.projects.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  rooms: p.rooms.filter((r) => r.id !== roomId),
+                  updatedAt: new Date().toISOString(),
+                }
+              : p
+          ),
+        })),
+
+      addTemplate: (name, rooms) =>
+        set((state) => ({
+          templates: [
+            ...state.templates,
+            { id: uuidv4(), name, rooms, createdAt: new Date().toISOString() },
+          ],
+        })),
+
+      deleteTemplate: (id) =>
+        set((state) => ({
+          templates: state.templates.filter((t) => t.id !== id),
+        })),
+
+      renameTemplate: (id, name) =>
+        set((state) => ({
+          templates: state.templates.map((t) => (t.id === id ? { ...t, name } : t)),
+        })),
+
+      loadTemplate: (templateId, projectName) => {
+        const tpl = get().templates.find((t) => t.id === templateId);
+        if (!tpl) return "";
+        const newId = uuidv4();
+        const proj: Project = {
+          id: newId,
+          name: projectName,
+          status: "active",
+          rooms: tpl.rooms.map((r) => ({ ...r, id: uuidv4() })),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        set((state) => ({ projects: [proj, ...state.projects] }));
+        return newId;
+      },
+
+      resetAll: () =>
+        set({
+          hasOnboarded: false,
+          hasSeenSplash: false,
+          isLoggedIn: false,
+          user: null,
+          projects: [],
+          templates: [],
+          plan: "basic",
+          companyName: "Meine Reinigungsfirma",
+          hourlyRate: 22.50,
+          vatRate: 0,
+          defaultFrequency: "5x_week" as FrequencyKey,
+          pdfHeader: "",
+          pdfFooter: "",
+        }),
     }),
     {
       name: "cleancalc-storage",
+      version: 2,
+      migrate: (persisted: any, version: number) => {
+        if (version < 2) {
+          const old = persisted as any;
+          return {
+            ...old,
+            vatRate: old.vatRate ?? 0,
+            defaultFrequency: old.defaultFrequency ?? "5x_week",
+            pdfHeader: old.pdfHeader ?? "",
+            pdfFooter: old.pdfFooter ?? "",
+            templates: old.templates ?? [],
+            projects: (old.projects ?? []).map((p: any) => ({
+              ...p,
+              status: p.status ?? "active",
+            })),
+          };
+        }
+        return persisted as any;
+      },
     }
   )
 );

@@ -22,6 +22,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
 │   └── api-server/         # Express API server
+│   └── saas/               # CleanCalc Pro SaaS web app
+│   └── mobile/             # Reinigungskalkulator mobile app (Expo)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -52,28 +54,51 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### `artifacts/saas` (`@workspace/saas`) — CleanCalc Pro Web SaaS
 
-Full-featured German-language SaaS web app for commercial cleaning companies. Mobile-first React + Vite + Tailwind, dark premium theme, all data in localStorage (demo mode), with Stripe/Supabase preparation.
+Full-featured German-language SaaS web app for commercial cleaning companies. Mobile-first React + Vite + Tailwind, dark premium theme (muted teal `171 40% 42%`, background `222 20% 6%`), Inter font only. All data in localStorage via Zustand (demo mode), with Stripe/Supabase preparation.
+
+**Routing:** Hash-based routing via `wouter` + `useHashLocation`. All URLs are `#/path`.
+
+**Auth flow:** AuthGuard redirects: splash → onboarding → home based on `hasSeenSplash` / `hasOnboarded` store flags.
 
 **Screens:**
-- /splash — Animated splash screen
-- /onboarding — 6-step onboarding funnel (user type, company name, hourly rate, demo or fresh start, registration optional)
-- /login, /register — Auth screens (mock auth to localStorage)
-- / — Home dashboard (KPIs, quick actions, recent objects, upgrade card)
-- /kalkulation — Objects list + /kalkulation/:id Object detail with room editor
-- /auswertung/:id — Professional results summary (KPI cards, room table, Pro features preview)
-- /objekte — Objects list with search, filter, archive/delete
-- /einstellungen — Settings (company, room types, groups, frequencies, branding)
-- /konto — Account and subscription status
-- /upgrade — Basic vs Pro plan comparison with mock checkout
+- `#/splash` — Animated splash screen (auto-redirects after 2.5s)
+- `#/onboarding` — 5-step onboarding (role, company name, hourly rate, demo/fresh)
+- `#/login`, `#/register` — Auth screens (mock auth)
+- `#/` — Home dashboard (KPIs, quick actions, recent projects, upgrade CTA)
+- `#/objekte` — Objects list with search, filter tabs (all/active/archived), action menu (duplicate/archive/delete)
+- `#/objekte/:id` — Object detail (inline name edit, room list, add/edit rooms via RoomEditorSheet, info sheet, template save, PDF gate)
+- `#/auswertung` — Global auswertung (all-project KPIs, top 5, recently edited)
+- `#/auswertung/:id` — Per-project auswertung (breakdown by room group, Pro features preview with blur gate)
+- `#/vorlagen` — Templates list (Pro-only, create from saved objects)
+- `#/print/:id` — Print/PDF view (Pro-only, redirects Basic users to /upgrade)
+- `#/einstellungen` — Settings (company, hourly rate, VAT, default frequency, PDF header/footer)
+- `#/konto` — Account & plan status, logout, data reset
+- `#/upgrade` — Pro plan upgrade page with mock checkout
 
-**Stack:** React, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Zustand, Lucide React, Wouter routing, shadcn/ui
-**State:** Zustand with localStorage persistence (no backend needed)
+**Feature gates (Basic plan limits):**
+- Max 3 active projects (`canAddProject`)
+- Max 20 rooms per project (`canAddRoom`)
+- PDF export blocked (`canUsePDF`)
+- Templates blocked (`canUseTemplates`)
+- Custom performance override blocked (`canOverridePerformance`)
+
+**Store:** Zustand with localStorage persistence, name `cleancalc-storage`, version 2 with migration.
+
+**BottomNav:** 5 tabs — Übersicht, Objekte, Auswertung, Einstellungen, Konto
+
+**Stack:** React, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Zustand, Lucide React, Wouter (hash routing), shadcn/ui, Sonner (toasts)
+
 **Key files:**
-- `src/App.tsx` — routing (Wouter, with AuthGuard)
-- `src/store/use-store.ts` — Zustand store (all state + localStorage)
-- `src/lib/calc.ts` — calculation logic (monthlyHours, monthlyCost, annualCost)
-- `src/pages/` — all screens
-- `src/components/layout/BottomNav.tsx` — bottom navigation
+- `src/App.tsx` — Router with AuthGuard, all routes
+- `src/store/use-store.ts` — Zustand store (projects, templates, settings, auth)
+- `src/lib/calc.ts` — Calculation engine (calcRoom, calcProjectTotals)
+- `src/lib/feature-gates.ts` — Plan-based feature gates
+- `src/data/room-types.ts` — 19 canonical room types in 7 groups
+- `src/components/room-editor-sheet.tsx` — Room add/edit bottom sheet
+- `src/components/upgrade-modal.tsx` — Upgrade prompt modal
+- `src/components/confirm-dialog.tsx` — Destructive action confirmation
+- `src/components/layout/BottomNav.tsx` — 5-tab bottom navigation
+- `src/components/layout/PageTransition.tsx` — Framer Motion page wrapper
 
 ---
 

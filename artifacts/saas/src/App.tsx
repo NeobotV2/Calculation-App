@@ -1,51 +1,54 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { useEffect, useState } from "react";
 import { useStore } from "@/store/use-store";
 import { AnimatePresence } from "framer-motion";
+import { Toaster } from "@/components/ui/sonner";
 
-// Pages
 import Splash from "@/pages/splash";
 import Onboarding from "@/pages/onboarding";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Home from "@/pages/home";
-import KalkulationList from "@/pages/kalkulation/index";
-import KalkulationDetail from "@/pages/kalkulation/[id]";
-import AuswertungDetail from "@/pages/auswertung/[id]";
 import ObjekteList from "@/pages/objekte/index";
+import ObjektDetail from "@/pages/objekte/[id]";
+import AuswertungGlobal from "@/pages/auswertung/index";
+import AuswertungDetail from "@/pages/auswertung/[id]";
+import Vorlagen from "@/pages/vorlagen";
+import PrintView from "@/pages/print/[id]";
 import Einstellungen from "@/pages/einstellungen";
 import Konto from "@/pages/konto";
 import Upgrade from "@/pages/upgrade";
+import NotFound from "@/pages/not-found";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const hasSeenSplash = useStore(s => s.hasSeenSplash);
-  const hasOnboarded = useStore(s => s.hasOnboarded);
+  const hasSeenSplash = useStore((s) => s.hasSeenSplash);
+  const hasOnboarded = useStore((s) => s.hasOnboarded);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Give store a moment to rehydrate from localStorage
     setIsReady(true);
   }, []);
 
   useEffect(() => {
     if (!isReady) return;
-    
-    const isPublicRoute = ["/splash", "/onboarding", "/login", "/register"].includes(location);
-    
+
+    const publicRoutes = ["/splash", "/onboarding", "/login", "/register"];
+    const isPublic = publicRoutes.some((r) => location === r || location.startsWith(r + "/"));
+
     if (!hasSeenSplash && location !== "/splash") {
       setLocation("/splash");
-    } else if (hasSeenSplash && !hasOnboarded && !isPublicRoute) {
+    } else if (hasSeenSplash && !hasOnboarded && !isPublic) {
       setLocation("/onboarding");
     }
   }, [location, hasSeenSplash, hasOnboarded, setLocation, isReady]);
 
-  if (!isReady) return null; // Or a very minimal spinner
-
+  if (!isReady) return null;
   return <>{children}</>;
 }
 
-function Router() {
+function AppRouter() {
   const [location] = useLocation();
 
   return (
@@ -56,18 +59,16 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/" component={Home} />
-        <Route path="/kalkulation" component={KalkulationList} />
-        <Route path="/kalkulation/:id" component={KalkulationDetail} />
-        <Route path="/auswertung/:id" component={AuswertungDetail} />
         <Route path="/objekte" component={ObjekteList} />
+        <Route path="/objekte/:id" component={ObjektDetail} />
+        <Route path="/auswertung" component={AuswertungGlobal} />
+        <Route path="/auswertung/:id" component={AuswertungDetail} />
+        <Route path="/vorlagen" component={Vorlagen} />
+        <Route path="/print/:id" component={PrintView} />
         <Route path="/einstellungen" component={Einstellungen} />
         <Route path="/konto" component={Konto} />
         <Route path="/upgrade" component={Upgrade} />
-        <Route>
-          <div className="min-h-screen bg-background flex items-center justify-center text-white">
-            404 - Seite nicht gefunden
-          </div>
-        </Route>
+        <Route component={NotFound} />
       </Switch>
     </AnimatePresence>
   );
@@ -75,10 +76,11 @@ function Router() {
 
 function App() {
   return (
-    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+    <WouterRouter hook={useHashLocation}>
       <AuthGuard>
-        <Router />
+        <AppRouter />
       </AuthGuard>
+      <Toaster position="top-center" />
     </WouterRouter>
   );
 }

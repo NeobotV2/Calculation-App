@@ -61,6 +61,9 @@
   --ring: 171 40% 42%;
   
   --radius: 1rem;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer base {
@@ -94,6 +97,28 @@
   }
   
   .glass-card {
-    @apply bg-card border border-border/40 rounded-2xl;
+    @apply bg-card border border-border/30 rounded-2xl;
+  }
+
+  .pt-safe {
+    padding-top: var(--safe-top);
+  }
+
+  .pb-safe {
+    padding-bottom: var(--safe-bottom);
+  }
+
+  .safe-header {
+    padding-top: calc(var(--safe-top) + 12px);
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
   }
 }
