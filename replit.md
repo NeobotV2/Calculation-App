@@ -54,11 +54,13 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### `artifacts/saas` (`@workspace/saas`) — CleanCalc Pro Web SaaS
 
-Full-featured German-language SaaS web app for commercial cleaning companies. Mobile-first React + Vite + Tailwind, dark premium theme (muted teal `171 40% 42%`, background `222 20% 6%`), Inter font only. All data in localStorage via Zustand (demo mode), with Stripe/Supabase preparation.
+Full-featured German-language SaaS web app for commercial cleaning companies. Mobile-first React + Vite + Tailwind, dark premium theme (muted teal `171 40% 42%`, background `222 20% 6%`), Inter font only. Dual-path data: Supabase when authenticated, localStorage via Zustand in demo mode.
 
 **Routing:** Hash-based routing via `wouter` + `useHashLocation`. All URLs are `#/path`.
 
-**Auth flow:** AuthGuard redirects: splash → onboarding → home based on `hasSeenSplash` / `hasOnboarded` store flags. Supabase auth (email/password) with session persistence, password reset, and email confirmation. Demo mode uses localStorage fallback when Supabase is not configured.
+**Auth flow:** AuthGuard redirects: splash → onboarding → home based on `hasSeenSplash` / `hasOnboarded` store flags. Supabase auth (email/password) with session persistence, password reset, email confirmation with resend, and auth callback handling for hash routing. Demo mode uses localStorage fallback when Supabase is not configured.
+
+**Supabase:** Connected via `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` secrets. Database schema in `supabase/migrations/001_initial_schema.sql`. Auto-provisioning trigger creates company, profile, settings, and subscription on user signup. RLS policies restrict all data access to user's company. Auth callback handler in `src/lib/auth-callback.ts` intercepts Supabase tokens from URL hash (email confirmation, password reset) before React router mounts.
 
 **Screens:**
 - `#/splash` — Animated splash screen (auto-redirects after 2.5s)
@@ -106,6 +108,10 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 **Key files:**
 - `src/App.tsx` — Router with AuthGuard, SupabaseAuthProvider, DataSync, all routes
 - `src/store/use-store.ts` — Zustand store (projects, templates, settings, auth)
+- `src/lib/auth-context.tsx` — Supabase auth context (login, register, logout, password reset, resend confirmation)
+- `src/lib/auth-callback.ts` — Hash-routing auth callback interceptor (runs before React)
+- `src/lib/supabase.ts` — Supabase client singleton
+- `supabase/migrations/001_initial_schema.sql` — Full database schema with RLS + auto-provisioning trigger
 - `src/lib/calc.ts` — Calculation engine (calcRoom, calcProjectTotals)
 - `src/lib/feature-gates.ts` — Plan-based feature gates
 - `src/data/room-types.ts` — 19 canonical room types in 7 groups
