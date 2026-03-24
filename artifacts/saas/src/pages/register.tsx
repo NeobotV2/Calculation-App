@@ -13,6 +13,7 @@ export default function Register() {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
+    // TODO: Replace with Supabase auth — call supabase.auth.signUp(), then set user from session
     login({ name: name || "Neu", email: email || "neu@example.com" });
     setLocation("/");
   };

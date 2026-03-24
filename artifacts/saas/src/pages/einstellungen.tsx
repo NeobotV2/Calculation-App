@@ -216,7 +216,7 @@ export default function Einstellungen() {
                         <button onClick={() => startEditRoomType(rt)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
                           <Edit3 size={14} className="text-muted-foreground" />
                         </button>
-                        <button onClick={() => { deleteCustomRoomType(rt.id); toast.success("Raumart entfernt"); }} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
+                        <button onClick={() => { if (confirm("Raumart wirklich löschen?")) { deleteCustomRoomType(rt.id); toast.success("Raumart entfernt"); } }} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
                           <Trash2 size={14} className="text-destructive" />
                         </button>
                       </div>
