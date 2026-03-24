@@ -152,10 +152,13 @@ export function RoomFormModal({
             {initialRoom ? "Raum bearbeiten" : "Raum hinzufügen"}
           </Text>
           <Pressable
-            onPress={handleSave}
+            onPress={roomTypes.length === 0 ? undefined : handleSave}
             style={({ pressed }) => [
               styles.saveBtn,
-              { backgroundColor: c.accent, opacity: pressed ? 0.85 : 1 },
+              {
+                backgroundColor: roomTypes.length === 0 ? c.textTertiary : c.accent,
+                opacity: pressed && roomTypes.length > 0 ? 0.85 : 1,
+              },
             ]}
           >
             <Text style={styles.saveBtnText}>Speichern</Text>
