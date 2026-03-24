@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { useStore, type Room } from "@/store/use-store";
+import { useStoreActions } from "@/hooks/use-store-actions";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -21,14 +22,7 @@ export default function ObjektDetail() {
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
   const plan = useStore((s) => s.plan);
-  const updateProject = useStore((s) => s.updateProject);
-  const deleteProject = useStore((s) => s.deleteProject);
-  const duplicateProject = useStore((s) => s.duplicateProject);
-  const archiveProject = useStore((s) => s.archiveProject);
-  const addRoom = useStore((s) => s.addRoom);
-  const updateRoom = useStore((s) => s.updateRoom);
-  const deleteRoom = useStore((s) => s.deleteRoom);
-  const addTemplate = useStore((s) => s.addTemplate);
+  const actions = useStoreActions();
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState("");
@@ -60,30 +54,44 @@ export default function ObjektDetail() {
   const effectiveRate = project.hourlyRate ?? hourlyRate;
   const totals = calcProjectTotals(project, effectiveRate);
 
-  const handleSaveName = () => {
-    if (nameInput.trim()) updateProject(project.id, { name: nameInput.trim() });
+  const handleSaveName = async () => {
+    if (nameInput.trim()) {
+      try {
+        await actions.updateProject(project.id, { name: nameInput.trim() });
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
+      }
+    }
     setIsEditingName(false);
   };
 
-  const handleSaveInfo = () => {
+  const handleSaveInfo = async () => {
     const parsedRate = rateInput ? parseFloat(rateInput.replace(",", ".")) : undefined;
-    updateProject(project.id, {
-      customer: customerInput.trim() || undefined,
-      location: locationInput.trim() || undefined,
-      notes: notesInput.trim() || undefined,
-      hourlyRate: parsedRate && parsedRate > 0 ? parsedRate : undefined,
-    });
-    toast.success("Objektinfo gespeichert");
+    try {
+      await actions.updateProject(project.id, {
+        customer: customerInput.trim() || undefined,
+        location: locationInput.trim() || undefined,
+        notes: notesInput.trim() || undefined,
+        hourlyRate: parsedRate && parsedRate > 0 ? parsedRate : undefined,
+      });
+      toast.success("Objektinfo gespeichert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
+    }
     setShowInfo(false);
   };
 
-  const handleAddRoom = (room: Omit<Room, "id">) => {
-    if (editingRoom) {
-      updateRoom(project.id, editingRoom.id, room);
-      toast.success("Raum aktualisiert");
-    } else {
-      addRoom(project.id, room);
-      toast.success("Raum hinzugefügt");
+  const handleAddRoom = async (room: Omit<Room, "id">) => {
+    try {
+      if (editingRoom) {
+        await actions.updateRoom(project.id, editingRoom.id, room);
+        toast.success("Raum aktualisiert");
+      } else {
+        await actions.addRoom(project.id, room);
+        toast.success("Raum hinzugefügt");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
     }
     setSheetOpen(false);
     setEditingRoom(undefined);
@@ -100,16 +108,67 @@ export default function ObjektDetail() {
     setSheetOpen(true);
   };
 
-  const handleSaveAsTemplate = () => {
+  const handleSaveAsTemplate = async () => {
     const gate = canUseTemplates();
     if (!gate.allowed) {
       setUpgradeReason(gate.reason || "");
       setUpgradeOpen(true);
       return;
     }
-    addTemplate(project.name, project.rooms.map(({ id, ...rest }) => rest));
-    toast.success("Als Vorlage gespeichert");
+    try {
+      await actions.addTemplate(project.name, project.rooms.map(({ id: _id, ...rest }) => rest));
+      toast.success("Als Vorlage gespeichert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
+    }
     setMenuOpen(false);
+  };
+
+  const handleDuplicate = async () => {
+    const gate = canAddProject();
+    if (!gate.allowed) {
+      setUpgradeReason(gate.reason || "");
+      setUpgradeOpen(true);
+      setMenuOpen(false);
+      return;
+    }
+    try {
+      await actions.duplicateProject(project.id);
+      toast.success("Dupliziert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Duplizieren");
+    }
+    setMenuOpen(false);
+  };
+
+  const handleArchive = async () => {
+    try {
+      await actions.archiveProject(project.id);
+      toast.success("Archiviert");
+      setLocation("/objekte");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Archivieren");
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    try {
+      await actions.deleteProject(project.id);
+      setLocation("/objekte");
+      toast.success("Objekt gelöscht");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    try {
+      await actions.deleteRoom(project.id, roomId);
+      toast.success("Raum gelöscht");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+    }
+    setDeleteRoomId(null);
   };
 
   return (
@@ -133,14 +192,14 @@ export default function ObjektDetail() {
           <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
           <div className="absolute top-24 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
             <button onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" /> Info bearbeiten</button>
-            <button onClick={() => { const gate = canAddProject(); if (!gate.allowed) { setUpgradeReason(gate.reason || ""); setUpgradeOpen(true); } else { duplicateProject(project.id); toast.success("Dupliziert"); } setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
+            <button onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
             <button onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" /> Als Vorlage speichern</button>
             <button onClick={() => {
               const gate = canUsePDF();
               if (!gate.allowed) { setUpgradeReason(gate.reason || ""); setUpgradeOpen(true); } else { setLocation(`/print/${project.id}`); }
               setMenuOpen(false);
             }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> PDF exportieren {plan === "basic" && <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-semibold ml-auto">PRO</span>}</button>
-            <button onClick={() => { archiveProject(project.id); toast.success("Archiviert"); setLocation("/objekte"); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" /> Archivieren</button>
+            <button onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" /> Archivieren</button>
             <button onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} /> Löschen</button>
           </div>
         </>
@@ -273,8 +332,8 @@ export default function ObjektDetail() {
       />
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
-      <ConfirmDialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={() => { deleteProject(project.id); setLocation("/objekte"); toast.success("Objekt gelöscht"); }} title="Objekt löschen?" description="Alle Räume und Daten werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
-      <ConfirmDialog open={!!deleteRoomId} onClose={() => setDeleteRoomId(null)} onConfirm={() => { if (deleteRoomId) { deleteRoom(project.id, deleteRoomId); toast.success("Raum gelöscht"); } setDeleteRoomId(null); }} title="Raum löschen?" description="Der Raum wird aus dem Objekt entfernt." confirmLabel="Löschen" destructive />
+      <ConfirmDialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={handleDeleteProject} title="Objekt löschen?" description="Alle Räume und Daten werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
+      <ConfirmDialog open={!!deleteRoomId} onClose={() => setDeleteRoomId(null)} onConfirm={() => { if (deleteRoomId) handleDeleteRoom(deleteRoomId); }} title="Raum löschen?" description="Der Raum wird aus dem Objekt entfernt." confirmLabel="Löschen" destructive />
 
       {showInfo && (
         <>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
+import { useStoreActions } from "@/hooks/use-store-actions";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -14,27 +15,49 @@ import { toast } from "sonner";
 export default function Vorlagen() {
   const [, setLocation] = useLocation();
   const templates = useStore((s) => s.templates);
-  const deleteTemplate = useStore((s) => s.deleteTemplate);
-  const renameTemplate = useStore((s) => s.renameTemplate);
-  const loadTemplate = useStore((s) => s.loadTemplate);
   const plan = useStore((s) => s.plan);
+  const actions = useStoreActions();
 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
 
-  const handleLoad = (templateId: string) => {
+  const handleLoad = async (templateId: string) => {
     const gate = canUseTemplates();
     if (!gate.allowed) {
       setUpgradeOpen(true);
       return;
     }
-    const id = loadTemplate(templateId, "Neues Objekt (Vorlage)");
-    if (id) {
-      toast.success("Objekt aus Vorlage erstellt");
-      setLocation(`/objekte/${id}`);
+    try {
+      const id = await actions.loadTemplate(templateId, "Neues Objekt (Vorlage)");
+      if (id) {
+        toast.success("Objekt aus Vorlage erstellt");
+        setLocation(`/objekte/${id}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Laden");
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await actions.deleteTemplate(id);
+      toast.success("Vorlage gelöscht");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+    }
+    setDeleteConfirm(null);
+  };
+
+  const handleRename = async (id: string, name: string) => {
+    try {
+      await actions.renameTemplate(id, name);
+      toast.success("Umbenannt");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Umbenennen");
+    }
+    setEditingId(null);
   };
 
   if (plan === "basic") {
@@ -82,7 +105,7 @@ export default function Vorlagen() {
                 {editingId === tpl.id ? (
                   <div className="flex gap-2 flex-1 mr-2">
                     <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-9 text-sm bg-background" autoFocus />
-                    <Button size="icon" variant="ghost" onClick={() => { renameTemplate(tpl.id, editName); setEditingId(null); toast.success("Umbenannt"); }}>
+                    <Button size="icon" variant="ghost" onClick={() => handleRename(tpl.id, editName)}>
                       <Check size={16} />
                     </Button>
                     <Button size="icon" variant="ghost" onClick={() => setEditingId(null)}>
@@ -111,7 +134,7 @@ export default function Vorlagen() {
       </div>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason="Vorlagen sind ein Pro-Feature." />
-      <ConfirmDialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={() => { if (deleteConfirm) deleteTemplate(deleteConfirm); toast.success("Vorlage gelöscht"); setDeleteConfirm(null); }} title="Vorlage löschen?" description="Die Vorlage wird unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
+      <ConfirmDialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={() => { if (deleteConfirm) handleDelete(deleteConfirm); }} title="Vorlage löschen?" description="Die Vorlage wird unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
     </PageTransition>
   );
 }

@@ -2,13 +2,18 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { useEffect, useState } from "react";
 import { useStore } from "@/store/use-store";
+import { useAuth, SupabaseAuthProvider } from "@/lib/auth-context";
+import { useSupabaseSync } from "@/hooks/use-supabase-sync";
 import { AnimatePresence } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
+import { Sparkles } from "lucide-react";
 
 import Splash from "@/pages/splash";
 import Onboarding from "@/pages/onboarding";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import PasswortVergessen from "@/pages/passwort-vergessen";
+import PasswortReset from "@/pages/passwort-reset";
 import Home from "@/pages/home";
 import ObjekteList from "@/pages/objekte/index";
 import ObjektDetail from "@/pages/objekte/[id]";
@@ -22,10 +27,28 @@ import Upgrade from "@/pages/upgrade";
 import NotFound from "@/pages/not-found";
 import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/legacy-redirect";
 
+function SessionLoader() {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-6 shadow-lg">
+          <Sparkles className="w-8 h-8 text-primary-foreground" strokeWidth={1.5} />
+        </div>
+        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return null;
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const hasSeenSplash = useStore((s) => s.hasSeenSplash);
   const hasOnboarded = useStore((s) => s.hasOnboarded);
+  const { isLoading, isAuthenticated } = useAuth();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -33,20 +56,30 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || isLoading) return;
 
-    const publicRoutes = ["/splash", "/onboarding", "/login", "/register"];
+    const publicRoutes = ["/splash", "/onboarding", "/login", "/register", "/passwort-vergessen", "/passwort-reset"];
     const isPublic = publicRoutes.some((r) => location === r || location.startsWith(r + "/"));
+
+    if (isAuthenticated && (location === "/login" || location === "/register")) {
+      setLocation("/");
+      return;
+    }
 
     if (!hasSeenSplash && location !== "/splash") {
       setLocation("/splash");
-    } else if (hasSeenSplash && !hasOnboarded && !isPublic) {
+    } else if (hasSeenSplash && !hasOnboarded && !isAuthenticated && !isPublic) {
       setLocation("/onboarding");
     }
-  }, [location, hasSeenSplash, hasOnboarded, setLocation, isReady]);
+  }, [location, hasSeenSplash, hasOnboarded, setLocation, isReady, isLoading, isAuthenticated]);
 
-  if (!isReady) return null;
+  if (!isReady || isLoading) return <SessionLoader />;
   return <>{children}</>;
+}
+
+function DataSync() {
+  useSupabaseSync();
+  return null;
 }
 
 function AppRouter() {
@@ -59,6 +92,8 @@ function AppRouter() {
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
+        <Route path="/passwort-vergessen" component={PasswortVergessen} />
+        <Route path="/passwort-reset" component={PasswortReset} />
         <Route path="/" component={Home} />
         <Route path="/objekte" component={ObjekteList} />
         <Route path="/objekte/:id" component={ObjektDetail} />
@@ -79,12 +114,15 @@ function AppRouter() {
 
 function App() {
   return (
-    <WouterRouter hook={useHashLocation}>
-      <AuthGuard>
-        <AppRouter />
-      </AuthGuard>
-      <Toaster position="top-center" />
-    </WouterRouter>
+    <SupabaseAuthProvider>
+      <WouterRouter hook={useHashLocation}>
+        <DataSync />
+        <AuthGuard>
+          <AppRouter />
+        </AuthGuard>
+        <Toaster position="top-center" />
+      </WouterRouter>
+    </SupabaseAuthProvider>
   );
 }
 

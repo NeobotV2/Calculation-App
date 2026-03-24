@@ -58,12 +58,14 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 
 **Routing:** Hash-based routing via `wouter` + `useHashLocation`. All URLs are `#/path`.
 
-**Auth flow:** AuthGuard redirects: splash → onboarding → home based on `hasSeenSplash` / `hasOnboarded` store flags.
+**Auth flow:** AuthGuard redirects: splash → onboarding → home based on `hasSeenSplash` / `hasOnboarded` store flags. Supabase auth (email/password) with session persistence, password reset, and email confirmation. Demo mode uses localStorage fallback when Supabase is not configured.
 
 **Screens:**
 - `#/splash` — Animated splash screen (auto-redirects after 2.5s)
 - `#/onboarding` — 5-step onboarding (role, company name, hourly rate, demo/fresh)
-- `#/login`, `#/register` — Auth screens (mock auth)
+- `#/login`, `#/register` — Auth screens (Supabase auth with demo fallback)
+- `#/passwort-vergessen` — Password reset request
+- `#/passwort-reset` — Set new password (from email link)
 - `#/` — Home dashboard (KPIs, quick actions, recent projects, upgrade CTA)
 - `#/objekte` — Objects list with search, filter tabs (all/active/archived), action menu (duplicate/archive/delete)
 - `#/objekte/:id` — Object detail (inline name edit, room list, add/edit rooms via RoomEditorSheet, info sheet, template save, PDF gate)
@@ -82,14 +84,24 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 - Templates blocked (`canUseTemplates`)
 - Custom performance override blocked (`canOverridePerformance`)
 
-**Store:** Zustand with localStorage persistence, name `cleancalc-storage`, version 2 with migration.
+**Store:** Zustand with localStorage persistence, name `cleancalc-storage`, version 3 with migration. When authenticated via Supabase, data is synced from PostgreSQL; in demo mode, localStorage is used.
 
 **BottomNav:** 5 tabs — Übersicht, Objekte, Auswertung, Einstellungen, Konto
 
-**Stack:** React, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Zustand, Lucide React, Wouter (hash routing), shadcn/ui, Sonner (toasts)
+**Stack:** React, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Zustand, Lucide React, Wouter (hash routing), shadcn/ui, Sonner (toasts), @supabase/supabase-js
+
+**Supabase Integration:**
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` env vars enable Supabase; without them, app runs in demo-only mode
+- `src/lib/supabase.ts` — Supabase client singleton
+- `src/lib/auth-context.tsx` — React context for auth state + signIn/signUp/signOut/resetPassword/updatePassword
+- `src/hooks/use-supabase-sync.ts` — Syncs Supabase data into Zustand store on auth
+- `src/hooks/use-store-actions.ts` — Hook wrapping all CRUD operations; routes through Supabase services when authenticated, falls back to Zustand store in demo mode
+- `src/services/` — Service layer: object-service, template-service, settings-service, plan-service, profile-service, custom-room-type-service, migration-service
+- `src/lib/migrations/001_initial_schema.sql` — Full PostgreSQL schema with RLS policies, auto-provisioning trigger, tables: companies, profiles, company_settings, subscriptions, cleaning_objects, rooms, templates, custom_room_types
+- Demo data migration: on login/register, if demo data exists in localStorage, user is prompted to import it into their Supabase account
 
 **Key files:**
-- `src/App.tsx` — Router with AuthGuard, all routes
+- `src/App.tsx` — Router with AuthGuard, SupabaseAuthProvider, DataSync, all routes
 - `src/store/use-store.ts` — Zustand store (projects, templates, settings, auth)
 - `src/lib/calc.ts` — Calculation engine (calcRoom, calcProjectTotals)
 - `src/lib/feature-gates.ts` — Plan-based feature gates

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
+import { useStoreActions } from "@/hooks/use-store-actions";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
@@ -19,13 +20,8 @@ export default function ObjekteList() {
   const [, setLocation] = useLocation();
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
-  const addProject = useStore((s) => s.addProject);
-  const duplicateProject = useStore((s) => s.duplicateProject);
-  const archiveProject = useStore((s) => s.archiveProject);
-  const restoreProject = useStore((s) => s.restoreProject);
-  const deleteProject = useStore((s) => s.deleteProject);
-  const updateProject = useStore((s) => s.updateProject);
   const plan = useStore((s) => s.plan);
+  const actions = useStoreActions();
 
   const [search, setSearch] = useState("");
   const [renameId, setRenameId] = useState<string | null>(null);
@@ -35,6 +31,7 @@ export default function ObjekteList() {
   const [upgradeReason, setUpgradeReason] = useState("");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [isWorking, setIsWorking] = useState(false);
   const hydrated = useHydrated();
 
   const filtered = projects
@@ -50,34 +47,80 @@ export default function ObjekteList() {
     })
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
       setUpgradeReason(gate.reason || "");
       setUpgradeOpen(true);
       return;
     }
-    const id = addProject("Neues Objekt");
-    toast.success("Objekt erstellt");
-    setLocation(`/objekte/${id}`);
+    setIsWorking(true);
+    try {
+      const id = await actions.addProject("Neues Objekt");
+      toast.success("Objekt erstellt");
+      setLocation(`/objekte/${id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Erstellen");
+    } finally {
+      setIsWorking(false);
+    }
   };
 
-  const handleDuplicate = (id: string) => {
+  const handleDuplicate = async (id: string) => {
     const gate = canAddProject();
     if (!gate.allowed) {
       setUpgradeReason(gate.reason || "");
       setUpgradeOpen(true);
       return;
     }
-    duplicateProject(id);
-    toast.success("Objekt dupliziert");
     setMenuOpen(null);
+    try {
+      await actions.duplicateProject(id);
+      toast.success("Objekt dupliziert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Duplizieren");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    deleteProject(id);
-    toast.success("Objekt gelöscht");
+  const handleDelete = async (id: string) => {
     setDeleteConfirm(null);
+    try {
+      await actions.deleteProject(id);
+      toast.success("Objekt gelöscht");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+    }
+  };
+
+  const handleArchive = async (id: string) => {
+    setMenuOpen(null);
+    try {
+      await actions.archiveProject(id);
+      toast.success("Objekt archiviert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Archivieren");
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    setMenuOpen(null);
+    try {
+      await actions.restoreProject(id);
+      toast.success("Objekt wiederhergestellt");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Wiederherstellen");
+    }
+  };
+
+  const handleRename = async (id: string, name: string) => {
+    if (!name.trim()) return;
+    try {
+      await actions.updateProject(id, { name: name.trim() });
+      toast.success("Umbenannt");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Umbenennen");
+    }
+    setRenameId(null);
   };
 
   return (
@@ -167,15 +210,15 @@ export default function ObjekteList() {
                       <button onClick={() => { setRenameId(p.id); setRenameName(p.name); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                         <Edit3 size={16} className="text-muted-foreground" /> Umbenennen
                       </button>
-                      <button onClick={() => { handleDuplicate(p.id); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                      <button onClick={() => handleDuplicate(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                         <Copy size={16} className="text-muted-foreground" /> Duplizieren
                       </button>
                       {p.status !== "archived" ? (
-                        <button onClick={() => { archiveProject(p.id); toast.success("Objekt archiviert"); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                        <button onClick={() => handleArchive(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                           <Archive size={16} className="text-muted-foreground" /> Archivieren
                         </button>
                       ) : (
-                        <button onClick={() => { restoreProject(p.id); toast.success("Objekt wiederhergestellt"); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                        <button onClick={() => handleRestore(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                           <ArchiveRestore size={16} className="text-muted-foreground" /> Wiederherstellen
                         </button>
                       )}
@@ -192,7 +235,7 @@ export default function ObjekteList() {
       </div>
 
       <div className="fixed bottom-20 right-6 z-40" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <Button onClick={handleCreate} size="icon" className="w-14 h-14 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90">
+        <Button onClick={handleCreate} size="icon" className="w-14 h-14 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90" disabled={isWorking}>
           <Plus size={26} />
         </Button>
       </div>
@@ -205,10 +248,10 @@ export default function ObjekteList() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setRenameId(null)} />
           <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[70] bg-card border border-border/40 rounded-3xl p-6 max-w-sm mx-auto">
             <h3 className="font-semibold text-lg mb-4">Objekt umbenennen</h3>
-            <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus className="bg-background h-12 mb-4" onKeyDown={(e) => { if (e.key === "Enter" && renameName.trim()) { updateProject(renameId, { name: renameName.trim() }); toast.success("Umbenannt"); setRenameId(null); } }} />
+            <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus className="bg-background h-12 mb-4" onKeyDown={(e) => { if (e.key === "Enter") handleRename(renameId, renameName); }} />
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setRenameId(null)} className="flex-1 h-12">Abbrechen</Button>
-              <Button onClick={() => { if (renameName.trim()) { updateProject(renameId, { name: renameName.trim() }); toast.success("Umbenannt"); setRenameId(null); } }} className="flex-1 h-12">Speichern</Button>
+              <Button onClick={() => handleRename(renameId, renameName)} className="flex-1 h-12">Speichern</Button>
             </div>
           </div>
         </>

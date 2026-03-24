@@ -1,22 +1,102 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
+import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CheckCircle2 } from "lucide-react";
+import { hasDemoData, getDemoData, migrateDemoData, clearDemoData } from "@/services/migration-service";
+import { toast } from "sonner";
 
 export default function Register() {
   const [, setLocation] = useLocation();
-  const login = useStore(s => s.login);
+  const storeLogin = useStore((s) => s.login);
+  const { signUp, isSupabaseReady } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Replace with Supabase auth — call supabase.auth.signUp(), then set user from session
-    login({ name: name || "Neu", email: email || "neu@example.com" });
+    setError("");
+
+    if (!name.trim()) {
+      setError("Bitte gib deinen Namen ein.");
+      return;
+    }
+
+    if (!email.trim()) {
+      setError("Bitte gib deine E-Mail-Adresse ein.");
+      return;
+    }
+
+    if (!isSupabaseReady) {
+      storeLogin({ name: name || "Neu", email: email || "neu@example.com" });
+      setLocation("/");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError("Das Passwort muss mindestens 6 Zeichen lang sein.");
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await signUp(email.trim(), password, name.trim());
+    setIsLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    if (result.needsConfirmation) {
+      setNeedsConfirmation(true);
+      return;
+    }
+
+    if (hasDemoData()) {
+      const data = getDemoData();
+      if (data) {
+        const success = await migrateDemoData(data);
+        if (success) {
+          toast.success("Demo-Daten in dein Konto übernommen!");
+        }
+      }
+    } else {
+      clearDemoData();
+    }
+
     setLocation("/");
   };
+
+  if (needsConfirmation) {
+    return (
+      <PageTransition className="min-h-screen bg-background flex flex-col px-6">
+        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full text-center">
+          <div className="flex justify-center mb-8">
+            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-green-500" />
+            </div>
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight mb-3 text-foreground">
+            Registrierung erfolgreich!
+          </h1>
+          <p className="text-muted-foreground text-base mb-8">
+            Wir haben dir eine Bestätigungs-E-Mail an <span className="font-medium text-foreground">{email}</span> gesendet.
+            Bitte bestätige deine E-Mail-Adresse, um dich anzumelden.
+          </p>
+          <Button variant="outline" className="w-full h-14 text-base" onClick={() => setLocation("/login")}>
+            Zum Login
+          </Button>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition className="min-h-screen bg-background flex flex-col px-6">
@@ -24,28 +104,46 @@ export default function Register() {
         <h1 className="text-4xl font-semibold tracking-tight mb-3 text-foreground">Account erstellen</h1>
         <p className="text-muted-foreground text-lg mb-10">Speichere deine Kalkulationen sicher in der Cloud.</p>
 
+        {error && (
+          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
         <form onSubmit={handleRegister} className="space-y-5">
-          <Input 
-            placeholder="Dein Name" 
+          <Input
+            placeholder="Dein Name"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
             className="h-14 bg-card border-border/50 text-base"
+            autoComplete="name"
           />
-          <Input 
-            type="email" 
-            placeholder="E-Mail Adresse" 
+          <Input
+            type="email"
+            placeholder="E-Mail Adresse"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             className="h-14 bg-card border-border/50 text-base"
+            autoComplete="email"
           />
-          <Input 
-            type="password" 
-            placeholder="Passwort wählen" 
+          <Input
+            type="password"
+            placeholder="Passwort wählen (mind. 6 Zeichen)"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="h-14 bg-card border-border/50 text-base"
+            autoComplete="new-password"
           />
-          
-          <Button type="submit" className="w-full h-14 text-lg mt-6">
-            Kostenlos registrieren
+
+          <Button type="submit" className="w-full h-14 text-lg mt-6" disabled={isLoading}>
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Wird registriert...
+              </span>
+            ) : (
+              "Kostenlos registrieren"
+            )}
           </Button>
         </form>
 

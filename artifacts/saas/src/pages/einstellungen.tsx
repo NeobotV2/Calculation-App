@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useStore, type FrequencyKey, type CustomRoomType } from "@/store/use-store";
+import { useStoreActions } from "@/hooks/use-store-actions";
+import { useAuth } from "@/lib/auth-context";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -20,14 +22,12 @@ export default function Einstellungen() {
   const pdfHeader = useStore((s) => s.pdfHeader);
   const pdfFooter = useStore((s) => s.pdfFooter);
   const customRoomTypes = useStore((s) => s.customRoomTypes);
-  const updateSettings = useStore((s) => s.updateSettings);
-  const addCustomRoomType = useStore((s) => s.addCustomRoomType);
-  const updateCustomRoomType = useStore((s) => s.updateCustomRoomType);
-  const deleteCustomRoomType = useStore((s) => s.deleteCustomRoomType);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const resetToDefaults = useStore((s) => s.resetToDefaults);
   const plan = useStore((s) => s.plan);
+  const actions = useStoreActions();
+  const { isAuthenticated } = useAuth();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -37,6 +37,7 @@ export default function Einstellungen() {
   const [freq, setFreq] = useState<FrequencyKey>(defaultFrequency);
   const [header, setHeader] = useState(pdfHeader);
   const [footer, setFooter] = useState(pdfFooter);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [editingRoomType, setEditingRoomType] = useState<CustomRoomType | null>(null);
@@ -45,52 +46,79 @@ export default function Einstellungen() {
   const [newRoomPerf, setNewRoomPerf] = useState("");
   const [showResetDefaults, setShowResetDefaults] = useState(false);
 
-  const handleSave = () => {
-    updateSettings({
-      companyName: company.trim() || "Meine Reinigungsfirma",
-      hourlyRate: parseFloat(rate.replace(",", ".")) || 22.5,
-      vatRate: parseFloat(vat.replace(",", ".")) || 0,
-      defaultFrequency: freq,
-    });
-    toast.success("Einstellungen gespeichert");
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await actions.updateSettings({
+        companyName: company.trim() || "Meine Reinigungsfirma",
+        hourlyRate: parseFloat(rate.replace(",", ".")) || 22.5,
+        vatRate: parseFloat(vat.replace(",", ".")) || 0,
+        defaultFrequency: freq,
+      });
+      toast.success("Einstellungen gespeichert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSavePDF = () => {
-    updateSettings({
-      pdfHeader: header.trim(),
-      pdfFooter: footer.trim(),
-    });
-    toast.success("PDF-Einstellungen gespeichert");
+  const handleSavePDF = async () => {
+    setIsSaving(true);
+    try {
+      await actions.updateSettings({
+        pdfHeader: header.trim(),
+        pdfFooter: footer.trim(),
+      });
+      toast.success("PDF-Einstellungen gespeichert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleSaveRoomType = () => {
+  const handleSaveRoomType = async () => {
     const perfVal = parseFloat(newRoomPerf.replace(",", "."));
     if (!newRoomName.trim() || !perfVal || perfVal <= 0) {
       toast.error("Name und Leistungswert erforderlich");
       return;
     }
     const group = DEFAULT_ROOM_GROUPS.find(g => g.id === newRoomGroup) || DEFAULT_ROOM_GROUPS[0];
-    if (editingRoomType) {
-      updateCustomRoomType(editingRoomType.id, {
-        name: newRoomName.trim(),
-        groupId: group.id,
-        groupName: group.name,
-        performanceValue: perfVal,
-      });
-      toast.success("Raumart aktualisiert");
-    } else {
-      addCustomRoomType({
-        name: newRoomName.trim(),
-        groupId: group.id,
-        groupName: group.name,
-        performanceValue: perfVal,
-      });
-      toast.success("Raumart hinzugefügt");
+    try {
+      if (editingRoomType) {
+        await actions.updateCustomRoomType(editingRoomType.id, {
+          name: newRoomName.trim(),
+          groupId: group.id,
+          groupName: group.name,
+          performanceValue: perfVal,
+        });
+        toast.success("Raumart aktualisiert");
+      } else {
+        await actions.addCustomRoomType({
+          name: newRoomName.trim(),
+          groupId: group.id,
+          groupName: group.name,
+          performanceValue: perfVal,
+        });
+        toast.success("Raumart hinzugefügt");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
     }
     setNewRoomName("");
     setNewRoomPerf("");
     setEditingRoomType(null);
     setShowAddRoom(false);
+  };
+
+  const handleDeleteRoomType = async (id: string) => {
+    try {
+      await actions.deleteCustomRoomType(id);
+      toast.success("Raumart entfernt");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+    }
   };
 
   const startEditRoomType = (rt: CustomRoomType) => {
@@ -118,6 +146,10 @@ export default function Einstellungen() {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isAuthenticated) {
+      toast.error("Im Cloud-Modus ist der Datenimport nicht verfügbar.");
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -139,15 +171,29 @@ export default function Einstellungen() {
     e.target.value = "";
   };
 
-  const handleResetDefaults = () => {
-    resetToDefaults();
-    setCompany("Meine Reinigungsfirma");
-    setRate("22,5");
-    setVat("0");
-    setFreq("5x_week");
-    setHeader("");
-    setFooter("");
-    toast.success("Einstellungen zurückgesetzt");
+  const handleResetDefaults = async () => {
+    try {
+      await actions.updateSettings({
+        companyName: "Meine Reinigungsfirma",
+        hourlyRate: 22.5,
+        vatRate: 0,
+        defaultFrequency: "5x_week",
+        pdfHeader: "",
+        pdfFooter: "",
+      });
+      if (!isAuthenticated) {
+        resetToDefaults();
+      }
+      setCompany("Meine Reinigungsfirma");
+      setRate("22,5");
+      setVat("0");
+      setFreq("5x_week");
+      setHeader("");
+      setFooter("");
+      toast.success("Einstellungen zurückgesetzt");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Zurücksetzen");
+    }
   };
 
   return (
@@ -190,7 +236,9 @@ export default function Einstellungen() {
               </select>
             </div>
             <div className="pt-2">
-              <Button onClick={handleSave} className="w-full"><Save size={18} className="mr-2" /> Änderungen speichern</Button>
+              <Button onClick={handleSave} className="w-full" disabled={isSaving}>
+                <Save size={18} className="mr-2" /> Änderungen speichern
+              </Button>
             </div>
           </div>
         </section>
@@ -216,7 +264,7 @@ export default function Einstellungen() {
                         <button onClick={() => startEditRoomType(rt)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
                           <Edit3 size={14} className="text-muted-foreground" />
                         </button>
-                        <button onClick={() => { if (confirm("Raumart wirklich löschen?")) { deleteCustomRoomType(rt.id); toast.success("Raumart entfernt"); } }} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
+                        <button onClick={() => handleDeleteRoomType(rt.id)} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
                           <Trash2 size={14} className="text-destructive" />
                         </button>
                       </div>
@@ -283,7 +331,7 @@ export default function Einstellungen() {
                   className="bg-background border-border/50 h-12"
                 />
               </div>
-              <Button onClick={handleSavePDF} className="w-full" disabled={plan === "basic"}>
+              <Button onClick={handleSavePDF} className="w-full" disabled={plan === "basic" || isSaving}>
                 <Save size={18} className="mr-2" /> PDF-Einstellungen speichern
               </Button>
             </div>
@@ -309,9 +357,11 @@ export default function Einstellungen() {
             <Button variant="outline" onClick={handleExport} className="w-full justify-start h-12 text-sm bg-background">
               <Download size={16} className="mr-3 text-muted-foreground" /> Alle Daten exportieren (JSON)
             </Button>
-            <Button variant="outline" onClick={handleImport} className="w-full justify-start h-12 text-sm bg-background">
-              <Upload size={16} className="mr-3 text-muted-foreground" /> Daten importieren (JSON)
-            </Button>
+            {!isAuthenticated && (
+              <Button variant="outline" onClick={handleImport} className="w-full justify-start h-12 text-sm bg-background">
+                <Upload size={16} className="mr-3 text-muted-foreground" /> Daten importieren (JSON)
+              </Button>
+            )}
             <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleFileChange} className="hidden" />
             <Button variant="outline" onClick={() => setShowResetDefaults(true)} className="w-full justify-start h-12 text-sm bg-background border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/10">
               <RotateCcw size={16} className="mr-3" /> Einstellungen zurücksetzen

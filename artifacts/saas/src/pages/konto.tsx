@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
+import { useAuth } from "@/lib/auth-context";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -15,12 +16,14 @@ export default function Konto() {
   const companyName = useStore((s) => s.companyName);
   const plan = useStore((s) => s.plan);
   const projects = useStore((s) => s.projects);
-  const logout = useStore((s) => s.logout);
+  const storeLogout = useStore((s) => s.logout);
   const resetAll = useStore((s) => s.resetAll);
   const isLoggedIn = useStore((s) => s.isLoggedIn);
   const isDemo = useStore((s) => s.isDemo);
+  const { signOut, isAuthenticated } = useAuth();
 
   const [showReset, setShowReset] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const activeProjects = projects.filter(p => p.status !== "archived").length;
   const projectLimit = plan === "pro" ? Infinity : BASIC_LIMITS.maxProjects;
@@ -28,8 +31,13 @@ export default function Konto() {
   const largestProjectRooms = projects.reduce((max, p) => Math.max(max, p.rooms.length), 0);
   const roomsPercent = plan === "pro" ? 0 : Math.min(100, Math.round((largestProjectRooms / BASIC_LIMITS.maxRoomsPerProject) * 100));
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    if (isAuthenticated) {
+      await signOut();
+    }
+    storeLogout();
+    setIsLoggingOut(false);
     toast.success("Abgemeldet");
     setLocation("/login");
   };
@@ -47,7 +55,7 @@ export default function Konto() {
       </div>
 
       <div className="p-6 space-y-6">
-        {isDemo && (
+        {isDemo && !isAuthenticated && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-start gap-3">
             <AlertTriangle size={20} className="text-yellow-500 shrink-0 mt-0.5" />
             <div>
@@ -138,9 +146,15 @@ export default function Konto() {
         </div>
 
         <div className="space-y-3 pt-4">
-          {isLoggedIn && (
-            <Button variant="outline" className="w-full justify-start h-14 text-base bg-card" onClick={handleLogout}>
-              <LogOut size={20} className="text-muted-foreground mr-3" /> Abmelden
+          {(isLoggedIn || isAuthenticated) && (
+            <Button
+              variant="outline"
+              className="w-full justify-start h-14 text-base bg-card"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+            >
+              <LogOut size={20} className="text-muted-foreground mr-3" />
+              {isLoggingOut ? "Wird abgemeldet..." : "Abmelden"}
             </Button>
           )}
           <Button

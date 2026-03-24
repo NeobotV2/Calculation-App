@@ -111,6 +111,8 @@ interface AppState {
   importData: (json: string) => boolean;
   resetToDefaults: () => void;
   resetAll: () => void;
+
+  _setAuthData: (data: Partial<AppState>) => void;
 }
 
 const DEMO_PROJECT: Project = {
@@ -419,6 +421,8 @@ export const useStore = create<AppState>()(
           pdfHeader: "",
           pdfFooter: "",
         }),
+
+      _setAuthData: (data) => set(data),
     }),
     {
       name: "cleancalc-storage",
