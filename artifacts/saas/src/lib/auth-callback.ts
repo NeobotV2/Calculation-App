@@ -6,7 +6,11 @@ export async function handleAuthCallback(): Promise<void> {
   const hash = window.location.hash;
   if (!hash) return;
 
-  const params = new URLSearchParams(hash.replace(/^#/, ""));
+  const tokenIndex = hash.indexOf("access_token=");
+  if (tokenIndex === -1) return;
+
+  const tokenPart = hash.substring(tokenIndex);
+  const params = new URLSearchParams(tokenPart);
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
   const type = params.get("type");

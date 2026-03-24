@@ -82,6 +82,23 @@ CREATE TABLE IF NOT EXISTS templates (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS template_rooms (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id uuid NOT NULL REFERENCES templates(id) ON DELETE CASCADE,
+  company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  type_id text NOT NULL,
+  type_name text NOT NULL,
+  group_id text NOT NULL,
+  group_name text NOT NULL,
+  area numeric(10,2) NOT NULL DEFAULT 0,
+  frequency text NOT NULL DEFAULT '5x_week',
+  type_performance numeric(10,2) NOT NULL DEFAULT 250,
+  custom_performance numeric(10,2),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS custom_room_types (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -102,6 +119,8 @@ CREATE INDEX IF NOT EXISTS idx_cleaning_objects_company ON cleaning_objects(comp
 CREATE INDEX IF NOT EXISTS idx_rooms_object ON rooms(object_id);
 CREATE INDEX IF NOT EXISTS idx_rooms_company ON rooms(company_id);
 CREATE INDEX IF NOT EXISTS idx_templates_company ON templates(company_id);
+CREATE INDEX IF NOT EXISTS idx_template_rooms_template ON template_rooms(template_id);
+CREATE INDEX IF NOT EXISTS idx_template_rooms_company ON template_rooms(company_id);
 CREATE INDEX IF NOT EXISTS idx_custom_room_types_company ON custom_room_types(company_id);
 
 -- ============================================================
@@ -115,6 +134,7 @@ ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cleaning_objects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE template_rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE custom_room_types ENABLE ROW LEVEL SECURITY;
 
 -- Helper: get the current user's company_id
@@ -210,6 +230,23 @@ CREATE POLICY "Users can delete own templates"
   ON templates FOR DELETE
   USING (company_id = get_my_company_id());
 
+-- template_rooms
+CREATE POLICY "Users can view own template rooms"
+  ON template_rooms FOR SELECT
+  USING (company_id = get_my_company_id());
+
+CREATE POLICY "Users can insert own template rooms"
+  ON template_rooms FOR INSERT
+  WITH CHECK (company_id = get_my_company_id());
+
+CREATE POLICY "Users can update own template rooms"
+  ON template_rooms FOR UPDATE
+  USING (company_id = get_my_company_id());
+
+CREATE POLICY "Users can delete own template rooms"
+  ON template_rooms FOR DELETE
+  USING (company_id = get_my_company_id());
+
 -- custom_room_types
 CREATE POLICY "Users can view own custom room types"
   ON custom_room_types FOR SELECT
@@ -285,4 +322,5 @@ CREATE TRIGGER set_updated_at_subscriptions BEFORE UPDATE ON subscriptions FOR E
 CREATE TRIGGER set_updated_at_cleaning_objects BEFORE UPDATE ON cleaning_objects FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER set_updated_at_rooms BEFORE UPDATE ON rooms FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER set_updated_at_templates BEFORE UPDATE ON templates FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER set_updated_at_template_rooms BEFORE UPDATE ON template_rooms FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER set_updated_at_custom_room_types BEFORE UPDATE ON custom_room_types FOR EACH ROW EXECUTE FUNCTION update_updated_at();
