@@ -53,7 +53,7 @@ export function getProjectTotals(
 ): ProjectTotals {
   const valid = calculations.filter((c): c is RoomCalculation => c !== null);
 
-  const totalArea = rooms.reduce((sum, r) => sum + (r.area || 0), 0);
+  const totalArea = valid.reduce((sum, c) => sum + c.room.area, 0);
   const totalMonthlyHours = valid.reduce((sum, c) => sum + c.monthlyHours, 0);
   const totalMonthlyCost = valid.reduce((sum, c) => sum + c.monthlyCost, 0);
   const totalAnnualCost = totalMonthlyCost * 12;

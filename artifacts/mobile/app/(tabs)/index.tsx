@@ -74,7 +74,23 @@ export default function KalkulationScreen() {
   const renderRoom = useCallback(
     ({ item, index }: { item: Room; index: number }) => {
       const calc = calculations[index];
-      if (!calc) return null;
+      if (!calc) {
+        return (
+          <Pressable
+            onPress={() => removeRoom(item.id)}
+            style={[
+              styles.orphanCard,
+              { backgroundColor: c.card, borderColor: c.error + "55" },
+            ]}
+          >
+            <Feather name="alert-circle" size={16} color={c.error} />
+            <Text style={[styles.orphanText, { color: c.textSecondary }]} numberOfLines={1}>
+              {item.name || "Unbekannter Raum"} — Raumart nicht mehr vorhanden
+            </Text>
+            <Feather name="trash-2" size={16} color={c.error} />
+          </Pressable>
+        );
+      }
       return (
         <RoomCard
           calculation={calc}
@@ -310,5 +326,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: "Inter_600SemiBold",
     color: "#fff",
+  },
+  orphanCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 10,
+  },
+  orphanText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: "Inter_500Medium",
   },
 });

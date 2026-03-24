@@ -24,7 +24,7 @@ const c = Colors.dark;
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { settings, updateSettings } = useCalc();
+  const { settings, rooms, updateSettings } = useCalc();
 
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [projectName, setProjectName] = useState(settings.projectName);
@@ -53,6 +53,15 @@ export default function SettingsScreen() {
 
   const handleDeleteRoomType = useCallback(
     (id: string) => {
+      const usedByRooms = rooms.filter((r) => r.roomTypeId === id);
+      if (usedByRooms.length > 0) {
+        Alert.alert(
+          "Raumart wird verwendet",
+          `Diese Raumart ist ${usedByRooms.length === 1 ? "einem Raum" : `${usedByRooms.length} Räumen`} zugeordnet und kann nicht gelöscht werden. Bitte zuerst die betroffenen Räume ändern oder löschen.`,
+          [{ text: "OK" }]
+        );
+        return;
+      }
       Alert.alert("Raumart löschen", "Möchten Sie diese Raumart löschen?", [
         { text: "Abbrechen", style: "cancel" },
         {
@@ -66,7 +75,7 @@ export default function SettingsScreen() {
         },
       ]);
     },
-    [settings.roomTypes, updateSettings]
+    [settings.roomTypes, rooms, updateSettings]
   );
 
   const handleSaveRoomType = useCallback(
