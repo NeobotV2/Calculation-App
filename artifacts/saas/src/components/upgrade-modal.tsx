@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Crown, X, CheckCircle2, Lock } from "lucide-react";
+import { useStore } from "@/store/use-store";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -10,7 +10,7 @@ interface UpgradeModalProps {
 }
 
 export function UpgradeModal({ open, onClose, reason }: UpgradeModalProps) {
-  const [, setLocation] = useLocation();
+  const upgradePlan = useStore((s) => s.upgradePlan);
 
   return (
     <AnimatePresence>
@@ -74,7 +74,7 @@ export function UpgradeModal({ open, onClose, reason }: UpgradeModalProps) {
               </div>
 
               <Button
-                onClick={() => { onClose(); setLocation("/upgrade"); }}
+                onClick={() => { upgradePlan(); onClose(); }}
                 size="lg"
                 className="w-full h-14 text-lg mt-2"
               >

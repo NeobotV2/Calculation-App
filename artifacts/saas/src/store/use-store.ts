@@ -197,8 +197,11 @@ export const useStore = create<AppState>()(
           projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
         })),
 
+      // TODO: Replace with Supabase auth — call supabase.auth.signInWithPassword(), then set user from session
       login: (user) => set({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email } }),
+      // TODO: Replace with supabase.auth.signOut()
       logout: () => set({ isLoggedIn: false, isDemo: true, user: null }),
+      // TODO: Replace with Stripe checkout / Supabase subscription update
       upgradePlan: () => set({ plan: "pro" }),
 
       updateSettings: (data) => set((state) => ({ ...state, ...data })),
