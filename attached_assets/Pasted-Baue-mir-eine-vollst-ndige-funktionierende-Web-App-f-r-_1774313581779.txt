@@ -1,0 +1,190 @@
+Baue mir eine vollständige, funktionierende Web App für Gebäudereiniger zur Kalkulation von Unterhaltsreinigungen.
+
+Wichtig:
+Erkläre mir nicht nur, was du tun würdest, sondern erstelle direkt die komplette App mit lauffähigem Code, sauberer Ordnerstruktur und modernem UI. Behebe selbstständig Fehler, bis die App in Replit läuft.
+
+Ziel der App:
+Ein Gebäudereiniger soll mobil und am Desktop in wenigen Minuten ein Objekt kalkulieren können. Der Nutzer gibt Räume ein, wählt pro Raum eine Raumart, trägt die Fläche ein, wählt die Reinigungshäufigkeit und die App berechnet automatisch Monatsstunden, Monatspreis und Jahrespreis.
+
+Technischer Stack:
+Nutze React mit TypeScript und Vite.
+Nutze Tailwind CSS für das UI.
+Nutze eine saubere Komponentenstruktur.
+Nutze localStorage für persistente Daten im MVP.
+Nutze keine unnötig komplexe Backend Architektur.
+Die App soll später leicht auf Supabase oder eine Datenbank erweiterbar sein.
+Nutze saubere Utility Funktionen für die Kalkulationslogik.
+Nutze deutsche Sprache in der gesamten Oberfläche.
+
+Design Anforderungen:
+Modern, hochwertig, mobil optimiert, dark mode first.
+Premium Look mit klaren Cards, guter Lesbarkeit und professioneller Wirkung.
+Bitte NICHT die Konkurrenz 1 zu 1 kopieren, sondern sichtbar besser und professioneller gestalten.
+Oben soll es KPI Karten geben für:
+Gesamtfläche
+Monatspreis
+Jahrespreis
+Monatsstunden
+Preis pro m²
+Die UI soll auf iPhone und Desktop gut funktionieren.
+Raumkarten sollen gut bedienbar und schnell erfassbar sein.
+
+Seiten und Struktur:
+1. Hauptseite Kalkulation
+2. Einstellungsseite
+3. Ergebnis / Zusammenfassung
+4. Optional Druckansicht / PDF Export Vorbereitung
+
+MVP Funktionen:
+1. Nutzer kann ein Objekt anlegen
+2. Nutzer kann mehrere Räume hinzufügen
+3. Jeder Raum hat folgende Felder:
+   Bezeichnung optional
+   Raumart
+   Raumgruppe
+   Fläche in m²
+   Reinigungshäufigkeit
+   Leistungswert in m² pro Stunde
+   Kosten pro Monat
+4. Leistungswert wird automatisch anhand der Raumart gesetzt
+5. Reinigungshäufigkeit soll NICHT als Zyklen pro Jahr eingegeben werden, sondern benutzerfreundlich als:
+   5x pro Woche
+   3x pro Woche
+   2x pro Woche
+   1x pro Woche
+   14-tägig
+   monatlich
+6. Die App rechnet intern automatisch mit Monatsfaktoren
+7. Nutzer gibt global einen Stundensatz in Euro ein
+8. Alle Summen werden live aktualisiert
+9. Jeder Raum kann entfernt oder bearbeitet werden
+10. Daten bleiben beim Neuladen erhalten
+
+Monatsfaktoren:
+5x pro Woche = 21.67
+3x pro Woche = 13
+2x pro Woche = 8.67
+1x pro Woche = 4.33
+14-tägig = 2.17
+monatlich = 1
+
+Kalkulationslogik:
+Für jeden Raum:
+Zeit pro Reinigung in Stunden = Fläche / Leistungswert
+Monatsstunden = Zeit pro Reinigung * Monatsfaktor
+Kosten pro Monat = Monatsstunden * Stundensatz
+Jahrespreis = Monatspreis * 12
+
+Gesamtergebnis:
+Gesamtfläche = Summe aller Flächen
+Monatsstunden gesamt = Summe aller Monatsstunden
+Monatspreis gesamt = Summe aller Raumkosten pro Monat
+Jahrespreis gesamt = Monatspreis gesamt * 12
+Preis pro m² = Monatspreis gesamt / Gesamtfläche
+
+Wichtige fachliche Anforderung:
+Leistungswerte dürfen nicht hart unflexibel sein.
+Baue eine zentrale Datenstruktur für Raumarten und Leistungswerte, die in den Einstellungen bearbeitet werden kann.
+Die Standardwerte sollen beim ersten Start vorgeladen sein, aber später änderbar.
+
+Lege folgende Startdaten für Raumarten an:
+Großraumbüro = 160 m²/h
+Einzelbüro = 140 m²/h
+Besprechungsraum = 130 m²/h
+Empfang = 120 m²/h
+Flur = 300 m²/h
+Treppenhaus = 120 m²/h
+Sanitär klein = 60 m²/h
+Sanitär groß = 75 m²/h
+Teeküche = 80 m²/h
+Aufenthaltsraum = 110 m²/h
+Lager = 250 m²/h
+Praxisraum = 100 m²/h
+Verkaufsfläche = 220 m²/h
+
+Lege zusätzlich sinnvolle Raumgruppen an:
+Büro und Verwaltung
+Sanitär
+Verkehrsflächen
+Sozialräume
+Lager und Nebenflächen
+Praxis und Spezialflächen
+Verkaufsflächen
+
+Wichtige UX Anforderungen:
+1. Raum hinzufügen als großer klarer Button
+2. Jede Raumkarte soll zeigen:
+   Raumname
+   Raumgruppe
+   Fläche
+   Häufigkeit
+   Leistungswert
+   Monatsstunden
+   Kosten pro Monat
+3. Die Eingabe soll so einfach sein, dass ein Vertriebsmitarbeiter sie direkt bei einer Objektbesichtigung nutzen kann
+4. Zahlen sollen im deutschen Format angezeigt werden
+5. Währungsanzeige in Euro
+6. Leere Zustände sauber gestalten
+7. Validierungen einbauen:
+   keine negativen Werte
+   Fläche muss größer 0 sein
+   Stundensatz muss größer 0 sein
+
+Einstellungsseite:
+Auf der Einstellungsseite soll man bearbeiten können:
+Stundensatz Standard
+Raumarten
+Leistungswerte
+Frequenzen
+Firmenname optional
+PDF Kopfzeile Vorbereitung optional
+Die Einstellungen sollen ebenfalls gespeichert werden.
+
+Zusammenfassungsbereich:
+Zeige oben eine professionelle Auswertung:
+Gesamtfläche
+Gesamtstunden pro Monat
+Preis pro Monat
+Preis pro Jahr
+Preis pro m²
+Anzahl Räume
+Zeige darunter eine Tabelle oder Kartenübersicht mit allen Räumen.
+
+Zusatzfunktionen für MVP Plus:
+1. Export als druckfreundliche HTML Ansicht
+2. Button für PDF Export vorbereiten
+3. Button Demo Daten laden
+4. Button Alles zurücksetzen
+5. Automatische Beispielkalkulation beim ersten Start
+
+Code Qualität:
+Nutze saubere TypeScript Typen.
+Trenne UI, Datenmodelle und Kalkulationslogik sauber.
+Schreibe wiederverwendbare Komponenten.
+Vermeide unnötigen Ballast.
+Nutze verständliche Dateinamen.
+Baue die App so, dass man später leicht erweitern kann um:
+Kundendaten
+Angebots-PDF
+Login
+Cloud Sync
+Marge
+Materialkosten
+Objektleiterzuschlag
+Profi Modus
+
+Lieferumfang:
+1. Vollständiger Code
+2. Alle benötigten Dateien
+3. Modernes UI
+4. Seed Daten
+5. README mit kurzer Erklärung zum Start
+6. App soll direkt in Replit startbar sein
+
+Wichtige Umsetzungspriorität:
+Erst Funktionalität und saubere Kalkulationslogik.
+Dann gutes UI.
+Dann Einstellungsbereich.
+Dann Export / Druckansicht.
+
+Bitte beginne sofort mit der Umsetzung und erstelle die App vollständig.
