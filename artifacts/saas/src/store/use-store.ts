@@ -200,21 +200,29 @@ export const useStore = create<AppState>()(
         })),
 
       login: (user) => set((state) => ({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email, role: user.role || state.user?.role || "Benutzer" } })),
-      logout: () => set({
-        isLoggedIn: false,
-        isDemo: true,
-        user: null,
-        projects: [],
-        templates: [],
-        customRoomTypes: [],
-        plan: "basic",
-        companyName: "Meine Reinigungsfirma",
-        hourlyRate: 22.50,
-        vatRate: 0,
-        defaultFrequency: "5x_week" as FrequencyKey,
-        pdfHeader: "",
-        pdfFooter: "",
-      }),
+      logout: () => {
+        const wasDemo = get().isDemo;
+        if (wasDemo) {
+          set({ isLoggedIn: false, user: null });
+        } else {
+          set({
+            isLoggedIn: false,
+            isDemo: true,
+            user: null,
+            projects: [],
+            templates: [],
+            customRoomTypes: [],
+            plan: "basic",
+            companyName: "Meine Reinigungsfirma",
+            hourlyRate: 22.50,
+            vatRate: 0,
+            defaultFrequency: "5x_week" as FrequencyKey,
+            pdfHeader: "",
+            pdfFooter: "",
+          });
+        }
+      },
+      // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
       upgradePlan: () => set({ plan: "pro" }),
 
       updateSettings: (data) => set((state) => ({ ...state, ...data })),
