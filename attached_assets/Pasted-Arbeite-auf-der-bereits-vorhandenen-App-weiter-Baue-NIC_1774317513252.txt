@@ -1,0 +1,386 @@
+Arbeite auf der bereits vorhandenen App weiter. Baue NICHT neu von Null, sondern verbessere und vervollständige die bestehende Codebase gezielt.
+
+Wichtig:
+Bitte nicht nur beschreiben, was du machen würdest, sondern die bestehenden Fehler direkt beheben und die fehlenden Funktionen sauber implementieren.
+Nutze die bestehende Designrichtung weiter, aber verfeinere sie. Die App soll sich wie eine hochwertige, Apple inspirierte iPhone Business App anfühlen.
+
+Oberstes Ziel:
+1. Bestehende Routing- und State-Probleme beheben
+2. 404 Fehler auf der Auswertung Seite vollständig lösen
+3. fehlende Kernfunktionen ergänzen
+4. UI und UX auf iPhone deutlich sauberer machen
+5. Basic / Pro Logik funktional einbauen
+6. App stabil, konsistent und produktreif für MVP Plus machen
+
+Ganz wichtig:
+Die App läuft in Replit. Achte deshalb darauf, dass tiefe Routen nicht mehr in 404 enden.
+Falls nötig, stelle das Routing für Replit robust um.
+Wenn BrowserRouter in Replit Probleme macht, nutze für den MVP lieber HashRouter oder eine saubere Fallback-Lösung, sodass folgende Views immer erreichbar sind:
+Übersicht
+Kalkulation
+Objekte
+Objektdetail
+Auswertung
+Objekt-Auswertung
+Konto
+Einstellungen
+
+Bestehende konkrete Fehler, die jetzt zuerst behoben werden müssen:
+
+1. Auswertung zeigt aktuell 404
+Bitte vollständig beheben.
+Es muss sowohl eine globale Auswertung geben als auch eine objektbezogene Auswertung.
+Beide Wege müssen funktionieren:
+a) über die Bottom Navigation
+b) über das jeweilige Objekt
+c) auch nach Reload in Replit
+Wenn eine Auswertung ohne aktives Objekt aufgerufen wird, soll eine sinnvolle Empty State Seite erscheinen und kein Fehler.
+
+2. Navigation und Routen konsistent machen
+Momentan wirken manche Pfade und Screens inkonsistent.
+Bitte eine klare Routing-Struktur einführen, zum Beispiel:
+/
+#/onboarding
+#/login
+#/app/home
+#/app/kalkulation
+#/app/objekte
+#/app/objekte/:id
+#/app/objekte/:id/auswertung
+#/app/auswertung
+#/app/konto
+#/app/einstellungen
+Leite alte oder ungültige Routen sauber um.
+Füge eine Catch-All Route mit schöner Fehlerseite ein, aber die normalen Seiten dürfen nicht mehr versehentlich im 404 landen.
+
+3. Safe Area und iPhone Layout verbessern
+Die App läuft im mobilen Browser und muss oben und unten sauber aussehen.
+Nutze sichere Abstände für iPhone:
+env(safe-area-inset-top)
+env(safe-area-inset-bottom)
+Die Header dürfen nicht mit Browserleisten kollidieren.
+Die Bottom Navigation muss stabil sitzen.
+Floating Action Button, Sticky CTA und Bottom Sheets dürfen nicht mit Safari UI kollidieren.
+
+Bitte jetzt diese fehlenden Funktionen ergänzen:
+
+1. Übersicht / Home Screen fertigstellen
+Der Home Screen ist schon teilweise da, muss aber produktreifer werden.
+Er soll enthalten:
+Begrüßung mit Firmenname oder Nutzername
+Monatsvolumen
+aktive Objekte
+Durchschnittspreis pro m²
+zuletzt bearbeitetes Objekt mit Öffnen Button
+Schnellaktionen:
+Neues Objekt
+Raumarten
+Alle Objekte
+Vorlagen
+PDF Export
+Upgrade auf Pro
+Zusätzlich:
+letzte 3 Objekte
+Hinweis zum aktuellen Plan
+schöne Empty States, falls noch keine Daten da sind
+
+2. Objektverwaltung vollständig machen
+Baue einen stabilen Objekte Bereich.
+Jedes Objekt soll haben:
+id
+Name
+Kunde optional
+Standort optional
+Stundensatz
+Status aktiv oder archiviert
+erstellt am
+zuletzt bearbeitet
+Räume
+Summen
+Funktionen:
+Objekt erstellen
+Objekt öffnen
+Objekt umbenennen
+Objekt duplizieren
+Objekt archivieren
+Objekt löschen
+Objekt suchen
+nach aktiv und archiviert filtern
+Objektliste und Objektdetail synchron halten
+
+3. Objektdetail vervollständigen
+Der Detailscreen ist schon da, braucht aber mehr Funktionen.
+Bitte ergänzen:
+Objektinfos editieren
+Kunde
+Standort
+Notiz optional
+Stundensatz
+Raumliste
+Raum hinzufügen
+Raum bearbeiten
+Raum löschen
+Auswertung öffnen
+Objekt duplizieren
+Objekt archivieren
+Objekt löschen
+Alle Summen live aktualisieren
+
+4. Raum Editor als Bottom Sheet oder Modal
+Der Raum Editor soll sich hochwertig und mobil anfühlen.
+Nicht als rohe Formularseite.
+Nutze Bottom Sheet oder Sheet Modal.
+Felder:
+Bezeichnung
+Raumart
+Raumgruppe automatisch aus Raumart oder editierbar
+Fläche direkt in m²
+optional Länge und Breite mit Auto-Flächenberechnung
+Häufigkeit
+Leistungswert automatisch aus Datenbank
+optional manueller Override für Pro
+Monatsstunden
+Kosten pro Monat
+Validierung:
+keine Fläche unter 0
+Stundensatz größer 0
+Raumart Pflicht
+Häufigkeit Pflicht
+
+5. Globale und objektbezogene Auswertung
+Baue zwei Auswertungen:
+A. globale Auswertung über alle aktiven Objekte
+B. objektbezogene Auswertung für ein einzelnes Objekt
+
+Globale Auswertung soll zeigen:
+Objekte gesamt
+Räume gesamt
+Gesamtfläche
+Monatsvolumen
+Jahresvolumen
+Durchschnittspreis pro m²
+Gesamtstunden pro Monat
+Top 5 teuerste Objekte
+letzte bearbeitete Objekte
+
+Objektbezogene Auswertung soll zeigen:
+Objektname
+Kunde
+Gesamtfläche
+Monatspreis
+Jahrespreis
+Stunden pro Monat
+Preis pro m²
+Anzahl Räume
+Detailansicht pro Raum
+optional kleine Verteilung nach Raumgruppen
+
+Wenn keine Daten existieren, zeige elegante Empty States statt Fehler.
+
+6. Basic und Pro Logik funktional einbauen
+Das Konto zeigt aktuell Planinfo, aber die Sperrlogik muss echt funktionieren.
+
+Basic:
+maximal 3 Objekte
+maximal 20 Räume pro Objekt
+kein PDF Export
+kein manuelles Überschreiben des Leistungswerts
+kein Branding
+keine Vorlagen
+keine Cloud Sync
+
+Pro:
+unbegrenzte Objekte
+unbegrenzte Räume
+PDF Export
+Vorlagen
+Leistungswert Override
+Branding Vorbereitung
+Cloud Sync Vorbereitung
+
+Wichtig:
+Baue dafür einen echten Feature Gate Mechanismus.
+Wenn ein Basic Nutzer eine Pro Funktion anklickt:
+zeige ein hochwertiges Upgrade Modal
+nicht einfach deaktivieren ohne Erklärung
+
+7. Demo Modus
+Baue einen Gast- oder Demo Modus.
+Wenn kein echter Login aktiv ist, soll die App trotzdem mit Demo Daten nutzbar sein.
+Zeige im Konto klar:
+Demo User
+Plan
+Demo Modus
+Beim Versuch zu speichern, PDF zu exportieren oder mehr als 3 Objekte anzulegen:
+zeige Registrierung oder Upgrade Funnel.
+
+8. Onboarding ergänzen
+Falls noch nicht vorhanden oder unvollständig, baue ein kurzes Onboarding:
+Willkommen
+Nutzerrolle wählen:
+Inhaber
+Vertrieb
+Objektleitung
+Kalkulation
+Firmenname festlegen
+Standard Stundensatz
+Demo Objekt laden oder leer starten
+Später überspringbar
+
+9. Anmeldung vorbereiten
+Baue einen einfachen Login Screen und Register Screen.
+Für MVP reicht mock auth oder local auth, aber Architektur bitte so, dass Supabase später sauber integriert werden kann.
+Brauche:
+Login
+Registrierung
+Abmelden
+Session State
+Demo User Fallback
+
+10. Vorlagen System
+Baue ein Vorlagen System für Pro.
+Vorlage basiert auf einem Objekt oder einer Raumkonfiguration.
+Funktionen:
+als Vorlage speichern
+Vorlage laden
+Vorlage umbenennen
+Vorlage löschen
+Wenn Basic Nutzer klickt, Paywall Modal zeigen.
+
+11. PDF Export Vorbereitung
+Es reicht für jetzt eine saubere Druckansicht und Export Vorbereitung.
+Mindestens:
+eigene Print View Route
+saubere Angebotsansicht
+Objektname
+Kunde
+Raumliste
+Leistungswerte
+Monatspreis
+Jahrespreis
+Gesamtfläche
+Firmenname
+Falls echter PDF Export noch nicht vollständig fertig ist, baue einen stabilen Print to PDF Workflow.
+Aber die UI und Architektur sollen bereits darauf vorbereitet sein.
+
+12. Einstellungen erweitern
+Aktuell gibt es Firmenname, Objektname, Stundensatz.
+Bitte erweitern auf:
+Firmenname
+Standard Stundensatz
+Währung
+MwSt optional
+Standardfrequenzen
+Raumarten verwalten
+Raumgruppen verwalten
+Leistungswerte bearbeiten
+Reset auf Standardwerte
+Import / Export JSON optional
+Nur Pro:
+Branding Bereich
+Logo Upload Platzhalter
+PDF Kopfzeile
+PDF Fußzeile
+
+13. Such- und Filterlogik stabilisieren
+Auf den Objekte- und Kalkulationsseiten sollen Suche und Filter robust funktionieren.
+Kein Flackern.
+Keine doppelten Daten.
+Sortierung:
+neueste zuerst
+alternativ nach Name
+Filter:
+alle
+aktiv
+archiviert
+
+14. Persistenz und Datenmodell stabilisieren
+Nutze einen sauberen globalen Store.
+Zustand oder Context ist okay, aber konsistent.
+Persistiere in localStorage für Demo und MVP.
+Wichtig:
+kein Datenverlust beim Wechsel zwischen Screens
+kein Verlust beim Reload
+saubere Migration alter lokaler Daten, falls das Datenmodell angepasst wird
+
+15. Apple inspiriertes Finetuning
+Bitte die bestehende UI verfeinern.
+Aktuell ist sie schon modern, aber sie soll ruhiger und hochwertiger werden.
+Bitte:
+größere Large Titles
+mehr Luft
+ruhigere Cards
+weniger harte Borders
+dezentere Akzentfarben
+subtile Animationen
+schöneres Scroll Verhalten
+klare Section Headers
+hochwertige Empty States
+stimmige Bottom Navigation
+stabiler Floating Button
+bessere Touch Targets
+klare visuelle Hierarchie
+
+Wichtig:
+Nicht verspielt.
+Nicht neonhaft.
+Nicht gamerhaft.
+Es soll wie eine hochwertige iPhone Business App wirken.
+
+Technische Anforderungen:
+Bitte den bestehenden Code refactoren, wo nötig.
+Ordne die Struktur sauber, zum Beispiel in:
+components
+pages
+features
+store
+hooks
+lib
+types
+data
+routes
+
+Bitte saubere Typen pflegen für:
+User
+Plan
+Object
+Room
+RoomType
+RoomGroup
+FrequencyPreset
+AppSettings
+Template
+
+Bitte Unit-nahe Helper sauber trennen:
+Berechnungslogik
+Formatierung
+Routing
+Feature Gates
+Persistenz
+
+Bitte außerdem diese UX Details ergänzen:
+Loading Skeletons bei Datenaufbau
+Empty States auf allen Listen
+Toast Feedback bei:
+Speichern
+Objekt erstellt
+Raum gelöscht
+Vorlage gespeichert
+Upgrade nötig
+saubere Confirm Dialoge bei Löschen
+schöne Upgrade Modal Komponente
+schöne Plan Comparison Card im Konto
+
+Wichtige Akzeptanzkriterien:
+1. Auswertung darf nicht mehr 404 zeigen
+2. Navigation zwischen allen Tabs funktioniert stabil
+3. Reload auf jeder Route funktioniert in Replit
+4. Objekte können sauber erstellt, bearbeitet, archiviert, dupliziert und gelöscht werden
+5. Räume können im Objekt per Sheet hinzugefügt und bearbeitet werden
+6. Summen aktualisieren live
+7. Basic / Pro Sperren funktionieren
+8. Konto zeigt echten Status
+9. Demo Modus funktioniert
+10. Design fühlt sich ruhiger, klarer und hochwertiger an
+
+Bitte beginne jetzt mit diesen Aufgaben direkt in der bestehenden App und liefere eine funktionsfähige, saubere überarbeitete Version statt nur Erklärungen.
