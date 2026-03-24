@@ -25,6 +25,8 @@ export default function Konto() {
   const activeProjects = projects.filter(p => p.status !== "archived").length;
   const projectLimit = plan === "pro" ? Infinity : BASIC_LIMITS.maxProjects;
   const projectPercent = plan === "pro" ? 0 : Math.min(100, Math.round((activeProjects / projectLimit) * 100));
+  const largestProjectRooms = projects.reduce((max, p) => Math.max(max, p.rooms.length), 0);
+  const roomsPercent = plan === "pro" ? 0 : Math.min(100, Math.round((largestProjectRooms / BASIC_LIMITS.maxRoomsPerProject) * 100));
 
   const handleLogout = () => {
     logout();
@@ -85,6 +87,21 @@ export default function Konto() {
               </div>
               {projectPercent >= 100 && (
                 <p className="text-xs text-destructive mt-2">Limit erreicht — upgrade auf Pro für unbegrenzte Objekte.</p>
+              )}
+            </div>
+            <div className="mt-5 pt-5 border-t border-border/20">
+              <div className="flex justify-between items-baseline mb-2">
+                <span className="text-sm font-medium text-foreground">Räume (größtes Objekt)</span>
+                <span className="text-sm text-muted-foreground">{largestProjectRooms} / {BASIC_LIMITS.maxRoomsPerProject}</span>
+              </div>
+              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${roomsPercent >= 100 ? "bg-destructive" : roomsPercent >= 66 ? "bg-yellow-500" : "bg-primary"}`}
+                  style={{ width: `${roomsPercent}%` }}
+                />
+              </div>
+              {roomsPercent >= 100 && (
+                <p className="text-xs text-destructive mt-2">Raumlimit erreicht — upgrade auf Pro für unbegrenzte Räume.</p>
               )}
             </div>
           </div>

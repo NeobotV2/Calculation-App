@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { useStore } from "@/store/use-store";
-import { Building2, Calculator, CheckCircle2, User, Play, ChevronRight } from "lucide-react";
+import { Building2, User, Play } from "lucide-react";
 
 const ROLES = ["Inhaber / GF", "Vertrieb", "Objektleitung", "Kalkulation"];
 
@@ -33,35 +33,16 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto">
       <div className="flex-1 flex flex-col p-6 pt-12 relative">
-        {/* Progress Line */}
         <div className="w-full bg-border h-1 rounded-full mb-12 overflow-hidden">
           <div 
             className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${(step / 5) * 100}%` }}
+            style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
 
         <AnimatePresence mode="wait">
           {step === 1 && (
             <PageTransition key="step1" className="flex-1 flex flex-col">
-              <div className="flex-1 flex flex-col justify-center text-center">
-                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 text-primary">
-                  <Calculator size={40} strokeWidth={1.5} />
-                </div>
-                <h2 className="text-4xl font-semibold tracking-tight mb-4">Kalkuliere in<br/>Minuten, nicht Stunden.</h2>
-                <p className="text-muted-foreground text-lg mb-8">Erstelle präzise Angebote für Unterhaltsreinigungen direkt auf dem Smartphone.</p>
-                <div className="space-y-4 text-left bg-card p-6 rounded-2xl border border-border/30">
-                  <div className="flex items-center gap-3"><CheckCircle2 className="text-primary" size={20}/><span className="text-base font-medium">Standard-Leistungswerte inkl.</span></div>
-                  <div className="flex items-center gap-3"><CheckCircle2 className="text-primary" size={20}/><span className="text-base font-medium">Automatische Stundenerfassung</span></div>
-                  <div className="flex items-center gap-3"><CheckCircle2 className="text-primary" size={20}/><span className="text-base font-medium">Sofortige Preiskalkulation</span></div>
-                </div>
-              </div>
-              <Button onClick={nextStep} size="lg" className="w-full mt-8">Los geht's <ChevronRight size={20}/></Button>
-            </PageTransition>
-          )}
-
-          {step === 2 && (
-            <PageTransition key="step2" className="flex-1 flex flex-col">
               <div className="flex-1">
                 <h2 className="text-3xl font-semibold tracking-tight mb-2">Wie ist deine Rolle?</h2>
                 <p className="text-muted-foreground text-lg mb-8">Das hilft uns, die App für dich anzupassen.</p>
@@ -83,49 +64,40 @@ export default function Onboarding() {
             </PageTransition>
           )}
 
-          {step === 3 && (
-            <PageTransition key="step3" className="flex-1 flex flex-col">
+          {step === 2 && (
+            <PageTransition key="step2" className="flex-1 flex flex-col">
               <div className="flex-1">
-                <h2 className="text-3xl font-semibold tracking-tight mb-2">Wie heißt deine Firma?</h2>
-                <p className="text-muted-foreground text-lg mb-8">Erscheint später auf deinen Angeboten.</p>
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground ml-1">Firmenname</label>
-                  <Input 
-                    value={companyName} 
-                    onChange={e => setCompanyName(e.target.value)} 
-                    placeholder="z.B. Glanz & Rein GmbH" 
-                    autoFocus
-                    className="text-lg h-14 bg-card border-border/50"
-                  />
+                <h2 className="text-3xl font-semibold tracking-tight mb-2">Firma & Stundensatz</h2>
+                <p className="text-muted-foreground text-lg mb-8">Diese Angaben kannst du jederzeit ändern.</p>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground ml-1">Firmenname</label>
+                    <Input 
+                      value={companyName} 
+                      onChange={e => setCompanyName(e.target.value)} 
+                      placeholder="z.B. Glanz & Rein GmbH" 
+                      autoFocus
+                      className="text-lg h-14 bg-card border-border/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground ml-1">Stundensatz (€/h)</label>
+                    <Input 
+                      value={hourlyRate} 
+                      onChange={e => setHourlyRate(e.target.value)} 
+                      placeholder="22,50" 
+                      inputMode="decimal"
+                      className="text-lg h-14 bg-card border-border/50"
+                    />
+                  </div>
                 </div>
               </div>
               <Button disabled={!companyName.trim()} onClick={nextStep} size="lg" className="w-full mt-8">Weiter</Button>
             </PageTransition>
           )}
 
-          {step === 4 && (
-            <PageTransition key="step4" className="flex-1 flex flex-col">
-              <div className="flex-1">
-                <h2 className="text-3xl font-semibold tracking-tight mb-2">Dein Stundensatz</h2>
-                <p className="text-muted-foreground text-lg mb-8">Der Standard-Stundensatz für neue Kalkulationen. Jederzeit änderbar.</p>
-                <div className="space-y-2">
-                  <label className="text-sm text-muted-foreground ml-1">Stundensatz (€/h)</label>
-                  <Input 
-                    value={hourlyRate} 
-                    onChange={e => setHourlyRate(e.target.value)} 
-                    placeholder="22,50" 
-                    type="decimal"
-                    autoFocus
-                    className="text-lg h-14 bg-card border-border/50"
-                  />
-                </div>
-              </div>
-              <Button disabled={!hourlyRate.trim()} onClick={nextStep} size="lg" className="w-full mt-8">Weiter</Button>
-            </PageTransition>
-          )}
-
-          {step === 5 && (
-            <PageTransition key="step5" className="flex-1 flex flex-col">
+          {step === 3 && (
+            <PageTransition key="step3" className="flex-1 flex flex-col">
               <div className="flex-1 flex flex-col justify-center">
                 <div className="text-center mb-10">
                   <h2 className="text-4xl font-semibold tracking-tight mb-3">Fast geschafft!</h2>

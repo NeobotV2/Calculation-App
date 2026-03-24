@@ -12,6 +12,8 @@ import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore,
 import { calcProjectTotals } from "@/lib/calc";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
+import { ListSkeleton } from "@/components/list-skeleton";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export default function ObjekteList() {
   const [, setLocation] = useLocation();
@@ -33,6 +35,7 @@ export default function ObjekteList() {
   const [upgradeReason, setUpgradeReason] = useState("");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const hydrated = useHydrated();
 
   const filtered = projects
     .filter((p) => {
@@ -112,7 +115,9 @@ export default function ObjekteList() {
       )}
 
       <div className="p-6 flex-1 flex flex-col gap-3">
-        {filtered.length === 0 ? (
+        {!hydrated ? (
+          <ListSkeleton rows={5} />
+        ) : filtered.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />

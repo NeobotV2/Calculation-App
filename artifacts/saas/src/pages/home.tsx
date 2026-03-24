@@ -5,13 +5,17 @@ import { calcProjectTotals } from "@/lib/calc";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen } from "lucide-react";
+import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Sparkles } from "lucide-react";
+import { ListSkeleton, CardSkeleton } from "@/components/list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export default function Home() {
   const companyName = useStore((s) => s.companyName);
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
   const plan = useStore((s) => s.plan);
+  const hydrated = useHydrated();
 
   const activeProjects = projects.filter((p) => p.status !== "archived");
   let totalVolume = 0;
@@ -59,7 +63,13 @@ export default function Home() {
       </div>
 
       <div className="px-6 space-y-6">
-        {activeProjects.length === 0 ? (
+        {!hydrated ? (
+          <div className="space-y-6">
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <CardSkeleton />
+            <ListSkeleton rows={3} />
+          </div>
+        ) : activeProjects.length === 0 ? (
           <div className="glass-card p-8 text-center">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
               <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
@@ -102,10 +112,12 @@ export default function Home() {
           <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6">
             {[
               { href: "/objekte", icon: Plus, label: "Neues Objekt", accent: true },
-              { href: "/einstellungen", icon: Settings, label: "Raumarten" },
               { href: "/objekte", icon: Building2, label: "Alle Objekte" },
-              { href: "/vorlagen", icon: BookOpen, label: "Vorlagen", pro: plan === "basic" },
               { href: "/auswertung", icon: BarChart3, label: "Auswertung" },
+              { href: "/vorlagen", icon: BookOpen, label: "Vorlagen", pro: plan === "basic" },
+              { href: "/print/export", icon: FileText, label: "PDF-Export", pro: plan === "basic" },
+              { href: "/einstellungen", icon: Settings, label: "Einstellungen" },
+              ...(plan === "basic" ? [{ href: "/upgrade", icon: Sparkles, label: "Upgrade", accent: false as boolean }] : []),
             ].map((a) => (
               <Link key={a.label} href={a.href}>
                 <div className="w-24 h-24 shrink-0 rounded-2xl border border-border/30 bg-card hover:bg-secondary flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer relative">

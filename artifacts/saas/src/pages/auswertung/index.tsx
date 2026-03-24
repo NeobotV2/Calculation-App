@@ -5,10 +5,14 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { calcProjectTotals } from "@/lib/calc";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { BarChart3, Building2, ChevronRight, TrendingUp } from "lucide-react";
+import { ListSkeleton } from "@/components/list-skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 export default function AuswertungGlobal() {
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const hydrated = useHydrated();
 
   const activeProjects = projects.filter((p) => p.status !== "archived");
 
@@ -39,7 +43,17 @@ export default function AuswertungGlobal() {
         <h1 className="text-4xl font-semibold tracking-tight mt-2">Auswertung</h1>
       </div>
 
-      {activeProjects.length === 0 ? (
+      {!hydrated ? (
+        <div className="p-6 space-y-6">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <div className="grid grid-cols-2 gap-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-20 rounded-2xl" />
+            ))}
+          </div>
+          <ListSkeleton rows={3} />
+        </div>
+      ) : activeProjects.length === 0 ? (
         <div className="flex flex-col items-center justify-center text-center py-20 px-6">
           <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <BarChart3 size={28} className="text-muted-foreground" strokeWidth={1.5} />
