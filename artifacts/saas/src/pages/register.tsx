@@ -146,6 +146,12 @@ export default function Register() {
   return (
     <PageTransition className="min-h-screen bg-background flex flex-col px-6">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
+        <div className="flex flex-col items-center mb-8">
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            CleanCalc <span className="text-primary">Pro</span>
+          </h2>
+        </div>
+
         <h1 className="text-4xl font-semibold tracking-tight mb-3 text-foreground">Account erstellen</h1>
         <p className="text-muted-foreground text-lg mb-10">Speichere deine Kalkulationen sicher in der Cloud.</p>
 

@@ -53,7 +53,7 @@ export default function Upgrade() {
               "PDF-Angebote generieren",
               "Eigenes Firmenlogo auf PDF",
               "Detaillierte Deckungsbeitragsrechnung",
-              "Cloud-Synchronisation (demnächst)"
+              "Cloud-Synchronisation"
             ].map((ft, i) => (
               <div key={i} className="flex items-start gap-4">
                 <CheckCircle2 size={24} className="text-primary shrink-0" />
@@ -66,7 +66,7 @@ export default function Upgrade() {
             Jetzt PRO aktivieren
           </Button>
           <p className="text-center text-sm text-muted-foreground mt-6 flex items-center justify-center gap-2">
-            <ShieldCheck size={16}/> Sicher bezahlen via Stripe. Jederzeit kündbar.
+            <ShieldCheck size={16}/> Sicher bezahlen über den App Store. Jederzeit kündbar.
           </p>
         </motion.div>
       </div>

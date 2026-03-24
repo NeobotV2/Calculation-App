@@ -1,227 +1,113 @@
-# Workspace
+# Overview
 
-## Overview
+This is a pnpm workspace monorepo utilizing TypeScript for building a suite of applications focused on commercial cleaning businesses. The project aims to provide a comprehensive digital solution, including a full-featured SaaS web application (CleanCalc Pro), a mobile application (Reinigungskalkulator), and a robust API backend. The core purpose is to streamline cleaning quote calculations, project management, and business operations for commercial cleaning companies, with a strong emphasis on the German market.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+The project envisions empowering cleaning businesses with efficient tools, offering a scalable platform with both basic and "Pro" plan features. It targets market potential by providing specialized, localized solutions for an underserved niche.
 
-## Stack
+# User Preferences
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+I prefer iterative development, with a focus on delivering small, functional increments.
+I prefer clear and concise communication.
+Please provide detailed explanations for complex architectural decisions or significant code changes.
+I value maintainable and readable code, favoring functional programming paradigms where appropriate.
+Ask for confirmation before making any major architectural changes or introducing new external dependencies.
+Do not make changes to the `lib/api-spec` directory unless specifically instructed.
+Do not modify the core `src/lib/calc.ts` logic in `artifacts/saas` without prior discussion.
 
-## Structure
+# System Architecture
 
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
-│   └── saas/               # CleanCalc Pro SaaS web app
-│   └── mobile/             # Reinigungskalkulator mobile app (Expo)
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
-```
+The project is structured as a pnpm workspace monorepo using Node.js 24 and TypeScript 5.9.
 
-## TypeScript & Composite Projects
+## Core Stack
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+-   **Monorepo Tool**: pnpm workspaces
+-   **API Framework**: Express 5
+-   **Database**: PostgreSQL with Drizzle ORM
+-   **Validation**: Zod (`zod/v4`), integrated with `drizzle-zod`
+-   **API Codegen**: Orval (generates from OpenAPI spec)
+-   **Build Tool**: esbuild (for CJS bundles)
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Monorepo Structure
 
-## Root Scripts
+The monorepo is organized into `artifacts/` for deployable applications and `lib/` for shared libraries.
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+-   `artifacts/`: Contains `api-server`, `saas` (web app), and `mobile` (Expo app).
+-   `lib/`: Includes `api-spec`, `api-client-react` (generated React Query hooks), `api-zod` (generated Zod schemas), and `db` (Drizzle ORM setup).
+-   `scripts/`: A dedicated package for utility scripts.
 
-## Artifacts
+## TypeScript Configuration
 
-### `artifacts/saas` (`@workspace/saas`) — CleanCalc Pro Web SaaS
+All packages extend a base `tsconfig.base.json` with `composite: true`. The root `tsconfig.json` manages project references, enabling root-level typechecking and ensuring correct cross-package import resolution. `emitDeclarationOnly` is used for `.d.ts` generation, with `esbuild` handling actual JavaScript bundling.
 
-Full-featured German-language SaaS web app for commercial cleaning companies. Mobile-first React + Vite + Tailwind, dark premium theme (muted teal `171 40% 42%`, background `222 20% 6%`), Inter font only. Dual-path data: Supabase when authenticated, localStorage via Zustand in demo mode.
+## Applications
 
-**Routing:** Hash-based routing via `wouter` + `useHashLocation`. All URLs are `#/path`.
+### CleanCalc Pro Web SaaS (`artifacts/saas`)
 
-**Auth flow:** AuthGuard redirects: splash → onboarding → home based on `hasSeenSplash` / `hasOnboarded` store flags. Supabase auth (email/password) with session persistence, password reset, email confirmation with resend, and auth callback handling for hash routing. Demo mode uses localStorage fallback when Supabase is not configured.
+-   **Purpose**: Full-featured web application for commercial cleaning companies, primarily for the German market.
+-   **UI/UX**: Mobile-first design using React, Vite, and Tailwind CSS v4. Features a dark premium theme (muted teal, dark background) and Inter font.
+-   **Data Management**: Dual-path data handling with Supabase for authenticated users (PostgreSQL backend) and Zustand with localStorage for demo mode.
+-   **Routing**: Hash-based routing using `wouter` for `#/path` URLs.
+-   **Authentication**: Supabase-based authentication (email/password) with session persistence, password reset, and email confirmation. AuthGuard manages redirects based on user state (splash, onboarding, home).
+-   **Feature Gates**: Implements plan-based feature gates (Basic vs. Pro) limiting projects, rooms per project, PDF export, and template usage.
+-   **State Management**: Zustand with localStorage persistence (`cleancalc-storage`, version 3).
+-   **Capacitor Integration**: Supports native builds for iOS/Android using Capacitor, with specific adaptations for storage, sharing, deep linking, and native back button handling.
 
-**Supabase:** Connected via `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` secrets. Database schema in `supabase/migrations/001_initial_schema.sql`. Auto-provisioning trigger creates company, profile, settings, and subscription on user signup. RLS policies restrict all data access to user's company. Auth callback handler in `src/lib/auth-callback.ts` intercepts Supabase tokens from URL hash (email confirmation, password reset) before React router mounts.
+### Reinigungskalkulator Mobile App (`artifacts/mobile`)
 
-**Screens:**
-- `#/splash` — Animated splash screen (auto-redirects after 2.5s)
-- `#/onboarding` — 3-step onboarding (role, company+rate, demo/fresh)
-- `#/login`, `#/register` — Auth screens (Supabase auth with demo fallback)
-- `#/passwort-vergessen` — Password reset request
-- `#/passwort-reset` — Set new password (from email link)
-- `#/` — Home dashboard (KPIs, quick actions, recent projects, upgrade CTA)
-- `#/objekte` — Objects list with search, filter tabs (all/active/archived), action menu (duplicate/archive/delete)
-- `#/objekte/:id` — Object detail (inline name edit, room list, add/edit rooms via RoomEditorSheet, info sheet, template save, PDF gate)
-- `#/auswertung` — Global auswertung (all-project KPIs, top 5, recently edited)
-- `#/auswertung/:id` — Per-project auswertung (breakdown by room group, Pro features preview with blur gate)
-- `#/vorlagen` — Templates list (Pro-only, create from saved objects)
-- `#/print/:id` — Print/PDF view (Pro-only, redirects Basic users to /upgrade)
-- `#/einstellungen` — Settings (company, hourly rate, VAT, default frequency, PDF header/footer)
-- `#/konto` — Account & plan status, legal links, logout, data reset
-- `#/upgrade` — Pro plan upgrade page with mock checkout
-- `#/impressum` — Legal: Impressum (placeholder)
-- `#/datenschutz` — Legal: Datenschutzerklärung (placeholder)
-- `#/agb` — Legal: AGB (placeholder)
+-   **Purpose**: German-language mobile app for maintenance cleaning quote calculations.
+-   **Technology**: Built with Expo Router (React Native).
+-   **Features**: Three main tabs (Kalkulation, Auswertung, Einstellungen), room management (add/edit/delete), automatic calculation of hours/costs, KPI display, editable project settings, custom room types, demo data, dark mode UI.
+-   **Data Storage**: Client-side data persistence using AsyncStorage; no backend dependency.
 
-**Feature gates (Basic plan limits):**
-- Max 3 active projects (`canAddProject`)
-- Max 20 rooms per project (`canAddRoom`)
-- PDF export blocked (`canUsePDF`)
-- Templates blocked (`canUseTemplates`)
-- Custom performance override blocked (`canOverridePerformance`)
+### API Server (`artifacts/api-server`)
 
-**Store:** Zustand with localStorage persistence, name `cleancalc-storage`, version 3 with migration. When authenticated via Supabase, data is synced from PostgreSQL; in demo mode, localStorage is used.
+-   **Purpose**: Provides backend API services for the applications.
+-   **Technology**: Express 5.
+-   **Architecture**: Routes are defined in `src/routes/` and utilize `@workspace/api-zod` for request/response validation and `@workspace/db` for database interactions. CORS and JSON/urlencoded parsing are configured.
 
-**BottomNav:** 5 tabs — Übersicht, Objekte, Auswertung, Einstellungen, Konto
+## Libraries
 
-**Stack:** React, TypeScript, Vite, Tailwind CSS v4, Framer Motion, Zustand, Lucide React, Wouter (hash routing), shadcn/ui, Sonner (toasts), @supabase/supabase-js
+### `lib/db`
 
-**Supabase Integration:**
-- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` env vars enable Supabase; without them, app runs in demo-only mode
-- `src/lib/supabase.ts` — Supabase client singleton
-- `src/lib/auth-context.tsx` — React context for auth state + signIn/signUp/signOut/resetPassword/updatePassword
-- `src/hooks/use-supabase-sync.ts` — Syncs Supabase data into Zustand store on auth
-- `src/hooks/use-store-actions.ts` — Hook wrapping all CRUD operations; routes through Supabase services when authenticated, falls back to Zustand store in demo mode
-- `src/services/` — Service layer: object-service, template-service, settings-service, plan-service, profile-service, custom-room-type-service, migration-service
-- `src/lib/migrations/001_initial_schema.sql` — Full PostgreSQL schema with RLS policies, auto-provisioning trigger, tables: companies, profiles, company_settings, subscriptions, cleaning_objects, rooms, templates, custom_room_types
-- Demo data migration: on login/register, if demo data exists in localStorage, user is prompted to import it into their Supabase account
+-   **Purpose**: Database abstraction layer.
+-   **Technology**: Drizzle ORM with PostgreSQL.
+-   **Schema**: Defines database schemas and exports a Drizzle client. `drizzle-zod` is used for schema-based validation.
 
-**Key files:**
-- `src/App.tsx` — Router with AuthGuard, SupabaseAuthProvider, DataSync, all routes
-- `src/store/use-store.ts` — Zustand store (projects, templates, settings, auth); logout clears all cloud data
-- `src/hooks/use-supabase-sync.ts` — Cloud sync hook: loads all data from Supabase on login, clears on logout, shows error toasts
-- `src/hooks/use-store-actions.ts` — Dual-path CRUD: Supabase when authenticated, localStorage in demo mode
-- `src/lib/auth-context.tsx` — Supabase auth context (login, register, logout, password reset, resend confirmation)
-- `src/lib/auth-callback.ts` — Hash-routing auth callback interceptor (runs before React)
-- `src/lib/supabase.ts` — Supabase client singleton
-- `supabase/migrations/001_initial_schema.sql` — Full database schema with RLS + auto-provisioning trigger
-- `src/lib/calc.ts` — Calculation engine (calcRoom, calcProjectTotals)
-- `src/lib/feature-gates.ts` — Plan-based feature gates
-- `src/data/room-types.ts` — 19 canonical room types in 7 groups
-- `src/components/room-editor-sheet.tsx` — Room add/edit bottom sheet
-- `src/components/upgrade-modal.tsx` — Upgrade prompt modal
-- `src/components/confirm-dialog.tsx` — Destructive action confirmation
-- `src/components/error-boundary.tsx` — React error boundary (German UI)
-- `src/components/layout/BottomNav.tsx` — 5-tab bottom navigation
-- `src/components/layout/PageTransition.tsx` — Framer Motion page wrapper
+### `lib/api-spec`
 
-**Capacitor (Native App):**
-- App ID: `com.cleancalc.pro`
-- Custom URL scheme: `cleancalcpro://`
-- Config: `capacitor.config.ts`
-- Build: `pnpm --filter @workspace/saas run build:cap` (sets `CAPACITOR_BUILD=true`, base path `./`)
-- Init native projects: `pnpm --filter @workspace/saas run cap:init` (requires Xcode/Android Studio locally)
-- Open iOS: `pnpm --filter @workspace/saas run cap:ios`
-- Open Android: `pnpm --filter @workspace/saas run cap:android`
-- Platform detection: `src/lib/capacitor.ts` — `isNative`, `isIOS`, `isAndroid`, `isWeb`
-- Storage: `src/lib/capacitor-storage.ts` — uses `@capacitor/preferences` on native, `localStorage` on web
-- Native share: `src/lib/native-share.ts` — `window.print()` on web, `@capacitor/share` on native
-- Auth redirects: `src/lib/capacitor.ts` `getRedirectUrl()` — uses custom URL scheme on native, `window.location.origin` on web
-- Deep links: `src/main.tsx` handles `appUrlOpen` events from `@capacitor/app`
-- Android back button: `src/hooks/use-android-back.ts` — minimizes app on root, navigates back otherwise
-- Sidebar: uses `localStorage` instead of `document.cookie` (Capacitor-safe)
-- Icon source: `resources/icon.png` (generate sizes with `npx @capacitor/assets generate`)
+-   **Purpose**: Manages the OpenAPI 3.1 specification and Orval configuration.
+-   **Functionality**: Used to generate API client code and Zod schemas into sibling packages.
 
-**Store (Zustand):**
-- Name: `cleancalc-storage`, version 3 with migration
-- Key state: `isLoggedIn`, `isDemo`, `plan` (basic/pro), `customRoomTypes`, `projects`, `templates`
-- Methods: CRUD for projects/rooms/templates/customRoomTypes, `exportData`/`importData`/`resetToDefaults`/`resetAll`
-- Feature gates: `canAddProject` (3 max basic), `canAddRoom` (20/project basic), `canUsePDF`, `canUseTemplates`, `canOverridePerformance`
+### `lib/api-zod`
 
-**Shared types:** `src/types/index.ts` re-exports all shared types from store and data files
+-   **Purpose**: Stores generated Zod schemas from the OpenAPI spec for API request and response validation.
 
----
+### `lib/api-client-react`
 
-### `artifacts/mobile` (`@workspace/mobile`) — Reinigungskalkulator
+-   **Purpose**: Stores generated React Query hooks and a fetch client from the OpenAPI spec for frontend API interaction.
 
-German-language mobile app for commercial cleaning companies to calculate maintenance cleaning quotes. Built with Expo Router (React Native).
+# External Dependencies
 
-**Features:**
-- Three tabs: Kalkulation, Auswertung, Einstellungen
-- Add/edit/delete rooms with: name, room type, area, cleaning frequency, performance value
-- Automatic calculation: monthly hours, monthly cost, annual cost per room and totals
-- KPI cards: total area, monthly price, annual price, monthly hours, price/m²
-- Editable project name, hourly rate, company name
-- Room types with performance values editable in settings
-- Demo data loader and reset all function
-- Data persists with AsyncStorage (no backend needed)
-- Dark mode UI with teal accent (#00C2A8)
-
-**Key files:**
-- `app/(tabs)/index.tsx` — main calculation screen
-- `app/(tabs)/summary.tsx` — results/summary screen
-- `app/(tabs)/settings.tsx` — settings screen
-- `context/CalcContext.tsx` — shared state (rooms, settings, actions)
-- `utils/calc.ts` — pure calculation logic + German number formatting
-- `data/seed.ts` — default room types, groups, frequencies
-- `types/index.ts` — TypeScript types
-- `components/RoomFormModal.tsx` — add/edit room modal
-- `components/KpiCard.tsx` — KPI display card
-- `components/RoomCard.tsx` — room list item
-- `constants/colors.ts` — dark mode theme
-
-## Packages
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+-   **PostgreSQL**: Primary database for the API server and Supabase.
+-   **Supabase**: Backend-as-a-Service for authentication, real-time database, and storage for the `saas` application. Uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for configuration.
+-   **Drizzle ORM**: TypeScript ORM for interacting with PostgreSQL.
+-   **Zod**: Schema declaration and validation library.
+-   **Orval**: OpenAPI client code generator.
+-   **Express**: Web application framework for Node.js (API server).
+-   **React**: Frontend library for `saas` web app.
+-   **Vite**: Build tool for the `saas` web app.
+-   **Tailwind CSS**: Utility-first CSS framework for `saas` web app.
+-   **Framer Motion**: Animation library used in `saas` web app.
+-   **Zustand**: Small, fast, and scalable bearbones state-management solution for `saas` web app.
+-   **Lucide React**: Icon library for `saas` web app.
+-   **Wouter**: Tiny React hook-based router for `saas` web app.
+-   **shadcn/ui**: Reusable UI components for `saas` web app.
+-   **Sonner**: Toast library for `saas` web app.
+-   **@supabase/supabase-js**: JavaScript client library for Supabase.
+-   **Expo Router**: File-system based router for React Native apps (`mobile`).
+-   **React Native**: Framework for building native mobile apps.
+-   **Capacitor**: Open-source cross-platform native runtime for web apps (`saas` native build).
+-   **AsyncStorage**: Persistent data storage for React Native (`mobile` app).
+-   **@capacitor/preferences**: Capacitor plugin for native preferences storage.
+-   **@capacitor/share**: Capacitor plugin for native sharing functionality.
+-   **@capacitor/app**: Capacitor plugin for app lifecycle events.

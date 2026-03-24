@@ -35,13 +35,13 @@ CREATE TABLE IF NOT EXISTS company_settings (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Subscriptions table (prepared for Stripe, not connected yet)
+-- Subscriptions table (managed via App Store / RevenueCat)
 CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   company_id UUID NOT NULL UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
   plan TEXT NOT NULL DEFAULT 'basic' CHECK (plan IN ('basic', 'pro')),
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
+  store_customer_id TEXT,
+  store_subscription_id TEXT,
   current_period_start TIMESTAMPTZ,
   current_period_end TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'active',

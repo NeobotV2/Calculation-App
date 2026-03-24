@@ -135,10 +135,13 @@ export default function Login() {
   return (
     <PageTransition className="min-h-screen bg-background flex flex-col px-6">
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-        <div className="flex justify-center mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
+        <div className="flex flex-col items-center mb-10">
+          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg mb-5">
             <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} />
           </div>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">
+            CleanCalc <span className="text-primary">Pro</span>
+          </h2>
         </div>
 
         <h1 className="text-4xl font-semibold tracking-tight text-center mb-3 text-foreground">Willkommen</h1>
