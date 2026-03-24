@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export default function Register() {
   const [, setLocation] = useLocation();
-  const storeLogin = useStore((s) => s.login);
+  const setDemoUser = useStore((s) => s.setDemoUser);
   const { signUp, resendConfirmation, isSupabaseReady } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -37,7 +37,7 @@ export default function Register() {
     }
 
     if (!isSupabaseReady) {
-      storeLogin({ name: name || "Neu", email: email || "neu@example.com" });
+      setDemoUser({ name: name || "Neu", email: email || "neu@example.com" });
       setLocation("/");
       return;
     }

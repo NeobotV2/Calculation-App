@@ -17,7 +17,7 @@ export default function Konto() {
   const companyName = useStore((s) => s.companyName);
   const plan = useStore((s) => s.plan);
   const projects = useStore((s) => s.projects);
-  const storeLogout = useStore((s) => s.logout);
+  const clearSession = useStore((s) => s.clearSession);
   const resetAll = useStore((s) => s.resetAll);
   const isLoggedIn = useStore((s) => s.isLoggedIn);
   const isDemo = useStore((s) => s.isDemo);
@@ -41,7 +41,7 @@ export default function Konto() {
     if (isAuthenticated) {
       await signOut();
     }
-    storeLogout();
+    clearSession();
     setIsLoggingOut(false);
     toast.success("Abgemeldet");
     setLocation("/login");

@@ -100,7 +100,7 @@ export function useSupabaseSync() {
       reload();
     } else if (!isAuthenticated && currentUserRef.current !== null) {
       currentUserRef.current = null;
-      useStore.getState().logout();
+      useStore.getState().clearSession();
     }
   }, [isAuthenticated, user, reload]);
 

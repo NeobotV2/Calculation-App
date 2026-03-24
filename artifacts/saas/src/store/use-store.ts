@@ -82,8 +82,9 @@ interface AppState {
 
   setHasSeenSplash: () => void;
   completeOnboarding: (data: { role: string; companyName: string; hourlyRate: number; loadDemo: boolean }) => void;
-  login: (user: { name: string; email: string; role?: string }) => void;
-  logout: () => void;
+  setDemoUser: (user: { name: string; email: string; role?: string }) => void;
+  clearSession: () => void;
+  // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
   upgradePlan: () => void;
   updateSettings: (data: Partial<{ companyName: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
 
@@ -199,8 +200,8 @@ export const useStore = create<AppState>()(
           projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
         })),
 
-      login: (user) => set((state) => ({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email, role: user.role || state.user?.role || "Benutzer" } })),
-      logout: () => {
+      setDemoUser: (user) => set((state) => ({ isLoggedIn: true, isDemo: true, user: { name: user.name, email: user.email, role: user.role || state.user?.role || "Benutzer" } })),
+      clearSession: () => {
         const wasDemo = get().isDemo;
         if (wasDemo) {
           set({ isLoggedIn: false, user: null });
