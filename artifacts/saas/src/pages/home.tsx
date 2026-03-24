@@ -9,6 +9,7 @@ import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, Fi
 import { ListSkeleton, CardSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { AppFooter } from "@/components/layout/AppFooter";
 
 export default function Home() {
   const companyName = useStore((s) => s.companyName);
@@ -177,6 +178,8 @@ export default function Home() {
           </Link>
         )}
       </div>
+
+      <AppFooter />
 
       <BottomNav />
     </PageTransition>

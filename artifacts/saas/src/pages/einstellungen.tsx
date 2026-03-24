@@ -12,6 +12,7 @@ import { FREQUENCY_LABELS } from "@/lib/calc";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
 import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3 } from "lucide-react";
 import { toast } from "sonner";
+import { AppFooter } from "@/components/layout/AppFooter";
 
 export default function Einstellungen() {
   const [, setLocation] = useLocation();
@@ -379,6 +380,8 @@ export default function Einstellungen() {
         confirmLabel="Zurücksetzen"
         destructive
       />
+
+      <AppFooter />
 
       <BottomNav />
     </PageTransition>

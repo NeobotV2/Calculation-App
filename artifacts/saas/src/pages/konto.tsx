@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { BASIC_LIMITS } from "@/lib/feature-gates";
+import { AppFooter } from "@/components/layout/AppFooter";
 
 export default function Konto() {
   const [, setLocation] = useLocation();
@@ -197,6 +198,8 @@ export default function Konto() {
         confirmLabel="Alles löschen"
         destructive
       />
+
+      <AppFooter />
 
       <BottomNav />
     </PageTransition>
