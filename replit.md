@@ -107,7 +107,9 @@ Full-featured German-language SaaS web app for commercial cleaning companies. Mo
 
 **Key files:**
 - `src/App.tsx` — Router with AuthGuard, SupabaseAuthProvider, DataSync, all routes
-- `src/store/use-store.ts` — Zustand store (projects, templates, settings, auth)
+- `src/store/use-store.ts` — Zustand store (projects, templates, settings, auth); logout clears all cloud data
+- `src/hooks/use-supabase-sync.ts` — Cloud sync hook: loads all data from Supabase on login, clears on logout, shows error toasts
+- `src/hooks/use-store-actions.ts` — Dual-path CRUD: Supabase when authenticated, localStorage in demo mode
 - `src/lib/auth-context.tsx` — Supabase auth context (login, register, logout, password reset, resend confirmation)
 - `src/lib/auth-callback.ts` — Hash-routing auth callback interceptor (runs before React)
 - `src/lib/supabase.ts` — Supabase client singleton

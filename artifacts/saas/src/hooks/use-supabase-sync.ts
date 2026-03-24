@@ -7,6 +7,7 @@ import * as customRoomTypeService from "@/services/custom-room-type-service";
 import * as settingsService from "@/services/settings-service";
 import * as planService from "@/services/plan-service";
 import { getProfile, getCompany } from "@/services/profile-service";
+import { toast } from "sonner";
 
 let pendingReload: Promise<void> | null = null;
 
@@ -35,6 +36,11 @@ async function fetchAndApply(userId: string, userEmail: string, userMeta: Record
   const failed = results.filter((r) => r.status === "rejected");
   if (failed.length > 0) {
     console.warn(`Supabase sync: ${failed.length}/${results.length} fetches failed`);
+    if (failed.length === results.length) {
+      toast.error("Daten konnten nicht geladen werden. Bitte prüfe deine Internetverbindung.");
+      return;
+    }
+    toast.error("Einige Daten konnten nicht geladen werden. Bitte versuche es erneut.");
   }
 
   useStore.getState()._setAuthData({
@@ -77,7 +83,10 @@ export function useSupabaseSync() {
       user.email || "",
       user.user_metadata || {}
     )
-      .catch((err) => console.error("Failed to load data from Supabase:", err))
+      .catch((err) => {
+        console.error("Failed to load data from Supabase:", err);
+        toast.error("Verbindungsfehler. Daten konnten nicht synchronisiert werden.");
+      })
       .finally(() => {
         pendingReload = null;
       });
@@ -89,8 +98,9 @@ export function useSupabaseSync() {
     if (isAuthenticated && user && currentUserRef.current !== user.id) {
       currentUserRef.current = user.id;
       reload();
-    } else if (!isAuthenticated) {
+    } else if (!isAuthenticated && currentUserRef.current !== null) {
       currentUserRef.current = null;
+      useStore.getState().logout();
     }
   }, [isAuthenticated, user, reload]);
 

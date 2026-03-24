@@ -199,11 +199,22 @@ export const useStore = create<AppState>()(
           projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
         })),
 
-      // TODO: Replace with Supabase auth — call supabase.auth.signInWithPassword(), then set user from session
       login: (user) => set((state) => ({ isLoggedIn: true, isDemo: false, user: { name: user.name, email: user.email, role: user.role || state.user?.role || "Benutzer" } })),
-      // TODO: Replace with supabase.auth.signOut()
-      logout: () => set({ isLoggedIn: false, isDemo: true, user: null }),
-      // TODO: Replace with Stripe checkout / Supabase subscription update
+      logout: () => set({
+        isLoggedIn: false,
+        isDemo: true,
+        user: null,
+        projects: [],
+        templates: [],
+        customRoomTypes: [],
+        plan: "basic",
+        companyName: "Meine Reinigungsfirma",
+        hourlyRate: 22.50,
+        vatRate: 0,
+        defaultFrequency: "5x_week" as FrequencyKey,
+        pdfHeader: "",
+        pdfFooter: "",
+      }),
       upgradePlan: () => set({ plan: "pro" }),
 
       updateSettings: (data) => set((state) => ({ ...state, ...data })),

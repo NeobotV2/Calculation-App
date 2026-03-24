@@ -40,8 +40,9 @@ export default function Konto() {
     setIsLoggingOut(true);
     if (isAuthenticated) {
       await signOut();
+    } else {
+      storeLogout();
     }
-    storeLogout();
     setIsLoggingOut(false);
     toast.success("Abgemeldet");
     setLocation("/login");
