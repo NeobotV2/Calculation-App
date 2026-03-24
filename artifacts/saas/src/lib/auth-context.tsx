@@ -16,6 +16,7 @@ interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
   updatePassword: (newPassword: string) => Promise<{ error?: string }>;
+  resendConfirmation: (email: string) => Promise<{ error?: string }>;
   refreshSession: () => Promise<void>;
 }
 
@@ -94,7 +95,10 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { full_name: name } },
+        options: {
+          data: { full_name: name },
+          emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+        },
       });
       if (error) return { error: mapAuthError(error) };
       if (data.user && !data.session) {
@@ -146,6 +150,23 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const resendConfirmation = useCallback(async (email: string) => {
+    if (!supabase) return { error: "Supabase ist nicht konfiguriert." };
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+        },
+      });
+      if (error) return { error: mapAuthError(error) };
+      return {};
+    } catch {
+      return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+    }
+  }, []);
+
   const refreshSession = useCallback(async () => {
     if (!supabase) return;
     await supabase.auth.refreshSession();
@@ -160,6 +181,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         signOut,
         resetPassword,
         updatePassword,
+        resendConfirmation,
         refreshSession,
       }}
     >

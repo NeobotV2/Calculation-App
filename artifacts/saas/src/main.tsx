@@ -1,5 +1,8 @@
 import { createRoot } from "react-dom/client";
+import { handleAuthCallback } from "./lib/auth-callback";
 import App from "./App";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(<App />);
+handleAuthCallback().finally(() => {
+  createRoot(document.getElementById("root")!).render(<App />);
+});

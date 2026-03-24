@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight } from "lucide-react";
+import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { BASIC_LIMITS } from "@/lib/feature-gates";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -21,10 +21,14 @@ export default function Konto() {
   const resetAll = useStore((s) => s.resetAll);
   const isLoggedIn = useStore((s) => s.isLoggedIn);
   const isDemo = useStore((s) => s.isDemo);
-  const { signOut, isAuthenticated } = useAuth();
+  const { signOut, isAuthenticated, user: authUser, resendConfirmation } = useAuth();
 
   const [showReset, setShowReset] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  const emailConfirmed = authUser?.email_confirmed_at != null;
 
   const activeProjects = projects.filter(p => p.status !== "archived").length;
   const projectLimit = plan === "pro" ? Infinity : BASIC_LIMITS.maxProjects;
@@ -79,6 +83,61 @@ export default function Konto() {
             </div>
           </div>
         </div>
+
+        {isAuthenticated && !emailConfirmed && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-start gap-3">
+            <Mail size={20} className="text-yellow-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-sm text-yellow-200">E-Mail nicht bestätigt</p>
+              <p className="text-xs text-yellow-200/70 mt-1">
+                Bitte bestätige deine E-Mail-Adresse ({authUser?.email}), um alle Funktionen nutzen zu können.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3 border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10"
+                disabled={isResendingVerification || resendCooldown > 0}
+                onClick={async () => {
+                  if (!authUser?.email) return;
+                  setIsResendingVerification(true);
+                  const result = await resendConfirmation(authUser.email);
+                  setIsResendingVerification(false);
+                  if (result.error) {
+                    toast.error(result.error);
+                  } else {
+                    toast.success("Bestätigungs-E-Mail gesendet!");
+                    setResendCooldown(60);
+                    const interval = setInterval(() => {
+                      setResendCooldown((prev) => {
+                        if (prev <= 1) { clearInterval(interval); return 0; }
+                        return prev - 1;
+                      });
+                    }, 1000);
+                  }
+                }}
+              >
+                {isResendingVerification ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw size={14} className="animate-spin" /> Wird gesendet...
+                  </span>
+                ) : resendCooldown > 0 ? (
+                  `Erneut senden (${resendCooldown}s)`
+                ) : (
+                  <>
+                    <RefreshCw size={14} className="mr-1" /> E-Mail erneut senden
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isAuthenticated && emailConfirmed && (
+          <div className="flex items-center gap-2 px-1">
+            <CheckCircle2 size={16} className="text-green-500" />
+            <span className="text-xs text-muted-foreground">E-Mail bestätigt</span>
+          </div>
+        )}
 
         {plan === "basic" && (
           <div className="bg-card border border-border/40 rounded-3xl p-6">

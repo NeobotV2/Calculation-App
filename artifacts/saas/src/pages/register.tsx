@@ -5,20 +5,22 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, RefreshCw } from "lucide-react";
 import { hasDemoData, getDemoData, migrateDemoData, clearDemoData } from "@/services/migration-service";
 import { toast } from "sonner";
 
 export default function Register() {
   const [, setLocation] = useLocation();
   const storeLogin = useStore((s) => s.login);
-  const { signUp, isSupabaseReady } = useAuth();
+  const { signUp, resendConfirmation, isSupabaseReady } = useAuth();
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +76,28 @@ export default function Register() {
     setLocation("/");
   };
 
+  const handleResend = async () => {
+    if (resendCooldown > 0 || isResending) return;
+    setIsResending(true);
+    const result = await resendConfirmation(email);
+    setIsResending(false);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Bestätigungs-E-Mail erneut gesendet!");
+      setResendCooldown(60);
+      const interval = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
   if (needsConfirmation) {
     return (
       <PageTransition className="min-h-screen bg-background flex flex-col px-6">
@@ -90,9 +114,30 @@ export default function Register() {
             Wir haben dir eine Bestätigungs-E-Mail an <span className="font-medium text-foreground">{email}</span> gesendet.
             Bitte bestätige deine E-Mail-Adresse, um dich anzumelden.
           </p>
-          <Button variant="outline" className="w-full h-14 text-base" onClick={() => setLocation("/login")}>
-            Zum Login
-          </Button>
+          <div className="space-y-3">
+            <Button
+              variant="outline"
+              className="w-full h-14 text-base"
+              onClick={handleResend}
+              disabled={isResending || resendCooldown > 0}
+            >
+              {isResending ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-5 h-5 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />
+                  Wird gesendet...
+                </span>
+              ) : resendCooldown > 0 ? (
+                `Erneut senden (${resendCooldown}s)`
+              ) : (
+                <>
+                  <RefreshCw size={18} className="mr-2" /> E-Mail erneut senden
+                </>
+              )}
+            </Button>
+            <Button variant="outline" className="w-full h-14 text-base" onClick={() => setLocation("/login")}>
+              Zum Login
+            </Button>
+          </div>
         </div>
       </PageTransition>
     );
