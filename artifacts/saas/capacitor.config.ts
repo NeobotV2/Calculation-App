@@ -27,7 +27,7 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    scheme: "CleanCalc Pro",
+    scheme: "cleancalcpro",
     contentInset: "automatic",
   },
   android: {
