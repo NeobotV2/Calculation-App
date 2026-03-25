@@ -41,12 +41,13 @@ function relativeTime(dateStr: string): string {
   return `vor ${Math.floor(diffM / 12)} J.`;
 }
 
-function getStatusLabel(project: { rooms: { area: number; frequency: string }[]; status: string }, hasWarnings: boolean): { label: string; color: string } {
+function getStatusLabel(project: { rooms: { area: number; frequency: string }[]; status: string; customer?: string }, hasWarnings: boolean): { label: string; color: string } {
   if (project.status === "archived") return { label: "Archiviert", color: "bg-muted text-muted-foreground" };
   if (project.rooms.length === 0) return { label: "Entwurf", color: "bg-secondary text-muted-foreground" };
   const incomplete = project.rooms.some((r) => r.area <= 0);
   if (incomplete) return { label: "LV unvollständig", color: "bg-warning/10 text-warning" };
   if (hasWarnings) return { label: "Prüfung offen", color: "bg-warning/10 text-warning" };
+  if (!project.customer) return { label: "In Kalkulation", color: "bg-primary/10 text-primary" };
   return { label: "Angebot erstellt", color: "bg-success/10 text-success" };
 }
 
