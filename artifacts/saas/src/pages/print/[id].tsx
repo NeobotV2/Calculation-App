@@ -1,7 +1,5 @@
-import { useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
-import { canUsePDF } from "@/lib/feature-gates";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer, Share2 } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
@@ -13,14 +11,6 @@ export default function PrintView() {
   const [, params] = useRoute("/print/:id");
   const [, setLocation] = useLocation();
   const id = params?.id;
-  const plan = useStore((s) => s.plan);
-
-  useEffect(() => {
-    const gate = canUsePDF();
-    if (!gate.allowed) {
-      setLocation("/upgrade");
-    }
-  }, [plan, setLocation]);
 
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);

@@ -4,7 +4,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { canUsePDF } from "@/lib/feature-gates";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Lock, X } from "lucide-react";
+import { ArrowLeft, Download, X } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useState } from "react";
@@ -16,7 +16,6 @@ export default function AuswertungDetail() {
 
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
-  const plan = useStore((s) => s.plan);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
 
@@ -136,8 +135,8 @@ export default function AuswertungDetail() {
           </div>
         </div>
 
-        <div className="relative rounded-3xl overflow-hidden border border-border/30 bg-card">
-          <div className={`p-6 ${plan === "basic" ? "blur-[4px] select-none opacity-50" : ""}`}>
+        <div className="rounded-3xl overflow-hidden border border-border/30 bg-card">
+          <div className="p-6">
             <h3 className="font-semibold mb-4 text-lg tracking-tight">Profi-Auswertung</h3>
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-border/20">
@@ -154,19 +153,9 @@ export default function AuswertungDetail() {
               </div>
             </div>
           </div>
-          {plan === "basic" && (
-            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px]">
-              <div className="w-12 h-12 bg-card border border-border/40 rounded-full flex items-center justify-center mb-3">
-                <Lock size={20} />
-              </div>
-              <h4 className="font-bold text-base mb-1">Nur in Pro</h4>
-              <p className="text-sm text-muted-foreground mb-4 text-center max-w-[220px]">Detailkalkulation und PDF-Exporte sind Pro-Features.</p>
-              <Button onClick={() => setLocation("/upgrade")} size="sm" className="rounded-full px-6">Upgrade entdecken</Button>
-            </div>
-          )}
         </div>
 
-        <Button className="w-full" size="lg" variant={plan === "pro" ? "default" : "outline"} onClick={handlePDF}>
+        <Button className="w-full" size="lg" onClick={handlePDF}>
           <Download size={18} className="mr-2" /> Angebot als PDF exportieren
         </Button>
       </div>

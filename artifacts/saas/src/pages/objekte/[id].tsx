@@ -195,10 +195,9 @@ export default function ObjektDetail() {
             <button onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
             <button onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" /> Als Vorlage speichern</button>
             <button onClick={() => {
-              const gate = canUsePDF();
-              if (!gate.allowed) { setUpgradeReason(gate.reason || ""); setUpgradeOpen(true); } else { setLocation(`/print/${project.id}`); }
+              setLocation(`/print/${project.id}`);
               setMenuOpen(false);
-            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> PDF exportieren {plan === "basic" && <span className="text-[10px] bg-primary/10 text-primary px-1.5 rounded font-semibold ml-auto">PRO</span>}</button>
+            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> PDF exportieren</button>
             <button onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" /> Archivieren</button>
             <button onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} /> Löschen</button>
           </div>

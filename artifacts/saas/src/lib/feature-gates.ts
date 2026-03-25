@@ -26,9 +26,7 @@ export function canAddRoom(projectId: string): { allowed: boolean; reason?: stri
 }
 
 export function canUsePDF(): { allowed: boolean; reason?: string } {
-  const { plan } = useStore.getState();
-  if (plan === "pro") return { allowed: true };
-  return { allowed: false, reason: "PDF-Export ist ein Pro-Feature." };
+  return { allowed: true };
 }
 
 export function canUseTemplates(): { allowed: boolean; reason?: string } {

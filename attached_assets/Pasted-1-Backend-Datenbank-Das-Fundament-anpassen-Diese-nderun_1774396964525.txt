@@ -1,0 +1,29 @@
+1. Backend & Datenbank (Das Fundament anpassen)
+Diese Änderungen müssen in dein Datenbankschema (vermutlich SQLite oder Postgres in Replit) integriert werden, bevor du weiterbaust.
+• Snapshot-Logik für Kalkulationen einführen:
+• Ergänze in der Tabelle calculations (oder quotes) Spalten, die die exakten Werte zum Zeitpunkt der Erstellung einfrieren.
+• Neue Felder: locked_hourly_rate, locked_material_rate, locked_setup_time.
+• Grund: Wenn du im Tab Einstellungen (Screenshot 6) den Standard-Stundensatz nächstes Jahr erhöhst, dürfen sich deine alten Angebote im Tab Auswertung nicht rückwirkend verändern.
+• JSON-Feld für Raum-Besonderheiten:
+• Ergänze in der Tabelle rooms ein Feld attributes (Typ: JSON oder Text).
+• Grund: Anstatt für "starke Verschmutzung", "Hygienebereich" oder "Leiter nötig" jeweils eine eigene Spalte anzulegen, speicherst du diese Schalter als JSON-Objekt. Das macht die App flexibel für zukünftige neue Raum-Erschwernisse.
+2. Logik & Berechnungen (Die 4,33-Regel)
+Die Zahlen in deinem Auswertung-Dashboard (Screenshot 5) werden falsch berechnet sein, wenn die Intervall-Logik nicht stimmt.
+• Implementierung des 4,33-Faktors:
+• Wenn ein Nutzer in den Einstellungen (Screenshot 6) "5x wöchentlich" als Intervall auswählt, darf der Monatsumsatz in der Logik nicht einfach "Wochenpreis x 4" sein.
+• Formel im Code: Monatspreis = (Preis pro Reinigung x Reinigungen pro Woche) x 4,33.
+• Dies muss im gesamten Code (Dashboard-Aggregation, Objekt-Kalkulation) der absolute Standard für wöchentliche Intervalle werden.
+3. Frontend-Erweiterungen (Sichtbare UI-Änderungen)
+Basierend auf deinen Screenshots müssen folgende Masken erweitert werden:
+• Stundensatz-Kalkulator (Screenshot 1) flexibler machen:
+• Aktuell rechnest du einen starren "Verrechnungssatz" aus. In der Gebäudereinigung gibt es aber Schichtarbeit.
+• Ergänzung: Füge im Kalkulator optionale Schalter/Eingabefelder für Nachtzuschlag (z. B. 25%) und Sonn-/Feiertagszuschlag hinzu. Die App muss wissen, wann gereinigt wird, da dies die Lohnkosten massiv verändert.
+• PDF-Angebote & Einstellungen (Screenshot 3 & 6):
+• Das Freitextfeld für "Fußzeile" ist fehleranfällig, wenn daraus ein rechtssicheres Dokument generiert werden soll.
+• Ergänzung: Baue eine strukturierte Eingabemaske für die Stammdaten. Beispielsweise separate Felder für Firmenname (z. B. AHAD Cleaning Company GmbH), Straße (z. B. Max-Planck-Straße 11), PLZ/Ort (z. B. 78052 Villingen-Schwenningen), Steuernummer und Geschäftsführer.
+• Das Skript zur PDF-Generierung zieht sich diese Variablen dann sauber in das gewünschte Layout, anstatt einen unformatierten Textblock einzusetzen.
+• Objekt-Begehungs-Flow (Neues Objekt anlegen):
+• Sorge im Frontend dafür, dass der Flow zum Anlegen auf maximal 3 Tabs/Seiten komprimiert wird:
+1.	Basisdaten (Kunde/Ort)
+2.	Räume & Erschwernisse (Hier greift das oben erwähnte JSON-Feld für die Checkboxen)
+3.	Zuschläge & Intervall.
