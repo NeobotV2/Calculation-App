@@ -1,3 +1,5 @@
+export type ThemeMode = "light" | "dark";
+
 export const typography = {
   screenTitle: { fontSize: 32, lineHeight: 38, fontWeight: 700 },
   sectionTitle: { fontSize: 20, lineHeight: 26, fontWeight: 600 },
@@ -11,14 +13,14 @@ export const typography = {
 } as const;
 
 export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  "2xl": 24,
-  "3xl": 32,
-  "4xl": 40,
+  4: 4,
+  8: 8,
+  12: 12,
+  16: 16,
+  20: 20,
+  24: 24,
+  32: 32,
+  40: 40,
 } as const;
 
 export const radius = {
@@ -28,4 +30,45 @@ export const radius = {
   xl: 24,
 } as const;
 
-export type ThemeMode = "light" | "dark";
+export const colors = {
+  light: {
+    background: "hsl(218, 33%, 97%)",
+    foreground: "hsl(222, 47%, 11%)",
+    card: "hsl(0, 0%, 100%)",
+    cardForeground: "hsl(222, 47%, 11%)",
+    primary: "hsl(173, 41%, 28%)",
+    primaryForeground: "hsl(0, 0%, 100%)",
+    secondary: "hsl(210, 20%, 93%)",
+    secondaryForeground: "hsl(222, 47%, 11%)",
+    muted: "hsl(210, 20%, 93%)",
+    mutedForeground: "hsl(215, 16%, 47%)",
+    accent: "hsl(210, 20%, 93%)",
+    accentForeground: "hsl(222, 47%, 11%)",
+    destructive: "hsl(0, 72%, 51%)",
+    border: "hsl(214, 20%, 88%)",
+    ring: "hsl(173, 41%, 28%)",
+    success: "hsl(142, 71%, 45%)",
+    warning: "hsl(32, 95%, 44%)",
+    info: "hsl(217, 91%, 60%)",
+  },
+  dark: {
+    background: "hsl(210, 50%, 5%)",
+    foreground: "hsl(210, 40%, 98%)",
+    card: "hsl(213, 40%, 9%)",
+    cardForeground: "hsl(210, 40%, 98%)",
+    primary: "hsl(174, 47%, 43%)",
+    primaryForeground: "hsl(210, 50%, 5%)",
+    secondary: "hsl(213, 30%, 14%)",
+    secondaryForeground: "hsl(210, 40%, 98%)",
+    muted: "hsl(213, 30%, 14%)",
+    mutedForeground: "hsl(215, 20%, 55%)",
+    accent: "hsl(213, 30%, 14%)",
+    accentForeground: "hsl(210, 40%, 98%)",
+    destructive: "hsl(0, 63%, 51%)",
+    border: "hsl(213, 25%, 18%)",
+    ring: "hsl(174, 47%, 43%)",
+    success: "hsl(142, 71%, 45%)",
+    warning: "hsl(45, 93%, 47%)",
+    info: "hsl(217, 91%, 60%)",
+  },
+} as const;
