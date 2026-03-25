@@ -34,6 +34,7 @@ import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/lega
 import { ErrorBoundary } from "@/components/error-boundary";
 import { CookieNotice } from "@/components/cookie-notice";
 import { useAndroidBack } from "@/hooks/use-android-back";
+import { AppShell } from "@/components/layout/AppShell";
 
 function SessionLoader() {
   const { isLoading } = useAuth();
@@ -91,10 +92,22 @@ function DataSync() {
   return null;
 }
 
+const shellRoutes = ["/", "/objekte", "/auswertung", "/einstellungen", "/stundensatz", "/konto", "/vorlagen", "/upgrade"];
+
+function needsShell(loc: string): boolean {
+  if (loc.startsWith("/print/")) return false;
+  for (const route of shellRoutes) {
+    if (route === "/" && loc === "/") return true;
+    if (route !== "/" && (loc === route || loc.startsWith(route + "/"))) return true;
+  }
+  return false;
+}
+
 function AppRouter() {
   const [location] = useLocation();
+  const showShell = needsShell(location);
 
-  return (
+  const routes = (
     <AnimatePresence mode="wait" initial={false}>
       <Switch location={location} key={location}>
         <Route path="/splash" component={Splash} />
@@ -124,6 +137,12 @@ function AppRouter() {
       </Switch>
     </AnimatePresence>
   );
+
+  if (showShell) {
+    return <AppShell>{routes}</AppShell>;
+  }
+
+  return routes;
 }
 
 function App() {

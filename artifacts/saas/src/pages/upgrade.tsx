@@ -18,13 +18,13 @@ export default function Upgrade() {
 
   return (
     <PageTransition className="min-h-screen bg-background flex flex-col">
-      <div className="p-4 pt-14 relative z-10">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="absolute left-4 top-14 rounded-full bg-card border border-border/50">
+      <div className="p-4 pt-14 md:pt-8 relative z-10">
+        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="absolute left-4 top-14 md:top-8 rounded-full bg-card border border-border/50">
           <ArrowLeft size={20} />
         </Button>
       </div>
 
-      <div className="flex-1 px-6 pb-12 flex flex-col pt-4">
+      <div className="flex-1 px-6 pb-12 flex flex-col pt-4 max-w-2xl mx-auto w-full">
         <div className="text-center mb-12">
           <div className="w-24 h-24 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-8">
             <Crown size={48} className="text-primary" />

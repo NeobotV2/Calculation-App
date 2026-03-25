@@ -180,11 +180,11 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 bg-background rounded-t-3xl border-t border-border z-50 max-h-[92vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-background rounded-t-3xl border-t border-border z-50 max-h-[92vh] overflow-y-auto md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-2xl md:w-full md:max-h-[85vh]"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)" }}
           >
-            <div className="sticky top-0 bg-background z-10 px-6 pt-4 pb-2">
-              <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4" />
+            <div className="sticky top-0 bg-background z-10 px-6 pt-4 pb-2 md:rounded-t-3xl">
+              <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 md:hidden" />
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-2xl font-semibold tracking-tight">{editRoom ? "Raum bearbeiten" : "Neuer Raum"}</h2>
                 <button onClick={onClose} className="w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">

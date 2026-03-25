@@ -5,7 +5,6 @@ import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { calcProjectTotals } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
 import { getAllProjectWarnings, countWarningsBySeverity } from "@/lib/warnings";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Calculator, TrendingUp, Euro, AlertTriangle } from "lucide-react";
@@ -57,8 +56,8 @@ export default function Home() {
   const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
 
   return (
-    <PageTransition className="min-h-screen pb-24 bg-background">
-      <div className="safe-header px-6 pt-14 pb-6">
+    <PageTransition className="min-h-screen pb-24 md:pb-8 bg-background">
+      <div className="safe-header px-6 pt-14 md:pt-8 pb-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-semibold tracking-tight text-foreground">Dashboard</h1>
@@ -77,9 +76,9 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="px-6 space-y-6">
+      <div className="px-6 space-y-6 max-w-6xl mx-auto">
         <Link href="/objekte">
-          <Button size="lg" className="w-full h-14 text-base font-semibold">
+          <Button size="lg" className="w-full md:w-auto h-14 text-base font-semibold">
             <Plus size={20} className="mr-2" /> Neues Objekt kalkulieren
           </Button>
         </Link>
@@ -106,7 +105,7 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">{formatCurrency(totalVolume * 12)} / Jahr</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
               <div className="bg-card border border-border/30 rounded-2xl p-4 text-center">
                 <p className="text-2xl font-bold tabular-nums text-foreground">{activeProjects.length}</p>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Objekte</p>
@@ -121,7 +120,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-card border border-border/30 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <Euro size={14} className="text-muted-foreground" />
@@ -176,7 +175,7 @@ export default function Home() {
 
         <div>
           <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Schnellaktionen</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6 md:mx-0 md:px-0 md:flex-wrap">
             {[
               { href: "/objekte", icon: Plus, label: "Neues Objekt", accent: true },
               { href: "/objekte", icon: Building2, label: "Alle Objekte" },
@@ -260,9 +259,9 @@ export default function Home() {
         )}
       </div>
 
-      <AppFooter />
-
-      <BottomNav />
+      <div className="max-w-6xl mx-auto">
+        <AppFooter />
+      </div>
     </PageTransition>
   );
 }

@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { calcProjectTotals, calcRoom } from "@/lib/calc";
 import { getDefaultConfig } from "@/lib/hourly-rate-calc";
@@ -127,9 +126,9 @@ export default function AuswertungGlobal() {
   }, [revenueByGroup]);
 
   return (
-    <PageTransition className="min-h-screen pb-24 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2">Controlling</h1>
+    <PageTransition className="min-h-screen pb-24 md:pb-8 bg-background">
+      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
+        <h1 className="text-4xl font-semibold tracking-tight mt-2 max-w-6xl mx-auto">Controlling</h1>
       </div>
 
       {!hydrated ? (
@@ -151,14 +150,14 @@ export default function AuswertungGlobal() {
           <p className="text-sm text-muted-foreground max-w-[260px]">Erstelle Objekte mit Räumen, um hier das Controlling zu sehen.</p>
         </div>
       ) : (
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-w-6xl mx-auto">
           <div className="glass-card p-6">
             <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Monatsumsatz geplant</p>
             <h2 className="text-5xl font-bold tabular-nums text-foreground mb-1">{formatCurrency(totalCost)}</h2>
             <p className="text-sm text-muted-foreground">{formatCurrency(totalCost * 12)} / Jahr</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { label: "Objekte", value: activeProjects.length.toString() },
               { label: "Räume gesamt", value: totalRooms.toString() },
@@ -408,15 +407,13 @@ export default function AuswertungGlobal() {
       )}
 
       {activeProjects.length > 0 && (
-        <div className="fixed bottom-20 right-6 z-40" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <div className="fixed bottom-20 right-6 z-40 md:bottom-6 md:right-10" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
           <Button onClick={() => setLocation("/objekte")} className="h-14 px-6 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2">
             <FileText size={20} />
             <span className="font-semibold">Objekte verwalten</span>
           </Button>
         </div>
       )}
-
-      <BottomNav />
     </PageTransition>
   );
 }

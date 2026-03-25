@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { useAuth } from "@/lib/auth-context";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -69,12 +68,12 @@ export default function Konto() {
   };
 
   return (
-    <PageTransition className="min-h-screen pb-28 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2">Profil & Plan</h1>
+    <PageTransition className="min-h-screen pb-28 md:pb-8 bg-background">
+      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
+        <h1 className="text-4xl font-semibold tracking-tight mt-2 max-w-5xl mx-auto">Profil & Plan</h1>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 max-w-5xl mx-auto">
         {isDemo && !isAuthenticated && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-start gap-3">
             <AlertTriangle size={20} className="text-yellow-500 shrink-0 mt-0.5" />
@@ -315,9 +314,9 @@ export default function Konto() {
         confirmLabel="Verstanden"
       />
 
-      <AppFooter />
-
-      <BottomNav />
+      <div className="max-w-5xl mx-auto">
+        <AppFooter />
+      </div>
     </PageTransition>
   );
 }

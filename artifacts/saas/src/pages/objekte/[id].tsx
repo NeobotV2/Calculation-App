@@ -222,8 +222,8 @@ export default function ObjektDetail() {
   };
 
   return (
-    <PageTransition className="min-h-screen bg-background pb-32">
-      <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12">
+    <PageTransition className="min-h-screen bg-background pb-32 md:pb-8">
+      <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12 md:pt-6">
         <Button variant="ghost" size="icon" onClick={() => setLocation("/objekte")} className="-ml-2">
           <ArrowLeft size={20} />
         </Button>
@@ -256,7 +256,7 @@ export default function ObjektDetail() {
         </>
       )}
 
-      <div className="px-6 py-6">
+      <div className="px-6 py-6 max-w-6xl mx-auto">
         <div className="mb-6">
           {isEditingName ? (
             <div className="flex gap-2 mb-2">
@@ -327,14 +327,14 @@ export default function ObjektDetail() {
           </div>
         )}
 
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6 snap-x">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6 snap-x md:mx-0 md:px-0 md:flex-wrap">
           {[
             { label: "Monatspreis", value: formatCurrency(totals.cost), accent: true },
             { label: "Stunden/Mo", value: `${formatNumber(totals.hours, 1)} h` },
             { label: "Fläche", value: `${formatNumber(totals.area, 0)} m²` },
             { label: "€/m²", value: formatCurrency(totals.pricePerSqm) },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-card border border-border/30 rounded-2xl p-4 shrink-0 w-32 snap-start">
+            <div key={kpi.label} className="bg-card border border-border/30 rounded-2xl p-4 shrink-0 w-32 md:w-auto md:flex-1 md:min-w-[140px] snap-start">
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{kpi.label}</p>
               <p className={`text-lg font-bold ${kpi.accent ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
             </div>
@@ -433,8 +433,8 @@ export default function ObjektDetail() {
         </div>
       </div>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-6" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <Button onClick={openAddRoom} className="w-full shadow-xl shadow-black/20" size="lg">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-6 md:static md:max-w-6xl md:mx-auto md:px-6 md:py-4 md:left-auto md:translate-x-0" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <Button onClick={openAddRoom} className="w-full md:w-auto shadow-xl shadow-black/20 md:shadow-none" size="lg">
           <Plus size={20} className="mr-2" /> Raum hinzufügen
         </Button>
       </div>
@@ -578,8 +578,8 @@ export default function ObjektDetail() {
       {showInfo && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowInfo(false)} />
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-3xl border-t border-border p-6 pb-safe">
-            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4" />
+          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-3xl border-t border-border p-6 pb-safe md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-lg md:w-full">
+            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 md:hidden" />
             <h2 className="text-2xl font-semibold tracking-tight mb-4">Objektinfo</h2>
             <div className="space-y-4">
               <div>

@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,17 +221,17 @@ export default function ObjekteList() {
   ];
 
   return (
-    <PageTransition className="min-h-screen pb-24 bg-background flex flex-col">
-      <div className="safe-header p-6 pb-2 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <div className="flex items-center justify-between mb-5 mt-2">
+    <PageTransition className="min-h-screen pb-24 md:pb-8 bg-background flex flex-col">
+      <div className="safe-header p-6 pb-2 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
+        <div className="flex items-center justify-between mb-5 mt-2 max-w-6xl mx-auto">
           <h1 className="text-4xl font-semibold tracking-tight">Objekte</h1>
           <span className="text-sm text-muted-foreground">{projects.filter(p => p.status !== "archived").length} aktiv</span>
         </div>
-        <div className="relative mb-4">
+        <div className="relative mb-4 max-w-6xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input placeholder="Name, Kunde oder Standort suchen…" className="pl-11 bg-card border-border/40 h-11" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="flex gap-2 pb-3 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 pb-3 overflow-x-auto no-scrollbar max-w-6xl mx-auto">
           {filterChips.map((f) => (
             <button
               key={f.key}
@@ -243,7 +242,7 @@ export default function ObjekteList() {
             </button>
           ))}
         </div>
-        <div className="flex items-center justify-between pb-3">
+        <div className="flex items-center justify-between pb-3 max-w-6xl mx-auto">
           <div className="relative">
             <button
               onClick={() => setShowSortMenu(!showSortMenu)}
@@ -280,7 +279,7 @@ export default function ObjekteList() {
         </div>
       )}
 
-      <div className="p-6 flex-1 flex flex-col gap-3">
+      <div className="p-6 flex-1 flex flex-col gap-3 max-w-6xl mx-auto w-full">
         {!hydrated ? (
           <ListSkeleton rows={5} />
         ) : filtered.length === 0 ? (
@@ -390,7 +389,7 @@ export default function ObjekteList() {
         )}
       </div>
 
-      <div className="fixed bottom-20 right-6 z-40 flex flex-col items-end gap-3" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div className="fixed bottom-20 md:bottom-6 right-6 md:right-10 z-40 flex flex-col items-end gap-3" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <button
           onClick={handleQuickCreate}
           disabled={isWorking}
@@ -411,7 +410,7 @@ export default function ObjekteList() {
       {renameId && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setRenameId(null)} />
-          <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[70] bg-card border border-border/40 rounded-3xl p-6 max-w-sm mx-auto">
+          <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[70] bg-card border border-border/40 rounded-3xl p-6 max-w-sm md:max-w-md mx-auto">
             <h3 className="font-semibold text-lg mb-4">Objekt umbenennen</h3>
             <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus className="bg-background h-12 mb-4" onKeyDown={(e) => { if (e.key === "Enter") handleRename(renameId, renameName); }} />
             <div className="flex gap-3">
@@ -422,7 +421,6 @@ export default function ObjekteList() {
         </>
       )}
 
-      <BottomNav />
     </PageTransition>
   );
 }

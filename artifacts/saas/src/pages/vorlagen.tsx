@@ -82,14 +82,14 @@ export default function Vorlagen() {
 
   return (
     <PageTransition className="min-h-screen bg-background pb-10">
-      <div className="safe-header bg-background/95 sticky top-0 z-40 border-b border-border/20 px-4 pt-12 pb-3 flex items-center gap-3">
+      <div className="safe-header bg-background/95 sticky top-0 z-40 border-b border-border/20 px-4 pt-12 md:pt-6 pb-3 flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="-ml-2">
           <ArrowLeft size={20} />
         </Button>
         <h1 className="text-2xl font-semibold tracking-tight">Vorlagen</h1>
       </div>
 
-      <div className="p-6 space-y-3">
+      <div className="p-6 space-y-3 max-w-5xl mx-auto">
         {templates.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center py-16">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">

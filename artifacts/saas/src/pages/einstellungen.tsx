@@ -3,7 +3,6 @@ import { useLocation } from "wouter";
 import { useStore, type FrequencyKey, type CustomRoomType } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
 import { useAuth } from "@/lib/auth-context";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
@@ -297,12 +296,12 @@ export default function Einstellungen() {
   };
 
   return (
-    <PageTransition className="min-h-screen pb-28 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2">Einstellungen</h1>
+    <PageTransition className="min-h-screen pb-28 md:pb-8 bg-background">
+      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
+        <h1 className="text-4xl font-semibold tracking-tight mt-2 max-w-5xl mx-auto">Einstellungen</h1>
       </div>
 
-      <div className="p-6 space-y-8">
+      <div className="p-6 space-y-8 max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-8 md:space-y-0">
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
             <Building2 size={16} /> Firmenstammdaten
@@ -664,9 +663,9 @@ export default function Einstellungen() {
         destructive
       />
 
-      <AppFooter />
-
-      <BottomNav />
+      <div className="max-w-5xl mx-auto">
+        <AppFooter />
+      </div>
     </PageTransition>
   );
 }

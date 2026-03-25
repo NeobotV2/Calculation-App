@@ -90,8 +90,8 @@ export default function AuswertungDetail() {
   };
 
   return (
-    <PageTransition className="min-h-screen bg-background pb-32">
-      <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12">
+    <PageTransition className="min-h-screen bg-background pb-32 md:pb-8">
+      <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12 md:pt-6">
         <Button variant="ghost" size="icon" onClick={() => setLocation(`/objekte/${project.id}`)} className="-ml-2">
           <ArrowLeft size={20} />
         </Button>
@@ -99,7 +99,7 @@ export default function AuswertungDetail() {
         <div className="w-10" />
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 max-w-6xl mx-auto">
         <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6">
           <p className="text-xs uppercase tracking-widest text-primary mb-2 font-medium">Monatsumsatz netto</p>
           <h2 className="text-5xl font-bold tabular-nums text-foreground mb-6">{formatCurrency(totals.cost)}</h2>
@@ -115,7 +115,7 @@ export default function AuswertungDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-card border border-border/20 rounded-2xl p-4">
             <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Räume</p>
             <p className="text-2xl font-bold text-foreground">{totals.count}</p>

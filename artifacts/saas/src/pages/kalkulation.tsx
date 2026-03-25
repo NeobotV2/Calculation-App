@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -312,9 +311,9 @@ export default function Kalkulation() {
     Math.round(breakdown.stundenverrechnungssatz * 100) / 100 !== currentHourlyRate;
 
   return (
-    <PageTransition className="min-h-screen pb-28 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <div className="flex items-center gap-3 mb-1">
+    <PageTransition className="min-h-screen pb-28 md:pb-8 bg-background">
+      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
+        <div className="flex items-center gap-3 mb-1 max-w-5xl mx-auto">
           <button
             onClick={() => setLocation("/einstellungen")}
             className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center"
@@ -332,7 +331,7 @@ export default function Kalkulation() {
         </div>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3 max-w-5xl mx-auto">
         <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
           <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">
             Stundenverrechnungssatz
@@ -903,7 +902,6 @@ export default function Kalkulation() {
         </div>
       </div>
 
-      <BottomNav />
     </PageTransition>
   );
 }
