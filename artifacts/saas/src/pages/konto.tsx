@@ -25,6 +25,7 @@ export default function Konto() {
 
   const [showReset, setShowReset] = useState(false);
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -269,7 +270,7 @@ export default function Konto() {
             <Button
               variant="outline"
               className="w-full justify-start h-14 text-base bg-card"
-              onClick={handleLogout}
+              onClick={() => setShowLogout(true)}
               disabled={isLoggingOut}
             >
               <LogOut size={20} className="text-muted-foreground mr-3" />
@@ -285,6 +286,15 @@ export default function Konto() {
           </Button>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showLogout}
+        onClose={() => setShowLogout(false)}
+        onConfirm={handleLogout}
+        title="Abmelden?"
+        description="Möchtest du dich wirklich abmelden? Im Demo-Modus bleiben deine lokalen Daten erhalten."
+        confirmLabel="Abmelden"
+      />
 
       <ConfirmDialog
         open={showReset}

@@ -6,7 +6,8 @@ import * as templateService from "@/services/template-service";
 import * as customRoomTypeService from "@/services/custom-room-type-service";
 import * as settingsService from "@/services/settings-service";
 import * as planService from "@/services/plan-service";
-import { getProfile, getCompany } from "@/services/profile-service";
+import { getProfile } from "@/services/profile-service";
+import { getCompany } from "@/services/company-service";
 import { toast } from "sonner";
 
 let pendingReload: Promise<void> | null = null;

@@ -62,6 +62,7 @@ export default function Einstellungen() {
   const [isSaving, setIsSaving] = useState(false);
 
   const [showAddRoom, setShowAddRoom] = useState(false);
+  const [deleteRoomTypeConfirm, setDeleteRoomTypeConfirm] = useState<string | null>(null);
   const [editingRoomType, setEditingRoomType] = useState<CustomRoomType | null>(null);
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomGroup, setNewRoomGroup] = useState(DEFAULT_ROOM_GROUPS[0].id);
@@ -157,6 +158,7 @@ export default function Einstellungen() {
   };
 
   const handleDeleteRoomType = async (id: string) => {
+    setDeleteRoomTypeConfirm(null);
     try {
       await actions.deleteCustomRoomType(id);
       toast.success("Raumart entfernt");
@@ -396,7 +398,7 @@ export default function Einstellungen() {
                         <button onClick={() => startEditRoomType(rt)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
                           <Edit3 size={14} className="text-muted-foreground" />
                         </button>
-                        <button onClick={() => handleDeleteRoomType(rt.id)} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
+                        <button onClick={() => setDeleteRoomTypeConfirm(rt.id)} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
                           <Trash2 size={14} className="text-destructive" />
                         </button>
                       </div>
@@ -589,6 +591,16 @@ export default function Einstellungen() {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={!!deleteRoomTypeConfirm}
+        onClose={() => setDeleteRoomTypeConfirm(null)}
+        onConfirm={() => { if (deleteRoomTypeConfirm) handleDeleteRoomType(deleteRoomTypeConfirm); }}
+        title="Raumart löschen?"
+        description="Die eigene Raumart wird unwiderruflich entfernt. Bestehende Räume, die diese Raumart verwenden, bleiben erhalten."
+        confirmLabel="Löschen"
+        destructive
+      />
 
       <ConfirmDialog
         open={showResetDefaults}

@@ -5,7 +5,7 @@ import * as objectService from "@/services/object-service";
 import * as templateService from "@/services/template-service";
 import * as customRoomTypeService from "@/services/custom-room-type-service";
 import * as settingsService from "@/services/settings-service";
-import { updateCompanyName } from "@/services/profile-service";
+import { updateCompanyName } from "@/services/company-service";
 import { useSupabaseSync } from "@/hooks/use-supabase-sync";
 
 export function useStoreActions() {

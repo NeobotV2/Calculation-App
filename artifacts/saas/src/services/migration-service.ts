@@ -4,7 +4,7 @@ import * as objectService from "./object-service";
 import * as templateService from "./template-service";
 import * as customRoomTypeService from "./custom-room-type-service";
 import * as settingsService from "./settings-service";
-import { updateCompanyName } from "./profile-service";
+import { updateCompanyName } from "./company-service";
 
 export interface DemoData {
   projects: Project[];

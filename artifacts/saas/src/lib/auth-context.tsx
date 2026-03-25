@@ -77,7 +77,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setState({
         user: session?.user ?? null,
         session,
@@ -85,6 +85,21 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!session?.user,
         isSupabaseReady: true,
       });
+
+      if (event === "TOKEN_REFRESHED" && !session) {
+        import("sonner").then(({ toast }) => {
+          toast.error("Sitzung abgelaufen. Bitte melde dich erneut an.");
+        });
+      }
+
+      if (event === "SIGNED_OUT") {
+        setState((s) => ({
+          ...s,
+          user: null,
+          session: null,
+          isAuthenticated: false,
+        }));
+      }
     });
 
     return () => subscription.unsubscribe();

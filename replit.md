@@ -54,6 +54,8 @@ All packages extend a base `tsconfig.base.json` with `composite: true`. The root
 -   **Authentication**: Supabase-based authentication (email/password) with session persistence, password reset, and email confirmation. AuthGuard manages redirects based on user state (splash, onboarding, home).
 -   **Feature Gates**: Implements plan-based feature gates (Basic vs. Pro) limiting projects, rooms per project, PDF export, and template usage.
 -   **State Management**: Zustand with localStorage persistence (`cleancalc-storage`, version 3).
+-   **Service Layer**: Clean service architecture with `auth-service`, `company-service`, `object-service`, `room-service`, `template-service`, `custom-room-type-service`, `settings-service`, `profile-service`, `plan-service`, `migration-service`. Pages access services via `use-store-actions` hook (bridges Zustand store + Supabase API).
+-   **UX Components**: Toast notifications (Sonner, German), confirm dialogs for all destructive actions, loading skeletons (list/card/detail), error boundary, network error states, empty states with CTAs, 404 page, session expiry detection. All user-facing messages in German.
 -   **Capacitor Integration**: Supports native builds for iOS/Android using Capacitor, with specific adaptations for storage, sharing, deep linking, and native back button handling.
 
 ### Reinigungskalkulator Mobile App (`artifacts/mobile`)
