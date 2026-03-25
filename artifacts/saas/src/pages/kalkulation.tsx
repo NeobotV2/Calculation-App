@@ -348,6 +348,7 @@ export default function Kalkulation() {
           open={openSections.basislohn}
           onToggle={() => toggle("basislohn")}
           badge={`${fmtEuro(config.baseLohn)} €/h`}
+          tooltip="Der tarifliche oder vereinbarte Bruttostundenlohn Ihrer Reinigungskräfte. Grundlage für alle weiteren Berechnungen."
         >
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
@@ -445,7 +446,7 @@ export default function Kalkulation() {
           open={openSections.ausfall}
           onToggle={() => toggle("ausfall")}
           badge={`${fmtPct(breakdown.produktivitaetsquote * 100)} % produktiv`}
-          tooltip="Berücksichtigt, dass nicht jede bezahlte Stunde produktiv ist (Urlaub, Krankheit, Feiertage). Je höher der Ausfall, desto höher muss der Verrechnungssatz sein."
+          tooltip="Produktive Zeit: Nicht jede bezahlte Stunde ist produktiv — Urlaub, Krankheit und Feiertage reduzieren die tatsächlich verfügbare Arbeitszeit. Der Ausfallzuschlag gleicht dies aus, damit Ihre kalkulierten Kosten die reale Leistung widerspiegeln."
         >
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
