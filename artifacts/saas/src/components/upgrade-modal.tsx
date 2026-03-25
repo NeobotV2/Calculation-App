@@ -16,7 +16,7 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
   const [, setLocation] = useLocation();
 
   const triggerCopy = triggerReason ? UPGRADE_TRIGGER_COPY[triggerReason] : null;
-  const displayReason = reason || triggerCopy?.text;
+  const displayReason = triggerCopy?.text || reason;
 
   return (
     <AnimatePresence>

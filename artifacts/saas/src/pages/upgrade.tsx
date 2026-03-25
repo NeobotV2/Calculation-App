@@ -196,9 +196,24 @@ export default function Upgrade() {
         </div>
 
         <motion.div
+          initial={{ y: 10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.25 }}
+          className="mb-6"
+        >
+          <Button
+            onClick={() => handleSelectPlan(foundingAvailable ? "founding_annual" : "pro_annual")}
+            size="lg"
+            className="w-full h-16 text-lg rounded-2xl"
+          >
+            Jetzt Pro freischalten
+          </Button>
+        </motion.div>
+
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.25 }}
+          transition={{ delay: 0.3 }}
           className="text-center space-y-2 pb-safe"
         >
           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
