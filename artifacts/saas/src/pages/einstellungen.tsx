@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle, ImagePlus, X } from "lucide-react";
+import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle, ImagePlus, X, Sun, Moon, Palette } from "lucide-react";
 import { WARNING_TYPES } from "@/lib/warnings";
 import { toast } from "sonner";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -35,6 +35,8 @@ export default function Einstellungen() {
   const setDisabledWarnings = useStore((s) => s.setDisabledWarnings);
   const targetMarginStore = useStore((s) => s.targetMargin);
   const setTargetMarginAction = useStore((s) => s.setTargetMargin);
+  const theme = useStore((s) => s.theme);
+  const setTheme = useStore((s) => s.setTheme);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const resetToDefaults = useStore((s) => s.resetToDefaults);
@@ -619,6 +621,33 @@ export default function Einstellungen() {
                 <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Upgrade ansehen</Button>
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
+            <Palette size={16} /> Darstellung
+          </h2>
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-3 block">Farbschema</label>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setTheme("light")}
+                  className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-colors ${theme === "light" ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-background text-muted-foreground hover:border-border"}`}
+                >
+                  <Sun size={18} />
+                  <span className="text-sm font-medium">Hell</span>
+                </button>
+                <button
+                  onClick={() => setTheme("dark")}
+                  className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-colors ${theme === "dark" ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-background text-muted-foreground hover:border-border"}`}
+                >
+                  <Moon size={18} />
+                  <span className="text-sm font-medium">Dunkel</span>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
