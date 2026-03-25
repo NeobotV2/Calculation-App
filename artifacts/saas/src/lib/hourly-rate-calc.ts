@@ -34,10 +34,10 @@ export interface HourlyRateConfig {
 }
 
 export const CLEANING_TYPE_LABELS: Record<CleaningType, string> = {
-  unterhalt: "Unterhalt",
-  sonder: "Sonder",
-  glas: "Glas",
-  bauend: "Bauend",
+  unterhalt: "Unterhalts\u00ADreinigung",
+  sonder: "Sonder\u00ADreinigung",
+  glas: "Glas\u00ADreinigung",
+  bauend: "Bauend\u00ADreinigung",
 };
 
 export const DEFAULT_SV_RATES_MINIJOB: SVRate[] = [
@@ -63,29 +63,20 @@ export const DEFAULT_OVERHEADS: OverheadItem[] = [
   { id: "fahrtkosten", label: "Fahrtkosten", rate: 2 },
 ];
 
+function applyOverheadDeltas(
+  deltas: Partial<Record<string, number>>
+): OverheadItem[] {
+  return DEFAULT_OVERHEADS.map((o) => ({
+    ...o,
+    rate: deltas[o.id] !== undefined ? o.rate + deltas[o.id]! : o.rate,
+  }));
+}
+
 export const CLEANING_TYPE_OVERHEADS: Record<CleaningType, OverheadItem[]> = {
   unterhalt: DEFAULT_OVERHEADS.map((o) => ({ ...o })),
-  sonder: [
-    { id: "verwaltung", label: "Verwaltung / Overhead", rate: 8 },
-    { id: "material", label: "Material & Verbrauchsmittel", rate: 8 },
-    { id: "aufsicht", label: "Objektleitung / Aufsicht", rate: 5 },
-    { id: "risiko", label: "Risikozuschlag", rate: 6 },
-    { id: "fahrtkosten", label: "Fahrtkosten", rate: 2 },
-  ],
-  glas: [
-    { id: "verwaltung", label: "Verwaltung / Overhead", rate: 8 },
-    { id: "material", label: "Material & Verbrauchsmittel", rate: 7 },
-    { id: "aufsicht", label: "Objektleitung / Aufsicht", rate: 5 },
-    { id: "risiko", label: "Risikozuschlag", rate: 8 },
-    { id: "fahrtkosten", label: "Fahrtkosten", rate: 2 },
-  ],
-  bauend: [
-    { id: "verwaltung", label: "Verwaltung / Overhead", rate: 8 },
-    { id: "material", label: "Material & Verbrauchsmittel", rate: 11 },
-    { id: "aufsicht", label: "Objektleitung / Aufsicht", rate: 5 },
-    { id: "risiko", label: "Risikozuschlag", rate: 8 },
-    { id: "fahrtkosten", label: "Fahrtkosten", rate: 0 },
-  ],
+  sonder: applyOverheadDeltas({ material: 5, risiko: 3 }),
+  glas: applyOverheadDeltas({ material: 4, risiko: 5 }),
+  bauend: applyOverheadDeltas({ material: 8, risiko: 5, fahrtkosten: -DEFAULT_OVERHEADS.find((o) => o.id === "fahrtkosten")!.rate }),
 };
 
 export function getDefaultConfig(): HourlyRateConfig {
