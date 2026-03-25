@@ -3,11 +3,11 @@ import { LayoutDashboard, FolderKanban, BarChart3, Settings, User } from "lucide
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Übersicht", icon: LayoutDashboard },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/objekte", label: "Objekte", icon: FolderKanban },
-  { href: "/auswertung", label: "Auswertung", icon: BarChart3 },
+  { href: "/auswertung", label: "Controlling", icon: BarChart3 },
   { href: "/einstellungen", label: "Einstellungen", icon: Settings },
-  { href: "/konto", label: "Konto", icon: User },
+  { href: "/konto", label: "Profil", icon: User },
 ];
 
 export function BottomNav() {

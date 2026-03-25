@@ -253,7 +253,7 @@ export default function Kalkulation() {
           </button>
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Stundensatz-Kalkulator
+              Verrechnungssatz-Kalkulator
             </h1>
             <p className="text-xs text-muted-foreground">
               Verrechnungssatz kalkulieren
@@ -628,8 +628,8 @@ export default function Kalkulation() {
           <Button onClick={handleSave} className="w-full h-12" disabled={!hasChanged}>
             <Save size={18} className="mr-2" />
             {hasChanged
-              ? "Als Stundensatz übernehmen"
-              : "Stundensatz bereits aktuell"}
+              ? "Als Verrechnungssatz übernehmen"
+              : "Verrechnungssatz bereits aktuell"}
           </Button>
           <Button
             variant="outline"

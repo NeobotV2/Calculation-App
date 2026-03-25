@@ -5,7 +5,7 @@ import { calcProjectTotals } from "@/lib/calc";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Sparkles, Calculator } from "lucide-react";
+import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Calculator, TrendingUp, Euro } from "lucide-react";
 import { ListSkeleton, CardSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -15,6 +15,7 @@ export default function Home() {
   const companyName = useStore((s) => s.companyName);
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const plan = useStore((s) => s.plan);
   const hydrated = useHydrated();
 
@@ -22,32 +23,29 @@ export default function Home() {
   let totalVolume = 0;
   let totalArea = 0;
   let totalRooms = 0;
+  let totalHours = 0;
 
   activeProjects.forEach((p) => {
     const totals = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
     totalVolume += totals.cost;
     totalArea += totals.area;
     totalRooms += totals.count;
+    totalHours += totals.hours;
   });
 
   const avgPrice = totalArea > 0 ? totalVolume / totalArea : 0;
+  const marginPercent = hourlyRateConfig.gewinnmarge;
+
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 3);
-
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return "Guten Morgen";
-    if (h < 18) return "Guten Tag";
-    return "Guten Abend";
-  };
 
   return (
     <PageTransition className="min-h-screen pb-24 bg-background">
       <div className="safe-header px-6 pt-14 pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground">{greeting()},</h1>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">Dashboard</h1>
             <p className="text-muted-foreground text-lg mt-1">{companyName}</p>
           </div>
           {plan === "basic" && (
@@ -64,6 +62,12 @@ export default function Home() {
       </div>
 
       <div className="px-6 space-y-6">
+        <Link href="/objekte">
+          <Button size="lg" className="w-full h-14 text-base font-semibold">
+            <Plus size={20} className="mr-2" /> Neues Objekt kalkulieren
+          </Button>
+        </Link>
+
         {!hydrated ? (
           <div className="space-y-6">
             <Skeleton className="h-32 w-full rounded-2xl" />
@@ -77,16 +81,11 @@ export default function Home() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Noch keine Objekte</h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-[260px] mx-auto">Erstelle dein erstes Objekt, um mit der Kalkulation zu beginnen.</p>
-            <Link href="/objekte">
-              <Button size="lg" className="w-full">
-                <Plus size={18} className="mr-2" /> Erstes Objekt erstellen
-              </Button>
-            </Link>
           </div>
         ) : (
           <>
             <div className="glass-card p-6">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Monatsvolumen</p>
+              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Monatsumsatz geplant</p>
               <h2 className="text-5xl font-bold tabular-nums text-foreground mb-1">{formatCurrency(totalVolume)}</h2>
               <p className="text-sm text-muted-foreground">{formatCurrency(totalVolume * 12)} / Jahr</p>
             </div>
@@ -97,12 +96,29 @@ export default function Home() {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Objekte</p>
               </div>
               <div className="bg-card border border-border/30 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-bold tabular-nums text-foreground">{totalRooms}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Räume</p>
+                <p className="text-2xl font-bold tabular-nums text-foreground">{formatNumber(totalHours, 1)}</p>
+                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Std/Monat</p>
               </div>
               <div className="bg-card border border-border/30 rounded-2xl p-4 text-center">
                 <p className="text-2xl font-bold tabular-nums text-foreground">{formatNumber(avgPrice, 2)}</p>
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">€/m²</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-card border border-border/30 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Euro size={14} className="text-muted-foreground" />
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Verrechnungssatz</p>
+                </div>
+                <p className="text-xl font-bold tabular-nums text-foreground">{formatCurrency(hourlyRate)}/h</p>
+              </div>
+              <div className="bg-card border border-border/30 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp size={14} className="text-muted-foreground" />
+                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ø Marge</p>
+                </div>
+                <p className="text-xl font-bold tabular-nums text-foreground">{formatNumber(marginPercent, 1)} %</p>
               </div>
             </div>
           </>
@@ -114,12 +130,11 @@ export default function Home() {
             {[
               { href: "/objekte", icon: Plus, label: "Neues Objekt", accent: true },
               { href: "/objekte", icon: Building2, label: "Alle Objekte" },
-              { href: "/stundensatz", icon: Calculator, label: "Stundensatz" },
-              { href: "/auswertung", icon: BarChart3, label: "Auswertung" },
+              { href: "/stundensatz", icon: Calculator, label: "Verrechnungssatz" },
+              { href: "/auswertung", icon: BarChart3, label: "Controlling" },
               { href: "/vorlagen", icon: BookOpen, label: "Vorlagen", pro: plan === "basic" },
-              { href: plan === "basic" ? "/upgrade" : "/auswertung", icon: FileText, label: "PDF-Export", pro: plan === "basic" },
+              { href: plan === "basic" ? "/upgrade" : "/auswertung", icon: FileText, label: "Angebot erstellen", pro: plan === "basic" },
               { href: "/einstellungen", icon: Settings, label: "Einstellungen" },
-              ...(plan === "basic" ? [{ href: "/upgrade", icon: Sparkles, label: "Upgrade", accent: false as boolean }] : []),
             ].map((a) => (
               <Link key={a.label} href={a.href}>
                 <div className="w-24 h-24 shrink-0 rounded-2xl border border-border/30 bg-card hover:bg-secondary flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer relative">
@@ -150,7 +165,9 @@ export default function Home() {
                     <div className="bg-card border border-border/20 rounded-2xl p-4 flex items-center justify-between hover:bg-secondary transition-colors cursor-pointer active:scale-[0.98]">
                       <div className="min-w-0 flex-1 pr-3">
                         <p className="font-medium text-sm text-foreground truncate">{p.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{p.customer || "—"} · {formatDate(p.updatedAt)}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {p.customer || "—"} · {formatNumber(t.hours, 1)} h · {formatDate(p.updatedAt)}
+                        </p>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-sm text-foreground">{formatCurrency(t.cost)}</span>

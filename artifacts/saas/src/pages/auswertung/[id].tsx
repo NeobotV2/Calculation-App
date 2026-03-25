@@ -27,7 +27,7 @@ export default function AuswertungDetail() {
         </div>
         <h3 className="text-lg font-semibold mb-2">Objekt nicht gefunden</h3>
         <p className="text-sm text-muted-foreground mb-4">Das Objekt wurde möglicherweise gelöscht.</p>
-        <Button variant="outline" onClick={() => setLocation("/auswertung")}>Zur Auswertung</Button>
+        <Button variant="outline" onClick={() => setLocation("/auswertung")}>Zum Controlling</Button>
       </div>
     );
   }
@@ -64,7 +64,7 @@ export default function AuswertungDetail() {
 
       <div className="p-6 space-y-6">
         <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6">
-          <p className="text-xs uppercase tracking-widest text-primary mb-2 font-medium">Monatsvolumen netto</p>
+          <p className="text-xs uppercase tracking-widest text-primary mb-2 font-medium">Monatsumsatz netto</p>
           <h2 className="text-5xl font-bold tabular-nums text-foreground mb-6">{formatCurrency(totals.cost)}</h2>
           <div className="grid grid-cols-2 gap-4 border-t border-primary/20 pt-4">
             <div>
@@ -92,7 +92,7 @@ export default function AuswertungDetail() {
             <p className="text-2xl font-bold text-foreground">{formatCurrency(totals.pricePerSqm)}</p>
           </div>
           <div className="bg-card border border-border/20 rounded-2xl p-4">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Stundensatz</p>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Verrechnungssatz</p>
             <p className="text-2xl font-bold text-foreground">{formatCurrency(effectiveRate)}</p>
           </div>
         </div>
@@ -137,7 +137,7 @@ export default function AuswertungDetail() {
 
         <div className="rounded-3xl overflow-hidden border border-border/30 bg-card">
           <div className="p-6">
-            <h3 className="font-semibold mb-4 text-lg tracking-tight">Profi-Auswertung</h3>
+            <h3 className="font-semibold mb-4 text-lg tracking-tight">Profi-Controlling</h3>
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-border/20">
                 <span className="text-sm text-muted-foreground">Materialkosten (3%)</span>

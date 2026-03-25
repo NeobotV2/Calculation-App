@@ -179,7 +179,7 @@ export default function ObjektDetail() {
         </Button>
         <div className="flex gap-2">
           <Link href={`/auswertung/${project.id}`}>
-            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" />Auswertung</Button>
+            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" />Controlling</Button>
           </Link>
           <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="relative">
             <MoreHorizontal size={18} />
@@ -197,7 +197,7 @@ export default function ObjektDetail() {
             <button onClick={() => {
               setLocation(`/print/${project.id}`);
               setMenuOpen(false);
-            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> PDF exportieren</button>
+            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> Angebot als PDF</button>
             <button onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" /> Archivieren</button>
             <button onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} /> Löschen</button>
           </div>
@@ -222,7 +222,7 @@ export default function ObjektDetail() {
           )}
           <p className="text-sm text-muted-foreground">
             {project.customer && <>{project.customer} · </>}
-            Stundensatz: {formatCurrency(effectiveRate)}/h
+            Verrechnungssatz: {formatCurrency(effectiveRate)}/h
           </p>
         </div>
 
@@ -242,7 +242,7 @@ export default function ObjektDetail() {
 
         <div className="bg-card border border-border/20 rounded-2xl p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm tracking-tight">Auswertung</h3>
+            <h3 className="font-semibold text-sm tracking-tight">Controlling</h3>
             <Link href={`/auswertung/${project.id}`}>
               <span className="text-xs text-primary font-medium">Details →</span>
             </Link>
@@ -350,7 +350,7 @@ export default function ObjektDetail() {
                 <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} placeholder="z.B. Berlin, Musterstraße 1" className="bg-card h-11" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Stundensatz (€/h)</label>
+                <label className="text-sm font-medium mb-1 block">Verrechnungssatz (€/h)</label>
                 <Input value={rateInput} onChange={(e) => setRateInput(e.target.value)} inputMode="decimal" placeholder={`Standard: ${hourlyRate.toString().replace(".", ",")} €/h`} className="bg-card h-11" />
                 <p className="text-xs text-muted-foreground mt-1 ml-1">Leer = globaler Standard ({hourlyRate.toString().replace(".", ",")} €/h)</p>
               </div>

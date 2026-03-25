@@ -214,7 +214,7 @@ export default function Einstellungen() {
               <Input value={company} onChange={(e) => setCompany(e.target.value)} className="bg-background border-border/50 h-12" />
             </div>
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Standard-Stundensatz (€/h)</label>
+              <label className="text-sm font-medium text-foreground mb-2 block">Standard-Verrechnungssatz (€/h)</label>
               <div className="flex gap-2">
                 <Input value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12 flex-1" />
                 <button
@@ -227,7 +227,7 @@ export default function Einstellungen() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground mt-1.5 ml-1">
-                Nutze den Kalkulator für eine professionelle Stundensatz-Berechnung.
+                Nutze den Kalkulator für eine professionelle Verrechnungssatz-Berechnung.
               </p>
             </div>
             <div>
@@ -321,7 +321,7 @@ export default function Einstellungen() {
 
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <FileText size={16} /> PDF-Angebote
+            <FileText size={16} /> PDF & Branding
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
             <div className={`space-y-5 ${plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}`}>
@@ -365,7 +365,7 @@ export default function Einstellungen() {
 
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Download size={16} /> Daten
+            <Download size={16} /> Daten & Sicherung
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">
             <Button variant="outline" onClick={handleExport} className="w-full justify-start h-12 text-sm bg-background">
@@ -389,7 +389,7 @@ export default function Einstellungen() {
         onClose={() => setShowResetDefaults(false)}
         onConfirm={handleResetDefaults}
         title="Einstellungen zurücksetzen?"
-        description="Firmenname, Stundensatz, MwSt., Häufigkeit, PDF-Einstellungen und eigene Raumarten werden auf Standard zurückgesetzt. Objekte und Vorlagen bleiben erhalten."
+        description="Firmenname, Verrechnungssatz, MwSt., Häufigkeit, PDF-Einstellungen und eigene Raumarten werden auf Standard zurückgesetzt. Objekte und Vorlagen bleiben erhalten."
         confirmLabel="Zurücksetzen"
         destructive
       />

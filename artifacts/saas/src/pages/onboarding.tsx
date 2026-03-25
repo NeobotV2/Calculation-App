@@ -67,7 +67,7 @@ export default function Onboarding() {
           {step === 2 && (
             <PageTransition key="step2" className="flex-1 flex flex-col">
               <div className="flex-1">
-                <h2 className="text-3xl font-semibold tracking-tight mb-2">Firma & Stundensatz</h2>
+                <h2 className="text-3xl font-semibold tracking-tight mb-2">Firma & Verrechnungssatz</h2>
                 <p className="text-muted-foreground text-lg mb-8">Diese Angaben kannst du jederzeit ändern.</p>
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -81,7 +81,7 @@ export default function Onboarding() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground ml-1">Stundensatz (€/h)</label>
+                    <label className="text-sm text-muted-foreground ml-1">Verrechnungssatz (€/h)</label>
                     <Input 
                       value={hourlyRate} 
                       onChange={e => setHourlyRate(e.target.value)} 

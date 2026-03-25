@@ -56,7 +56,7 @@ export default function Konto() {
   return (
     <PageTransition className="min-h-screen pb-28 bg-background">
       <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2">Konto</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mt-2">Profil & Plan</h1>
       </div>
 
       <div className="p-6 space-y-6">

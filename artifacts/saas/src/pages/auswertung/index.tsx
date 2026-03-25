@@ -40,7 +40,7 @@ export default function AuswertungGlobal() {
   return (
     <PageTransition className="min-h-screen pb-24 bg-background">
       <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2">Auswertung</h1>
+        <h1 className="text-4xl font-semibold tracking-tight mt-2">Controlling</h1>
       </div>
 
       {!hydrated ? (
@@ -59,12 +59,12 @@ export default function AuswertungGlobal() {
             <BarChart3 size={28} className="text-muted-foreground" strokeWidth={1.5} />
           </div>
           <h3 className="text-lg font-semibold mb-2">Noch keine Daten</h3>
-          <p className="text-sm text-muted-foreground max-w-[260px]">Erstelle Objekte mit Räumen, um hier eine Auswertung zu sehen.</p>
+          <p className="text-sm text-muted-foreground max-w-[260px]">Erstelle Objekte mit Räumen, um hier das Controlling zu sehen.</p>
         </div>
       ) : (
         <div className="p-6 space-y-6">
           <div className="glass-card p-6">
-            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Monatsvolumen gesamt</p>
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Monatsumsatz geplant</p>
             <h2 className="text-5xl font-bold tabular-nums text-foreground mb-1">{formatCurrency(totalCost)}</h2>
             <p className="text-sm text-muted-foreground">{formatCurrency(totalCost * 12)} / Jahr</p>
           </div>
