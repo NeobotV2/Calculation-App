@@ -22,6 +22,18 @@ export interface OverheadItem {
   rate: number;
 }
 
+export interface SchichtzuschlagConfig {
+  enabled: boolean;
+  zuschlag: number;
+  anteil: number;
+}
+
+export interface SchichtzuschlaegeConfig {
+  nacht: SchichtzuschlagConfig;
+  sonntag: SchichtzuschlagConfig;
+  feiertag: SchichtzuschlagConfig;
+}
+
 export interface HourlyRateConfig {
   baseLohn: number;
   employmentType: EmploymentType;
@@ -31,6 +43,7 @@ export interface HourlyRateConfig {
   ausfallzeiten: AusfallzeitenConfig;
   overheads: OverheadItem[];
   gewinnmarge: number;
+  schichtzuschlaege: SchichtzuschlaegeConfig;
 }
 
 export const CLEANING_TYPE_LABELS: Record<CleaningType, string> = {
@@ -79,6 +92,12 @@ export const CLEANING_TYPE_OVERHEADS: Record<CleaningType, OverheadItem[]> = {
   bauend: applyOverheadDeltas({ material: 8, risiko: 5, fahrtkosten: -DEFAULT_OVERHEADS.find((o) => o.id === "fahrtkosten")!.rate }),
 };
 
+export const DEFAULT_SCHICHTZUSCHLAEGE: SchichtzuschlaegeConfig = {
+  nacht: { enabled: false, zuschlag: 25, anteil: 0 },
+  sonntag: { enabled: false, zuschlag: 50, anteil: 0 },
+  feiertag: { enabled: false, zuschlag: 100, anteil: 0 },
+};
+
 export function getDefaultConfig(): HourlyRateConfig {
   return {
     baseLohn: 15.0,
@@ -95,11 +114,25 @@ export function getDefaultConfig(): HourlyRateConfig {
     },
     overheads: DEFAULT_OVERHEADS.map((o) => ({ ...o })),
     gewinnmarge: 10,
+    schichtzuschlaege: {
+      nacht: { ...DEFAULT_SCHICHTZUSCHLAEGE.nacht },
+      sonntag: { ...DEFAULT_SCHICHTZUSCHLAEGE.sonntag },
+      feiertag: { ...DEFAULT_SCHICHTZUSCHLAEGE.feiertag },
+    },
   };
+}
+
+export interface SchichtzuschlagBreakdown {
+  nachtBetrag: number;
+  sonntagBetrag: number;
+  feiertagBetrag: number;
+  totalZuschlag: number;
+  effektiverLohn: number;
 }
 
 export interface HourlyRateBreakdown {
   baseLohn: number;
+  schichtzuschlag: SchichtzuschlagBreakdown;
   svTotalRate: number;
   svBetrag: number;
   lohnkostenProStunde: number;
@@ -125,13 +158,34 @@ export interface HourlyRateBreakdown {
 }
 
 export function calcHourlyRate(config: HourlyRateConfig): HourlyRateBreakdown {
+  const sz = config.schichtzuschlaege ?? DEFAULT_SCHICHTZUSCHLAEGE;
+  const nachtBetrag = (sz.nacht?.enabled)
+    ? config.baseLohn * (sz.nacht.zuschlag / 100) * (sz.nacht.anteil / 100)
+    : 0;
+  const sonntagBetrag = (sz.sonntag?.enabled)
+    ? config.baseLohn * (sz.sonntag.zuschlag / 100) * (sz.sonntag.anteil / 100)
+    : 0;
+  const feiertagBetrag = (sz.feiertag?.enabled)
+    ? config.baseLohn * (sz.feiertag.zuschlag / 100) * (sz.feiertag.anteil / 100)
+    : 0;
+  const totalZuschlag = nachtBetrag + sonntagBetrag + feiertagBetrag;
+  const effektiverLohn = config.baseLohn + totalZuschlag;
+
+  const schichtzuschlag: SchichtzuschlagBreakdown = {
+    nachtBetrag,
+    sonntagBetrag,
+    feiertagBetrag,
+    totalZuschlag,
+    effektiverLohn,
+  };
+
   const svRates =
     config.employmentType === "minijob"
       ? config.svRatesMinijob
       : config.svRatesVollzeit;
   const svTotalRate = svRates.reduce((sum, r) => sum + r.rate, 0);
-  const svBetrag = config.baseLohn * (svTotalRate / 100);
-  const lohnkostenProStunde = config.baseLohn + svBetrag;
+  const svBetrag = effektiverLohn * (svTotalRate / 100);
+  const lohnkostenProStunde = effektiverLohn + svBetrag;
 
   const hoursPerDay = config.ausfallzeiten.weeklyHours / 5;
   const weeksPerYear = 52;
@@ -170,6 +224,7 @@ export function calcHourlyRate(config: HourlyRateConfig): HourlyRateBreakdown {
 
   return {
     baseLohn: config.baseLohn,
+    schichtzuschlag,
     svTotalRate,
     svBetrag,
     lohnkostenProStunde,

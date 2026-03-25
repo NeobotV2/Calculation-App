@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import capacitorStorage from "@/lib/capacitor-storage";
-import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
 
 export type FrequencyKey =
   | "monthly"
@@ -549,7 +549,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 8,
+      version: 9,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -611,6 +611,21 @@ export const useStore = create<AppState>()(
               hourlyRateConfig: {
                 ...state.hourlyRateConfig,
                 cleaningType: "unterhalt",
+              },
+            };
+          }
+        }
+        if (version < 9) {
+          if (state.hourlyRateConfig && !state.hourlyRateConfig.schichtzuschlaege) {
+            state = {
+              ...state,
+              hourlyRateConfig: {
+                ...state.hourlyRateConfig,
+                schichtzuschlaege: {
+                  nacht: { ...DEFAULT_SCHICHTZUSCHLAEGE.nacht },
+                  sonntag: { ...DEFAULT_SCHICHTZUSCHLAEGE.sonntag },
+                  feiertag: { ...DEFAULT_SCHICHTZUSCHLAEGE.feiertag },
+                },
               },
             };
           }

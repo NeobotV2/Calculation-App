@@ -11,6 +11,7 @@ import {
   type HourlyRateConfig,
   type EmploymentType,
   type CleaningType,
+  type SchichtzuschlagConfig,
   calcHourlyRate,
   getDefaultConfig,
   CLEANING_TYPE_LABELS,
@@ -28,6 +29,7 @@ import {
   RotateCcw,
   Info,
   X,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -181,16 +183,26 @@ export default function Kalkulation() {
   const currentHourlyRate = useStore((s) => s.hourlyRate);
   const actions = useStoreActions();
 
-  const [config, setConfig] = useState<HourlyRateConfig>(() => ({
-    ...storedConfig,
-    svRatesMinijob: storedConfig.svRatesMinijob.map((r) => ({ ...r })),
-    svRatesVollzeit: storedConfig.svRatesVollzeit.map((r) => ({ ...r })),
-    overheads: storedConfig.overheads.map((o) => ({ ...o })),
-    ausfallzeiten: { ...storedConfig.ausfallzeiten },
-  }));
+  const [config, setConfig] = useState<HourlyRateConfig>(() => {
+    const defaults = getDefaultConfig();
+    const sz = storedConfig.schichtzuschlaege ?? defaults.schichtzuschlaege;
+    return {
+      ...storedConfig,
+      svRatesMinijob: storedConfig.svRatesMinijob.map((r) => ({ ...r })),
+      svRatesVollzeit: storedConfig.svRatesVollzeit.map((r) => ({ ...r })),
+      overheads: storedConfig.overheads.map((o) => ({ ...o })),
+      ausfallzeiten: { ...storedConfig.ausfallzeiten },
+      schichtzuschlaege: {
+        nacht: { ...defaults.schichtzuschlaege.nacht, ...(sz.nacht ?? {}) },
+        sonntag: { ...defaults.schichtzuschlaege.sonntag, ...(sz.sonntag ?? {}) },
+        feiertag: { ...defaults.schichtzuschlaege.feiertag, ...(sz.feiertag ?? {}) },
+      },
+    };
+  });
 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basislohn: true,
+    schicht: false,
     sv: false,
     ausfall: false,
     overhead: false,
@@ -246,6 +258,24 @@ export default function Kalkulation() {
     },
     []
   );
+
+  const updateSchichtzuschlag = useCallback(
+    (key: "nacht" | "sonntag" | "feiertag", patch: Partial<SchichtzuschlagConfig>) => {
+      setConfig((c) => ({
+        ...c,
+        schichtzuschlaege: {
+          ...c.schichtzuschlaege,
+          [key]: { ...c.schichtzuschlaege[key], ...patch },
+        },
+      }));
+    },
+    []
+  );
+
+  const hasAnySchichtzuschlag =
+    config.schichtzuschlaege.nacht.enabled ||
+    config.schichtzuschlaege.sonntag.enabled ||
+    config.schichtzuschlaege.feiertag.enabled;
 
   const handleSave = async () => {
     try {
@@ -388,6 +418,104 @@ export default function Kalkulation() {
               suffix="€/h"
             />
           </div>
+        </Section>
+
+        <Section
+          title="Schichtzuschläge"
+          icon={Moon}
+          open={openSections.schicht}
+          onToggle={() => toggle("schicht")}
+          badge={hasAnySchichtzuschlag ? `+${fmtEuro(breakdown.schichtzuschlag.totalZuschlag)} €/h` : "Aus"}
+        >
+          <p className="text-xs text-muted-foreground -mt-1">
+            Zuschläge für Nacht-, Sonntags- und Feiertagsarbeit gewichtet nach Stundenanteil
+          </p>
+
+          {(["nacht", "sonntag", "feiertag"] as const).map((key) => {
+            const labels = {
+              nacht: { title: "Nachtarbeit", defaultZuschlag: "25 %" },
+              sonntag: { title: "Sonntagsarbeit", defaultZuschlag: "50 %" },
+              feiertag: { title: "Feiertagsarbeit", defaultZuschlag: "100 %" },
+            };
+            const item = config.schichtzuschlaege[key];
+            const betragKey = key === "nacht" ? "nachtBetrag" : key === "sonntag" ? "sonntagBetrag" : "feiertagBetrag";
+            return (
+              <div key={key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-foreground">
+                    {labels[key].title}
+                  </span>
+                  <button
+                    onClick={() => updateSchichtzuschlag(key, { enabled: !item.enabled })}
+                    className={cn(
+                      "relative w-11 h-6 rounded-full transition-colors",
+                      item.enabled ? "bg-primary" : "bg-muted"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm",
+                        item.enabled && "translate-x-5"
+                      )}
+                    />
+                  </button>
+                </div>
+                {item.enabled && (
+                  <div className="grid grid-cols-2 gap-3 pl-1">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                        Zuschlagssatz
+                      </label>
+                      <NumberInput
+                        value={item.zuschlag}
+                        onChange={(v) => updateSchichtzuschlag(key, { zuschlag: v })}
+                        suffix="%"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+                        Stundenanteil
+                      </label>
+                      <NumberInput
+                        value={item.anteil}
+                        onChange={(v) => updateSchichtzuschlag(key, { anteil: v })}
+                        suffix="%"
+                      />
+                    </div>
+                    <div className="col-span-2 flex items-center justify-between bg-background rounded-lg p-2 border border-border/30">
+                      <span className="text-xs text-muted-foreground">
+                        Gewichteter Zuschlag
+                      </span>
+                      <span className="text-xs font-medium text-primary">
+                        +{fmtEuro(breakdown.schichtzuschlag[betragKey])} €/h
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {hasAnySchichtzuschlag && (
+            <>
+              <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
+                <span className="text-sm font-medium text-foreground">
+                  Schichtzuschläge gesamt
+                </span>
+                <span className="text-sm font-bold text-primary">
+                  +{fmtEuro(breakdown.schichtzuschlag.totalZuschlag)} €/h
+                </span>
+              </div>
+              <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
+                <span className="text-sm font-medium text-foreground">
+                  Effektiver Stundenlohn
+                </span>
+                <span className="text-sm font-bold text-foreground">
+                  {fmtEuro(breakdown.schichtzuschlag.effektiverLohn)} €/h
+                </span>
+              </div>
+            </>
+          )}
         </Section>
 
         <Section
@@ -645,6 +773,24 @@ export default function Kalkulation() {
                 {fmtEuro(breakdown.baseLohn)} €
               </span>
             </div>
+            {breakdown.schichtzuschlag.totalZuschlag > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  + Schichtzuschläge
+                </span>
+                <span className="text-foreground">
+                  {fmtEuro(breakdown.schichtzuschlag.totalZuschlag)} €
+                </span>
+              </div>
+            )}
+            {breakdown.schichtzuschlag.totalZuschlag > 0 && (
+              <div className="flex justify-between font-medium border-t border-border/30 pt-1.5">
+                <span className="text-foreground">= Effektiver Lohn</span>
+                <span className="text-foreground">
+                  {fmtEuro(breakdown.schichtzuschlag.effektiverLohn)} €
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">
                 + SV AG-Anteil ({fmtPct(breakdown.svTotalRate)} %)
