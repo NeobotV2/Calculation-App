@@ -258,7 +258,7 @@ export default function PrintView() {
         </div>
       </div>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={pdfGate.reason || ""} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={pdfGate.reason || ""} triggerReason={pdfGate.trigger} />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
+import type { UpgradeTrigger } from "@/lib/billing-config";
 import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler, AlertTriangle, Calendar, ArrowUpDown } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
 import { FREQUENCY_LABELS } from "@/lib/calc";
@@ -71,6 +72,7 @@ export default function ObjekteList() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [isWorking, setIsWorking] = useState(false);
@@ -119,11 +121,16 @@ export default function ObjekteList() {
     return result;
   }, [projectsWithTotals, filter, search, sortBy, targetMargin]);
 
+  const showUpgrade = (gate: { reason?: string; trigger?: UpgradeTrigger }) => {
+    setUpgradeReason(gate.reason || "");
+    setUpgradeTrigger(gate.trigger);
+    setUpgradeOpen(true);
+  };
+
   const handleCreate = () => {
     const gate = canAddProject();
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgrade(gate);
       return;
     }
     setLocation("/objekte/neu");
@@ -132,8 +139,7 @@ export default function ObjekteList() {
   const handleQuickCreate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgrade(gate);
       return;
     }
     setIsWorking(true);
@@ -151,8 +157,7 @@ export default function ObjekteList() {
   const handleDuplicate = async (id: string) => {
     const gate = canAddProject();
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgrade(gate);
       return;
     }
     setMenuOpen(null);
@@ -404,7 +409,7 @@ export default function ObjekteList() {
         </Button>
       </div>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason={upgradeTrigger} />
       <ConfirmDialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={() => deleteConfirm && handleDelete(deleteConfirm)} title="Objekt löschen?" description="Das Objekt und alle zugehörigen Räume werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
 
       {renameId && (

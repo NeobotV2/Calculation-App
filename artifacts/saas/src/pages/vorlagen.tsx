@@ -134,7 +134,7 @@ export default function Vorlagen() {
         )}
       </div>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason="Vorlagen sind ein Pro-Feature." />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} triggerReason="template_save" />
       <ConfirmDialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} onConfirm={() => { if (deleteConfirm) handleDelete(deleteConfirm); }} title="Vorlage löschen?" description="Die Vorlage wird unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
     </PageTransition>
   );
