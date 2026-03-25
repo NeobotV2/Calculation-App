@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
@@ -9,24 +9,64 @@ import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject } from "@/lib/feature-gates";
-import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Calendar, Edit3, Zap } from "lucide-react";
+import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { FREQUENCY_LABELS } from "@/lib/calc";
+import { calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { ListSkeleton } from "@/components/list-skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
+import type { Project, FrequencyKey } from "@/store/use-store";
+
+type FilterKey = "all" | "active" | "archived" | "low_margin";
+type SortKey = "date" | "revenue" | "margin" | "area";
+
+function getDominantFrequency(project: Project): string {
+  if (project.rooms.length === 0) return "—";
+  const counts = new Map<FrequencyKey, number>();
+  project.rooms.forEach((r) => {
+    counts.set(r.frequency, (counts.get(r.frequency) || 0) + 1);
+  });
+  let maxKey: FrequencyKey = project.rooms[0].frequency;
+  let maxCount = 0;
+  counts.forEach((count, key) => {
+    if (count > maxCount) {
+      maxCount = count;
+      maxKey = key;
+    }
+  });
+  return FREQUENCY_LABELS[maxKey];
+}
+
+function getMarginColor(marginPercent: number, targetMargin: number): string {
+  if (marginPercent <= 0) return "text-red-400";
+  if (marginPercent < targetMargin * 0.7) return "text-red-400";
+  if (marginPercent < targetMargin) return "text-yellow-400";
+  return "text-green-400";
+}
+
+function getMarginBgColor(marginPercent: number, targetMargin: number): string {
+  if (marginPercent <= 0) return "bg-red-500/10 border-red-500/20";
+  if (marginPercent < targetMargin * 0.7) return "bg-red-500/10 border-red-500/20";
+  if (marginPercent < targetMargin) return "bg-yellow-500/10 border-yellow-500/20";
+  return "bg-green-500/10 border-green-500/20";
+}
 
 export default function ObjekteList() {
   const [, setLocation] = useLocation();
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const plan = useStore((s) => s.plan);
   const actions = useStoreActions();
 
   const [search, setSearch] = useState("");
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameName, setRenameName] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "archived">("all");
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [sortBy, setSortBy] = useState<SortKey>("date");
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
@@ -34,18 +74,44 @@ export default function ObjekteList() {
   const [isWorking, setIsWorking] = useState(false);
   const hydrated = useHydrated();
 
-  const filtered = projects
-    .filter((p) => {
-      if (filter === "active") return p.status !== "archived";
-      if (filter === "archived") return p.status === "archived";
-      return true;
-    })
-    .filter((p) => {
-      if (!search) return true;
+  const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
+  const targetMargin = hourlyRateConfig.gewinnmarge;
+
+  const projectsWithTotals = useMemo(() => {
+    return projects.map((p) => {
+      const effectiveRate = p.hourlyRate ?? hourlyRate;
+      const totals = calcProjectTotals(p, effectiveRate);
+      const vollkosten = breakdown.vollkosten;
+      const marginPercent = effectiveRate > 0 && vollkosten > 0
+        ? ((effectiveRate - vollkosten) / effectiveRate) * 100
+        : targetMargin;
+      return { project: p, totals, marginPercent, effectiveRate };
+    });
+  }, [projects, hourlyRate, breakdown, targetMargin]);
+
+  const filtered = useMemo(() => {
+    let result = projectsWithTotals;
+
+    if (filter === "active") result = result.filter((x) => x.project.status !== "archived");
+    else if (filter === "archived") result = result.filter((x) => x.project.status === "archived");
+    else if (filter === "low_margin") result = result.filter((x) => x.project.status !== "archived" && x.marginPercent < targetMargin);
+    else result = result;
+
+    if (search) {
       const s = search.toLowerCase();
-      return p.name.toLowerCase().includes(s) || p.customer?.toLowerCase().includes(s) || p.location?.toLowerCase().includes(s);
-    })
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      result = result.filter((x) => {
+        const p = x.project;
+        return p.name.toLowerCase().includes(s) || p.customer?.toLowerCase().includes(s) || p.location?.toLowerCase().includes(s);
+      });
+    }
+
+    if (sortBy === "date") result = [...result].sort((a, b) => new Date(b.project.updatedAt).getTime() - new Date(a.project.updatedAt).getTime());
+    else if (sortBy === "revenue") result = [...result].sort((a, b) => b.totals.cost - a.totals.cost);
+    else if (sortBy === "margin") result = [...result].sort((a, b) => a.marginPercent - b.marginPercent);
+    else if (sortBy === "area") result = [...result].sort((a, b) => b.totals.area - a.totals.area);
+
+    return result;
+  }, [projectsWithTotals, filter, search, sortBy, targetMargin]);
 
   const handleCreate = () => {
     const gate = canAddProject();
@@ -133,6 +199,20 @@ export default function ObjekteList() {
     setRenameId(null);
   };
 
+  const sortLabels: Record<SortKey, string> = {
+    date: "Letzte Bearbeitung",
+    revenue: "Monatsumsatz",
+    margin: "Marge (niedrig → hoch)",
+    area: "Fläche (groß → klein)",
+  };
+
+  const filterChips: { key: FilterKey; label: string }[] = [
+    { key: "all", label: "Alle" },
+    { key: "active", label: "Aktiv" },
+    { key: "archived", label: "Archiviert" },
+    { key: "low_margin", label: "Schwach kalkuliert" },
+  ];
+
   return (
     <PageTransition className="min-h-screen pb-24 bg-background flex flex-col">
       <div className="safe-header p-6 pb-2 bg-background/95 sticky top-0 z-40 border-b border-border/20">
@@ -144,19 +224,44 @@ export default function ObjekteList() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input placeholder="Name, Kunde oder Standort suchen…" className="pl-11 bg-card border-border/40 h-11" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <div className="flex gap-2 pb-3">
-          {(["all", "active", "archived"] as const).map((f) => {
-            const labels = { all: "Alle", active: "Aktiv", archived: "Archiviert" };
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${filter === f ? "bg-foreground text-background" : "bg-card border border-border/30 text-muted-foreground hover:text-foreground"}`}
-              >
-                {labels[f]}
-              </button>
-            );
-          })}
+        <div className="flex gap-2 pb-3 overflow-x-auto no-scrollbar">
+          {filterChips.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filter === f.key ? "bg-foreground text-background" : "bg-card border border-border/30 text-muted-foreground hover:text-foreground"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center justify-between pb-3">
+          <div className="relative">
+            <button
+              onClick={() => setShowSortMenu(!showSortMenu)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sortierung: <span className="font-medium text-foreground">{sortLabels[sortBy]}</span>
+              <ChevronDown size={14} />
+            </button>
+            {showSortMenu && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setShowSortMenu(false)} />
+                <div className="absolute top-8 left-0 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
+                  {(Object.keys(sortLabels) as SortKey[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => { setSortBy(key); setShowSortMenu(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${sortBy === key ? "text-primary font-medium" : "text-foreground"}`}
+                    >
+                      {sortLabels[key]}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground">{filtered.length} Objekte</span>
         </div>
       </div>
 
@@ -175,21 +280,29 @@ export default function ObjekteList() {
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
             </div>
-            <h3 className="text-lg font-medium mb-2">{search ? "Keine Treffer" : "Noch keine Objekte"}</h3>
+            <h3 className="text-lg font-medium mb-2">{search ? "Keine Treffer" : filter === "low_margin" ? "Keine schwach kalkulierten Objekte" : "Noch keine Objekte"}</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">
-              {search ? "Versuche einen anderen Suchbegriff." : "Erstelle dein erstes Objekt, um loszulegen."}
+              {search ? "Versuche einen anderen Suchbegriff." : filter === "low_margin" ? "Alle Objekte liegen über der Ziel-Marge." : "Erstelle dein erstes Objekt, um loszulegen."}
             </p>
           </div>
         ) : (
-          filtered.map((p) => {
-            const totals = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
+          filtered.map(({ project: p, totals, marginPercent }) => {
+            const dominantInterval = getDominantFrequency(p);
             return (
               <div key={p.id} className="relative">
                 <Link href={`/objekte/${p.id}`}>
                   <div className={`bg-card border border-border/20 rounded-2xl p-5 hover:bg-secondary transition-colors cursor-pointer active:scale-[0.98] ${p.status === "archived" ? "opacity-60" : ""}`}>
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-2">
                       <div className="min-w-0 flex-1 pr-8">
-                        <h3 className="font-semibold text-base text-foreground truncate">{p.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-semibold text-base text-foreground truncate">{p.name}</h3>
+                          {p.status === "archived" && (
+                            <span className="text-[10px] uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full shrink-0">Archiviert</span>
+                          )}
+                          {p.status !== "archived" && (
+                            <span className="text-[10px] uppercase tracking-widest bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full shrink-0">Aktiv</span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                           <span className="truncate">{p.customer || "Kein Kunde"}</span>
                           {p.location && <><span className="w-1 h-1 rounded-full bg-border shrink-0" /><span className="truncate">{p.location}</span></>}
@@ -197,12 +310,29 @@ export default function ObjekteList() {
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-bold text-foreground">{formatCurrency(totals.cost)}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{totals.count} Räume</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">/ Monat</p>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/20">
-                      <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(p.updatedAt)}</span>
-                      {p.status === "archived" && <span className="text-[10px] uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full">Archiviert</span>}
+
+                    <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-border/20">
+                      <div className="flex items-center gap-1.5">
+                        <Ruler size={12} className="text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground">{formatNumber(totals.area, 0)} m²</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={12} className="text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground">{formatNumber(totals.hours, 1)} h</span>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className="text-xs text-muted-foreground">{dominantInterval}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/10">
+                      <span className="text-[11px] text-muted-foreground">{totals.count} Räume · {formatDate(p.updatedAt)}</span>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${getMarginBgColor(marginPercent, targetMargin)} ${getMarginColor(marginPercent, targetMargin)}`}>
+                        {formatNumber(marginPercent, 1)}% Marge
+                      </span>
                     </div>
                   </div>
                 </Link>
