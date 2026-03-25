@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject } from "@/lib/feature-gates";
-import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Calendar, Edit3 } from "lucide-react";
+import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Calendar, Edit3, Zap } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -47,7 +47,17 @@ export default function ObjekteList() {
     })
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
+    const gate = canAddProject();
+    if (!gate.allowed) {
+      setUpgradeReason(gate.reason || "");
+      setUpgradeOpen(true);
+      return;
+    }
+    setLocation("/objekte/neu");
+  };
+
+  const handleQuickCreate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
       setUpgradeReason(gate.reason || "");
@@ -234,7 +244,15 @@ export default function ObjekteList() {
         )}
       </div>
 
-      <div className="fixed bottom-20 right-6 z-40" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      <div className="fixed bottom-20 right-6 z-40 flex flex-col items-end gap-3" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        <button
+          onClick={handleQuickCreate}
+          disabled={isWorking}
+          className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border/30 shadow-lg shadow-black/20 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Zap size={14} />
+          Schnell erstellen
+        </button>
         <Button onClick={handleCreate} size="icon" className="w-14 h-14 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90" disabled={isWorking}>
           <Plus size={26} />
         </Button>

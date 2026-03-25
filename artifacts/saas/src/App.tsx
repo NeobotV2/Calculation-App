@@ -17,6 +17,7 @@ import PasswortReset from "@/pages/passwort-reset";
 import Home from "@/pages/home";
 import ObjekteList from "@/pages/objekte/index";
 import ObjektDetail from "@/pages/objekte/[id]";
+import ObjektWizard from "@/pages/objekte/wizard";
 import AuswertungGlobal from "@/pages/auswertung/index";
 import AuswertungDetail from "@/pages/auswertung/[id]";
 import Vorlagen from "@/pages/vorlagen";
@@ -103,6 +104,7 @@ function AppRouter() {
         <Route path="/passwort-reset" component={PasswortReset} />
         <Route path="/" component={Home} />
         <Route path="/objekte" component={ObjekteList} />
+        <Route path="/objekte/neu" component={ObjektWizard} />
         <Route path="/objekte/:id" component={ObjektDetail} />
         <Route path="/auswertung" component={AuswertungGlobal} />
         <Route path="/auswertung/:id" component={AuswertungDetail} />
