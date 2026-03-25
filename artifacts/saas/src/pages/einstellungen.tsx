@@ -206,7 +206,7 @@ export default function Einstellungen() {
       <div className="p-6 space-y-8">
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Building2 size={16} /> Allgemein
+            <Building2 size={16} /> Firmendaten & Kalkulation
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
             <div>
@@ -259,7 +259,7 @@ export default function Einstellungen() {
 
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Layers size={16} /> Eigene Raumarten
+            <Layers size={16} /> Raumarten
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
             <div className={plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}>
