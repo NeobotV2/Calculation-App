@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { canAddProject, canAddRoom, canUseTemplates, canUsePDF } from "@/lib/feature-gates";
+import { canAddProject, canAddRoom, canUseTemplates } from "@/lib/feature-gates";
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -163,12 +163,6 @@ export default function ObjektDetail() {
   };
 
   const handleOpenPDF = () => {
-    const gate = canUsePDF();
-    if (!gate.allowed) {
-      showUpgradeGate(gate);
-      setMenuOpen(false);
-      return;
-    }
     setLocation(`/print/${project.id}`);
     setMenuOpen(false);
   };
@@ -252,8 +246,6 @@ export default function ObjektDetail() {
             <button onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
             <button onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" /> Als Vorlage speichern</button>
             <button onClick={() => {
-              const gate = canUsePDF();
-              if (!gate.allowed) { setUpgradeReason(gate.reason || ""); setUpgradeOpen(true); setMenuOpen(false); return; }
               setShowPdfPreview(true); setMenuOpen(false);
             }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Eye size={16} className="text-muted-foreground" /> PDF-Vorschau</button>
             <button onClick={handleOpenPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> Angebot als PDF</button>
