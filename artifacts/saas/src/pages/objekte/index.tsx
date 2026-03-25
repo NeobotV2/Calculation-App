@@ -19,7 +19,7 @@ import { ListSkeleton } from "@/components/list-skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
 import type { Project, FrequencyKey } from "@/store/use-store";
 
-type FilterKey = "all" | "active" | "archived" | "low_margin";
+type FilterKey = "all" | "active" | "archived" | "low_margin" | "high_hours";
 type SortKey = "date" | "revenue" | "margin" | "area";
 
 function getDominantFrequency(project: Project): string {
@@ -41,17 +41,17 @@ function getDominantFrequency(project: Project): string {
 
 function getMarginColor(marginPercent: number, targetMargin: number): string {
   if (marginPercent <= 0) return "text-red-400";
-  if (marginPercent < targetMargin * 0.7) return "text-red-400";
   if (marginPercent < targetMargin) return "text-yellow-400";
   return "text-green-400";
 }
 
 function getMarginBgColor(marginPercent: number, targetMargin: number): string {
   if (marginPercent <= 0) return "bg-red-500/10 border-red-500/20";
-  if (marginPercent < targetMargin * 0.7) return "bg-red-500/10 border-red-500/20";
   if (marginPercent < targetMargin) return "bg-yellow-500/10 border-yellow-500/20";
   return "bg-green-500/10 border-green-500/20";
 }
+
+const HIGH_HOURS_THRESHOLD = 80;
 
 export default function ObjekteList() {
   const [, setLocation] = useLocation();
@@ -95,7 +95,7 @@ export default function ObjekteList() {
     if (filter === "active") result = result.filter((x) => x.project.status !== "archived");
     else if (filter === "archived") result = result.filter((x) => x.project.status === "archived");
     else if (filter === "low_margin") result = result.filter((x) => x.project.status !== "archived" && x.marginPercent < targetMargin);
-    else result = result;
+    else if (filter === "high_hours") result = result.filter((x) => x.project.status !== "archived" && x.totals.hours > HIGH_HOURS_THRESHOLD);
 
     if (search) {
       const s = search.toLowerCase();
@@ -211,6 +211,7 @@ export default function ObjekteList() {
     { key: "active", label: "Aktiv" },
     { key: "archived", label: "Archiviert" },
     { key: "low_margin", label: "Schwach kalkuliert" },
+    { key: "high_hours", label: "Hoher Stundenanteil" },
   ];
 
   return (
@@ -280,9 +281,9 @@ export default function ObjekteList() {
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
               <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
             </div>
-            <h3 className="text-lg font-medium mb-2">{search ? "Keine Treffer" : filter === "low_margin" ? "Keine schwach kalkulierten Objekte" : "Noch keine Objekte"}</h3>
+            <h3 className="text-lg font-medium mb-2">{search ? "Keine Treffer" : filter === "low_margin" ? "Keine schwach kalkulierten Objekte" : filter === "high_hours" ? "Keine Objekte mit hohem Stundenanteil" : "Noch keine Objekte"}</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">
-              {search ? "Versuche einen anderen Suchbegriff." : filter === "low_margin" ? "Alle Objekte liegen über der Ziel-Marge." : "Erstelle dein erstes Objekt, um loszulegen."}
+              {search ? "Versuche einen anderen Suchbegriff." : filter === "low_margin" ? "Alle Objekte liegen über der Ziel-Marge." : filter === "high_hours" ? `Kein Objekt hat mehr als ${HIGH_HOURS_THRESHOLD} Stunden/Monat.` : "Erstelle dein erstes Objekt, um loszulegen."}
             </p>
           </div>
         ) : (
