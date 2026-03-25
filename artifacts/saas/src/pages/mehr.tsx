@@ -32,10 +32,23 @@ export default function Mehr() {
   const setTheme = useStore((s) => s.setTheme);
   const plan = useStore((s) => s.plan);
 
+  const handleExport = () => {
+    const exportData = useStore.getState().exportData;
+    const json = exportData();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cleancalc-export-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const hauptItems: MehrItem[] = [
     { label: "Einstellungen", icon: Settings, href: "/einstellungen", subtitle: "Firma, Kalkulation, PDF" },
     { label: "Profil & Konto", icon: User, href: "/konto", subtitle: "Anmeldung, Abo, Daten" },
     { label: "Vorlagen", icon: FileStack, href: "/vorlagen", subtitle: "Raumvorlagen verwalten" },
+    { label: "Datenexport", icon: Download, action: handleExport, subtitle: "Alle Daten als JSON sichern" },
   ];
 
   if (plan === "basic") {
@@ -49,6 +62,10 @@ export default function Mehr() {
       action: () => setTheme(theme === "light" ? "dark" : "light"),
       subtitle: theme === "light" ? "Aktuell: Hell" : "Aktuell: Dunkel",
     },
+  ];
+
+  const supportItems: MehrItem[] = [
+    { label: "Hilfe & Support", icon: HelpCircle, subtitle: "support@cleancalc.de", action: () => window.open("mailto:support@cleancalc.de") },
   ];
 
   const rechtlichesItems: MehrItem[] = [
@@ -114,6 +131,7 @@ export default function Mehr() {
       <div className="p-6 space-y-8 max-w-5xl mx-auto">
         {renderSection("Verwaltung", hauptItems)}
         {renderSection("Darstellung", darstellungItems)}
+        {renderSection("Support", supportItems)}
         {renderSection("Rechtliches", rechtlichesItems)}
       </div>
 
