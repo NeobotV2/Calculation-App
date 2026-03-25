@@ -40,15 +40,15 @@ function getDominantFrequency(project: Project): string {
 }
 
 function getMarginColor(marginPercent: number, targetMargin: number): string {
-  if (marginPercent <= 0) return "text-red-400";
-  if (marginPercent < targetMargin) return "text-yellow-400";
-  return "text-green-400";
+  if (marginPercent <= 0) return "text-destructive";
+  if (marginPercent < targetMargin) return "text-warning";
+  return "text-success";
 }
 
 function getMarginBgColor(marginPercent: number, targetMargin: number): string {
-  if (marginPercent <= 0) return "bg-red-500/10 border-red-500/20";
-  if (marginPercent < targetMargin) return "bg-yellow-500/10 border-yellow-500/20";
-  return "bg-green-500/10 border-green-500/20";
+  if (marginPercent <= 0) return "bg-destructive/10 border-destructive/20";
+  if (marginPercent < targetMargin) return "bg-warning/10 border-warning/20";
+  return "bg-success/10 border-success/20";
 }
 
 const HIGH_HOURS_THRESHOLD = 80;
@@ -306,16 +306,16 @@ export default function ObjekteList() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-base text-foreground truncate">{p.name}</h3>
                           {(hasCritical || hasWarning) && (
-                            <AlertTriangle size={14} className={`shrink-0 ${hasCritical ? "text-red-400" : "text-yellow-400"}`} />
+                            <AlertTriangle size={14} className={`shrink-0 ${hasCritical ? "text-destructive" : "text-warning"}`} />
                           )}
                           {p.status === "archived" && (
                             <span className="text-[10px] uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full shrink-0">Archiviert</span>
                           )}
                           {p.status !== "archived" && (new Date().getTime() - new Date(p.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && (
-                            <span className="text-[10px] uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full shrink-0">Neu</span>
+                            <span className="text-[10px] uppercase tracking-widest bg-info/10 text-info px-2 py-0.5 rounded-full shrink-0">Neu</span>
                           )}
                           {p.status !== "archived" && (new Date().getTime() - new Date(p.createdAt).getTime()) >= 7 * 24 * 60 * 60 * 1000 && (
-                            <span className="text-[10px] uppercase tracking-widest bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full shrink-0">Aktiv</span>
+                            <span className="text-[10px] uppercase tracking-widest bg-success/10 text-success px-2 py-0.5 rounded-full shrink-0">Aktiv</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">

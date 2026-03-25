@@ -259,7 +259,7 @@ export default function ObjektWizard() {
                     size={14}
                     className="inline mr-1.5 text-muted-foreground"
                   />
-                  Projektname
+                  Objektname
                 </label>
                 <Input
                   value={name}

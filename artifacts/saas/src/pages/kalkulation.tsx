@@ -848,10 +848,10 @@ export default function Kalkulation() {
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
                 <span className="text-sm text-foreground">Kritisch</span>
               </div>
-              <span className="text-sm font-semibold text-red-400">
+              <span className="text-sm font-semibold text-destructive">
                 {fmtEuro(breakdown.vollkosten * 0.9)} €/h
               </span>
             </div>
@@ -860,10 +860,10 @@ export default function Kalkulation() {
             </p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-warning" />
                 <span className="text-sm text-foreground">Mindest</span>
               </div>
-              <span className="text-sm font-semibold text-yellow-400">
+              <span className="text-sm font-semibold text-warning">
                 {fmtEuro(breakdown.vollkosten)} €/h
               </span>
             </div>
@@ -872,10 +872,10 @@ export default function Kalkulation() {
             </p>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <div className="w-2.5 h-2.5 rounded-full bg-success" />
                 <span className="text-sm text-foreground">Empfohlen</span>
               </div>
-              <span className="text-sm font-semibold text-emerald-400">
+              <span className="text-sm font-semibold text-success">
                 {fmtEuro(breakdown.stundenverrechnungssatz)} €/h
               </span>
             </div>

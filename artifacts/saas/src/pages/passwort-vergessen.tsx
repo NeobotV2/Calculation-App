@@ -44,8 +44,8 @@ export default function PasswortVergessen() {
       <PageTransition className="min-h-screen bg-background flex flex-col px-6">
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-green-500" />
+            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-center mb-3 text-foreground">

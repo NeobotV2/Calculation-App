@@ -301,7 +301,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                     <SlidersHorizontal size={16} className="text-muted-foreground" />
                     Zu-/Abschläge
                     {totalModifier !== 0 && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${totalModifier > 0 ? "bg-green-500/10 text-green-400" : "bg-orange-500/10 text-orange-400"}`}>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${totalModifier > 0 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
                         {totalModifier > 0 ? "+" : ""}{Math.round(totalModifier * 100)}%
                       </span>
                     )}
@@ -353,7 +353,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                           <>
                             <div className="flex items-center justify-between text-xs mt-1">
                               <span className="text-muted-foreground">Anpassung:</span>
-                              <span className={`font-medium ${totalModifier > 0 ? "text-green-400" : "text-orange-400"}`}>
+                              <span className={`font-medium ${totalModifier > 0 ? "text-success" : "text-warning"}`}>
                                 {totalModifier > 0 ? "+" : ""}{Math.round(totalModifier * 100)}%
                               </span>
                             </div>

@@ -281,10 +281,10 @@ export default function ObjektDetail() {
         {warnings.length > 0 && (
           <div className={`rounded-2xl border mb-6 overflow-hidden ${
             warnings.some((w) => w.severity === "critical")
-              ? "border-red-500/30 bg-red-500/5"
+              ? "border-destructive/30 bg-destructive/5"
               : warnings.some((w) => w.severity === "warning")
-                ? "border-yellow-500/30 bg-yellow-500/5"
-                : "border-blue-500/30 bg-blue-500/5"
+                ? "border-warning/30 bg-warning/5"
+                : "border-info/30 bg-info/5"
           }`}>
             <button
               onClick={() => setWarningsExpanded(!warningsExpanded)}
@@ -292,10 +292,10 @@ export default function ObjektDetail() {
             >
               <AlertTriangle size={18} className={
                 warnings.some((w) => w.severity === "critical")
-                  ? "text-red-400"
+                  ? "text-destructive"
                   : warnings.some((w) => w.severity === "warning")
-                    ? "text-yellow-400"
-                    : "text-blue-400"
+                    ? "text-warning"
+                    : "text-info"
               } />
               <span className="font-medium text-sm text-foreground flex-1 text-left">
                 {warnings.length} Hinweis{warnings.length > 1 ? "e" : ""} zur Kalkulation
@@ -308,10 +308,10 @@ export default function ObjektDetail() {
                   <div key={w.id} className="flex gap-3">
                     <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
                       w.severity === "critical"
-                        ? "bg-red-500/20 text-red-400"
+                        ? "bg-destructive/20 text-destructive"
                         : w.severity === "warning"
-                          ? "bg-yellow-500/20 text-yellow-400"
-                          : "bg-blue-500/20 text-blue-400"
+                          ? "bg-warning/20 text-warning"
+                          : "bg-info/20 text-info"
                     }`}>
                       {w.severity === "info" ? <Info size={12} /> : <AlertTriangle size={12} />}
                     </div>

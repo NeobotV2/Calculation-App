@@ -75,12 +75,12 @@ export default function Konto() {
 
       <div className="p-6 space-y-6 max-w-5xl mx-auto">
         {isDemo && !isAuthenticated && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-start gap-3">
-            <AlertTriangle size={20} className="text-yellow-500 shrink-0 mt-0.5" />
+          <div className="bg-warning/10 border border-warning/30 rounded-2xl p-4 flex items-start gap-3">
+            <AlertTriangle size={20} className="text-warning shrink-0 mt-0.5" />
             <div>
-              <p className="font-medium text-sm text-yellow-200">Demo-Modus</p>
-              <p className="text-xs text-yellow-200/70 mt-1">Du bist nicht angemeldet. Deine Daten werden nur lokal gespeichert und gehen beim Löschen des Browsers verloren.</p>
-              <Button variant="outline" size="sm" className="mt-3 border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10" onClick={() => setLocation("/login")}>Jetzt anmelden</Button>
+              <p className="font-medium text-sm text-foreground">Demo-Modus</p>
+              <p className="text-xs text-muted-foreground mt-1">Du bist nicht angemeldet. Deine Daten werden nur lokal gespeichert und gehen beim Löschen des Browsers verloren.</p>
+              <Button variant="outline" size="sm" className="mt-3 border-warning/30 text-foreground hover:bg-warning/10" onClick={() => setLocation("/login")}>Jetzt anmelden</Button>
             </div>
           </div>
         )}
@@ -99,17 +99,17 @@ export default function Konto() {
         </div>
 
         {isAuthenticated && !emailConfirmed && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-2xl p-4 flex items-start gap-3">
-            <Mail size={20} className="text-yellow-500 shrink-0 mt-0.5" />
+          <div className="bg-warning/10 border border-warning/30 rounded-2xl p-4 flex items-start gap-3">
+            <Mail size={20} className="text-warning shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="font-medium text-sm text-yellow-200">E-Mail nicht bestätigt</p>
-              <p className="text-xs text-yellow-200/70 mt-1">
+              <p className="font-medium text-sm text-foreground">E-Mail nicht bestätigt</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 Bitte bestätige deine E-Mail-Adresse ({authUser?.email}), um alle Funktionen nutzen zu können.
               </p>
               <Button
                 variant="outline"
                 size="sm"
-                className="mt-3 border-yellow-500/30 text-yellow-200 hover:bg-yellow-500/10"
+                className="mt-3 border-warning/30 text-foreground hover:bg-warning/10"
                 disabled={isResendingVerification || resendCooldown > 0}
                 onClick={async () => {
                   if (!authUser?.email) return;
@@ -148,7 +148,7 @@ export default function Konto() {
 
         {isAuthenticated && emailConfirmed && (
           <div className="flex items-center gap-2 px-1">
-            <CheckCircle2 size={16} className="text-green-500" />
+            <CheckCircle2 size={16} className="text-success" />
             <span className="text-xs text-muted-foreground">E-Mail bestätigt</span>
           </div>
         )}
@@ -163,7 +163,7 @@ export default function Konto() {
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${projectPercent >= 100 ? "bg-destructive" : projectPercent >= 66 ? "bg-yellow-500" : "bg-primary"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${projectPercent >= 100 ? "bg-destructive" : projectPercent >= 66 ? "bg-warning" : "bg-primary"}`}
                   style={{ width: `${projectPercent}%` }}
                 />
               </div>
@@ -178,7 +178,7 @@ export default function Konto() {
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${roomsPercent >= 100 ? "bg-destructive" : roomsPercent >= 66 ? "bg-yellow-500" : "bg-primary"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${roomsPercent >= 100 ? "bg-destructive" : roomsPercent >= 66 ? "bg-warning" : "bg-primary"}`}
                   style={{ width: `${roomsPercent}%` }}
                 />
               </div>

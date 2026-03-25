@@ -504,7 +504,7 @@ export default function Einstellungen() {
               return (
                 <label key={wt.key} className="flex items-center justify-between py-2 cursor-pointer">
                   <div className="flex items-center gap-3">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${wt.severity === "critical" ? "bg-red-500" : wt.severity === "warning" ? "bg-yellow-500" : "bg-blue-400"}`} />
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${wt.severity === "critical" ? "bg-destructive" : wt.severity === "warning" ? "bg-warning" : "bg-info"}`} />
                     <span className="text-sm text-foreground">{wt.label}</span>
                   </div>
                   <button
@@ -665,7 +665,7 @@ export default function Einstellungen() {
               </Button>
             )}
             <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleFileChange} className="hidden" />
-            <Button variant="outline" onClick={() => setShowResetDefaults(true)} className="w-full justify-start h-12 text-sm bg-background border-yellow-500/30 text-yellow-300 hover:bg-yellow-500/10">
+            <Button variant="outline" onClick={() => setShowResetDefaults(true)} className="w-full justify-start h-12 text-sm bg-background border-warning/30 text-warning hover:bg-warning/10">
               <RotateCcw size={16} className="mr-3" /> Einstellungen zurücksetzen
             </Button>
           </div>
