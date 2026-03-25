@@ -1,13 +1,13 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, FolderKanban, BarChart3, Settings, User } from "lucide-react";
+import { Home, Calculator, Building2, BarChart3, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/objekte", label: "Objekte", icon: FolderKanban },
+  { href: "/", label: "Start", icon: Home },
+  { href: "/stundensatz", label: "Kalkulation", icon: Calculator },
+  { href: "/objekte", label: "Objekte", icon: Building2 },
   { href: "/auswertung", label: "Controlling", icon: BarChart3 },
-  { href: "/einstellungen", label: "Einstellungen", icon: Settings },
-  { href: "/konto", label: "Profil", icon: User },
+  { href: "/mehr", label: "Mehr", icon: Menu },
 ];
 
 export function BottomNav() {
@@ -15,6 +15,10 @@ export function BottomNav() {
 
   const isActive = (href: string) => {
     if (href === "/" && location !== "/") return false;
+    if (href === "/mehr") {
+      const mehrSubRoutes = ["/mehr", "/einstellungen", "/konto", "/vorlagen", "/upgrade", "/impressum", "/datenschutz", "/agb"];
+      return mehrSubRoutes.some((r) => location === r || location.startsWith(r + "/"));
+    }
     return location === href || location.startsWith(href + "/");
   };
 

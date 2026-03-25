@@ -26,6 +26,7 @@ import Einstellungen from "@/pages/einstellungen";
 import Kalkulation from "@/pages/kalkulation";
 import Konto from "@/pages/konto";
 import Upgrade from "@/pages/upgrade";
+import Mehr from "@/pages/mehr";
 import Impressum from "@/pages/impressum";
 import Datenschutz from "@/pages/datenschutz";
 import AGB from "@/pages/agb";
@@ -105,7 +106,7 @@ function DataSync() {
   return null;
 }
 
-const shellRoutes = ["/", "/objekte", "/auswertung", "/einstellungen", "/stundensatz", "/konto", "/vorlagen", "/upgrade"];
+const shellRoutes = ["/", "/objekte", "/auswertung", "/einstellungen", "/stundensatz", "/konto", "/vorlagen", "/upgrade", "/mehr"];
 
 function needsShell(loc: string): boolean {
   if (loc.startsWith("/print/")) return false;
@@ -141,6 +142,7 @@ function AppRouter() {
         <Route path="/stundensatz" component={Kalkulation} />
         <Route path="/konto" component={Konto} />
         <Route path="/upgrade" component={Upgrade} />
+        <Route path="/mehr" component={Mehr} />
         <Route path="/impressum" component={Impressum} />
         <Route path="/datenschutz" component={Datenschutz} />
         <Route path="/agb" component={AGB} />

@@ -1,13 +1,13 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, FolderKanban, BarChart3, Settings, User, Sparkles } from "lucide-react";
+import { Home, Calculator, Building2, BarChart3, Menu, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/objekte", label: "Objekte", icon: FolderKanban },
+  { href: "/", label: "Start", icon: Home },
+  { href: "/stundensatz", label: "Kalkulation", icon: Calculator },
+  { href: "/objekte", label: "Objekte", icon: Building2 },
   { href: "/auswertung", label: "Controlling", icon: BarChart3 },
-  { href: "/einstellungen", label: "Einstellungen", icon: Settings },
-  { href: "/konto", label: "Profil", icon: User },
+  { href: "/mehr", label: "Mehr", icon: Menu },
 ];
 
 export function DesktopSidebar() {
@@ -15,6 +15,10 @@ export function DesktopSidebar() {
 
   const isActive = (href: string) => {
     if (href === "/" && location !== "/") return false;
+    if (href === "/mehr") {
+      const mehrSubRoutes = ["/mehr", "/einstellungen", "/konto", "/vorlagen", "/upgrade", "/impressum", "/datenschutz", "/agb"];
+      return mehrSubRoutes.some((r) => location === r || location.startsWith(r + "/"));
+    }
     return location === href || location.startsWith(href + "/");
   };
 
@@ -25,7 +29,7 @@ export function DesktopSidebar() {
           <Sparkles className="w-5 h-5 text-primary-foreground" strokeWidth={1.5} />
         </div>
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-foreground">CleanCalc Pro</h1>
+          <h1 className="text-base font-semibold tracking-tight text-foreground">CleanCalc <span className="text-primary">Pro</span></h1>
           <p className="text-[11px] text-muted-foreground">Gebäudereinigung</p>
         </div>
       </div>
