@@ -3,7 +3,8 @@ import { useRoute, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { Button } from "@/components/ui/button";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { canUsePDF } from "@/lib/feature-gates";
+import { canUsePDF, canRemoveWatermark } from "@/lib/feature-gates";
+import type { UpgradeTrigger } from "@/lib/billing-config";
 import { ArrowLeft, Printer, Share2, Lock, Crown } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS, getEffectivePerformance } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
@@ -33,8 +34,11 @@ export default function PrintView() {
   const companyLogo = useStore((s) => s.companyLogo);
 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
+  const [upgradeReason, setUpgradeReason] = useState("");
 
   const pdfGate = canUsePDF();
+  const watermarkGate = canRemoveWatermark();
   const canExport = pdfGate.allowed;
 
   if (!project) {
@@ -58,10 +62,18 @@ export default function PrintView() {
 
   const handleExport = () => {
     if (!canExport) {
+      setUpgradeReason(pdfGate.reason || "");
+      setUpgradeTrigger(pdfGate.trigger);
       setUpgradeOpen(true);
       return;
     }
     sharePrintView();
+  };
+
+  const handleWatermarkUpgrade = () => {
+    setUpgradeReason(watermarkGate.reason || "");
+    setUpgradeTrigger(watermarkGate.trigger);
+    setUpgradeOpen(true);
   };
 
   return (
@@ -97,9 +109,14 @@ export default function PrintView() {
           <div>
             <p className="text-sm font-medium text-foreground">Vorschau-Modus</p>
             <p className="text-xs text-muted-foreground mt-1">Im Free-Plan kannst du die Angebotsvorschau sehen. Upgrade auf Pro, um PDF-Angebote zu exportieren und zu drucken.</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={() => setUpgradeOpen(true)}>
-              Auf Pro upgraden
-            </Button>
+            <div className="flex gap-2 mt-3">
+              <Button variant="outline" size="sm" onClick={handleWatermarkUpgrade}>
+                Wasserzeichen entfernen
+              </Button>
+              <Button size="sm" onClick={handleExport}>
+                PDF exportieren
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -258,7 +275,7 @@ export default function PrintView() {
         </div>
       </div>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={pdfGate.reason || ""} triggerReason={pdfGate.trigger} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason={upgradeTrigger} />
     </div>
   );
 }

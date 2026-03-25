@@ -7,6 +7,7 @@ import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject, canAddRoom, canUseTemplates, canUsePDF } from "@/lib/feature-gates";
+import type { UpgradeTrigger } from "@/lib/billing-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, Copy, Archive, FileText, BookOpen, MoreHorizontal, X, AlertTriangle, ChevronDown, ChevronUp, Info, Eye, Printer, Share2 } from "lucide-react";
@@ -58,6 +59,7 @@ export default function ObjektDetail() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
   const [showPdfPreview, setShowPdfPreview] = useState(false);
@@ -129,11 +131,16 @@ export default function ObjektDetail() {
     setEditingRoom(undefined);
   };
 
+  const showUpgradeGate = (gate: { reason?: string; trigger?: UpgradeTrigger }) => {
+    setUpgradeReason(gate.reason || "");
+    setUpgradeTrigger(gate.trigger);
+    setUpgradeOpen(true);
+  };
+
   const openAddRoom = () => {
     const gate = canAddRoom(project.id);
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgradeGate(gate);
       return;
     }
     setEditingRoom(undefined);
@@ -143,8 +150,7 @@ export default function ObjektDetail() {
   const handleSaveAsTemplate = async () => {
     const gate = canUseTemplates();
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgradeGate(gate);
       return;
     }
     try {
@@ -159,8 +165,7 @@ export default function ObjektDetail() {
   const handleOpenPDF = () => {
     const gate = canUsePDF();
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgradeGate(gate);
       setMenuOpen(false);
       return;
     }
@@ -171,8 +176,7 @@ export default function ObjektDetail() {
   const handleDuplicate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
-      setUpgradeReason(gate.reason || "");
-      setUpgradeOpen(true);
+      showUpgradeGate(gate);
       setMenuOpen(false);
       return;
     }
@@ -450,7 +454,7 @@ export default function ObjektDetail() {
         hourlyRate={effectiveRate}
       />
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason={upgradeTrigger} />
       <ConfirmDialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={handleDeleteProject} title="Objekt löschen?" description="Alle Räume und Daten werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
       <ConfirmDialog open={!!deleteRoomId} onClose={() => setDeleteRoomId(null)} onConfirm={() => { if (deleteRoomId) handleDeleteRoom(deleteRoomId); }} title="Raum löschen?" description="Der Raum wird aus dem Objekt entfernt." confirmLabel="Löschen" destructive />
 
