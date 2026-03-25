@@ -1,19 +1,54 @@
 import { useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
-import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { calcProjectTotals } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
 import { getAllProjectWarnings, countWarningsBySeverity } from "@/lib/warnings";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Calculator, TrendingUp, Euro, AlertTriangle } from "lucide-react";
-import { ListSkeleton, CardSkeleton } from "@/components/list-skeleton";
+import {
+  Plus,
+  Building2,
+  ChevronRight,
+  BarChart3,
+  FileStack,
+  Download,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { AppFooter } from "@/components/layout/AppFooter";
 
+function relativeTime(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "gerade eben";
+  if (diffMin < 60) return `vor ${diffMin} Min.`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `vor ${diffH} Std.`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return "gestern";
+  if (diffD < 7) return `vor ${diffD} Tagen`;
+  const diffW = Math.floor(diffD / 7);
+  if (diffW < 5) return `vor ${diffW} Wo.`;
+  const diffM = Math.floor(diffD / 30);
+  if (diffM < 12) return `vor ${diffM} Mon.`;
+  return `vor ${Math.floor(diffM / 12)} J.`;
+}
+
+function getStatusLabel(project: { rooms: unknown[]; status: string }): { label: string; color: string } {
+  if (project.status === "archived") return { label: "Archiviert", color: "bg-muted text-muted-foreground" };
+  if (project.rooms.length === 0) return { label: "Entwurf", color: "bg-secondary text-muted-foreground" };
+  return { label: "In Kalkulation", color: "bg-primary/10 text-primary" };
+}
+
 export default function Home() {
+  const [, setLocation] = useLocation();
   const companyName = useStore((s) => s.companyName);
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
@@ -24,238 +59,267 @@ export default function Home() {
   const hydrated = useHydrated();
 
   const activeProjects = projects.filter((p) => p.status !== "archived");
-  let totalVolume = 0;
-  let totalArea = 0;
-  let totalRooms = 0;
-  let totalHours = 0;
 
-  activeProjects.forEach((p) => {
-    const totals = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
-    totalVolume += totals.cost;
-    totalArea += totals.area;
-    totalRooms += totals.count;
-    totalHours += totals.hours;
-  });
-
-  const avgPrice = totalArea > 0 ? totalVolume / totalArea : 0;
-  const marginPercent = hourlyRateConfig.gewinnmarge;
+  const { totalVolume, totalHours } = useMemo(() => {
+    let vol = 0;
+    let hrs = 0;
+    activeProjects.forEach((p) => {
+      const totals = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
+      vol += totals.cost;
+      hrs += totals.hours;
+    });
+    return { totalVolume: vol, totalHours: hrs };
+  }, [activeProjects, hourlyRate]);
 
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
+  const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
+  const marginPercent = hourlyRateConfig.gewinnmarge;
 
   const allWarnings = useMemo(() => {
     return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings, targetMargin);
   }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings, targetMargin]);
 
   const warningCounts = useMemo(() => countWarningsBySeverity(allWarnings), [allWarnings]);
-  const criticalProjects = allWarnings.filter((pw) => pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning"));
 
-  const recentProjects = [...projects]
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 3);
+  const recentProjects = useMemo(() => {
+    return [...activeProjects]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, 5);
+  }, [activeProjects]);
 
-  const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
+  const criticalWarnings = useMemo(() => {
+    const items: { text: string; projectId: string }[] = [];
+    for (const pw of allWarnings) {
+      for (const w of pw.warnings) {
+        if (w.severity === "critical" || w.severity === "warning") {
+          items.push({ text: `${pw.projectName}: ${w.title}`, projectId: pw.projectId });
+        }
+      }
+    }
+    return items.slice(0, 5);
+  }, [allWarnings]);
 
   return (
     <PageTransition className="min-h-screen pb-24 md:pb-8 bg-background">
-      <div className="safe-header px-6 pt-14 md:pt-8 pb-6 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground text-lg mt-1">{companyName}</p>
-          </div>
-          {plan === "basic" && (
-            <Link href="/upgrade">
-              <span className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-card border border-border/40 text-muted-foreground">Basic</span>
-            </Link>
-          )}
-          {plan === "pro" && (
-            <span className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-primary/10 border border-primary/30 text-primary flex items-center gap-1">
-              <Crown size={12} /> Pro
-            </span>
-          )}
-        </div>
+      {/* 1. Header */}
+      <div className="safe-header px-6 pt-14 md:pt-8 pb-4 max-w-6xl mx-auto">
+        <h1 className="text-4xl font-semibold tracking-tight text-foreground">Start</h1>
+        <p className="text-muted-foreground text-base mt-1">Firma: {companyName}</p>
       </div>
 
       <div className="px-6 space-y-6 max-w-6xl mx-auto">
-        <Link href="/objekte">
-          <Button size="lg" className="w-full md:w-auto h-14 text-base font-semibold">
-            <Plus size={20} className="mr-2" /> Neues Objekt kalkulieren
-          </Button>
-        </Link>
-
         {!hydrated ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <Skeleton className="h-14 w-full rounded-xl" />
             <Skeleton className="h-32 w-full rounded-2xl" />
-            <CardSkeleton />
-            <ListSkeleton rows={3} />
-          </div>
-        ) : activeProjects.length === 0 ? (
-          <div className="glass-card p-8 text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Noch keine Objekte</h3>
-            <p className="text-sm text-muted-foreground mb-6 max-w-[260px] mx-auto">Erstelle dein erstes Objekt, um mit der Kalkulation zu beginnen.</p>
           </div>
         ) : (
           <>
-            <div className="glass-card p-6">
-              <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Monatsumsatz geplant</p>
-              <h2 className="text-5xl font-bold tabular-nums text-foreground mb-1">{formatCurrency(totalVolume)}</h2>
-              <p className="text-sm text-muted-foreground">{formatCurrency(totalVolume * 12)} / Jahr</p>
-            </div>
-
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-              <div className="bg-card border border-border/30 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-bold tabular-nums text-foreground">{activeProjects.length}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Objekte</p>
-              </div>
-              <div className="bg-card border border-border/30 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-bold tabular-nums text-foreground">{formatNumber(totalHours, 1)}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Std/Monat</p>
-              </div>
-              <div className="bg-card border border-border/30 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-bold tabular-nums text-foreground">{formatNumber(avgPrice, 2)}</p>
-                <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">€/m²</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-card border border-border/30 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <Euro size={14} className="text-muted-foreground" />
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Verrechnungssatz</p>
+            {/* 2. Weiterarbeiten */}
+            {recentProjects.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">Weiterarbeiten</h2>
+                  <Link href="/objekte" className="text-xs text-primary font-medium">Alle anzeigen</Link>
                 </div>
-                <p className="text-xl font-bold tabular-nums text-foreground">{formatCurrency(hourlyRate)}/h</p>
-              </div>
-              <div className="bg-card border border-border/30 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp size={14} className="text-muted-foreground" />
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ø Marge</p>
+                <div className="space-y-2">
+                  {recentProjects.map((p) => {
+                    const t = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
+                    const effectiveRate = p.hourlyRate ?? hourlyRate;
+                    const projectMargin = effectiveRate > 0 && breakdown.vollkosten > 0
+                      ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
+                      : marginPercent;
+                    const status = getStatusLabel(p);
+                    return (
+                      <Link key={p.id} href={`/objekte/${p.id}`}>
+                        <div className="bg-card border border-border/30 rounded-2xl p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors cursor-pointer active:scale-[0.98]">
+                          <div className="min-w-0 flex-1 pr-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-sm text-foreground truncate">{p.name}</p>
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${status.color}`}>
+                                {status.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Clock size={12} />
+                              <span>{relativeTime(p.updatedAt)}</span>
+                              {p.customer && <><span>·</span><span>{p.customer}</span></>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <div className="text-right">
+                              <span className="font-semibold text-sm text-foreground block">{formatCurrency(t.cost)}</span>
+                              <span className={`text-[10px] font-medium ${projectMargin <= 0 ? "text-destructive" : projectMargin < marginPercent ? "text-warning" : "text-muted-foreground"}`}>
+                                {formatNumber(projectMargin, 1)}% Marge
+                              </span>
+                            </div>
+                            <ChevronRight size={16} className="text-muted-foreground" />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-                <p className="text-xl font-bold tabular-nums text-foreground">{formatNumber(marginPercent, 1)} %</p>
-              </div>
-            </div>
-
-            {warningCounts.total > 0 && (
-              <Link href="/objekte">
-                <div className={`rounded-2xl p-4 border flex items-center gap-4 cursor-pointer hover:bg-secondary/50 transition-colors ${
-                  warningCounts.critical > 0
-                    ? "border-red-500/30 bg-red-500/5"
-                    : "border-yellow-500/30 bg-yellow-500/5"
-                }`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                    warningCounts.critical > 0
-                      ? "bg-red-500/10 text-red-400"
-                      : "bg-yellow-500/10 text-yellow-400"
-                  }`}>
-                    <AlertTriangle size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground">
-                      {warningCounts.critical > 0
-                        ? `${criticalProjects.length} kritische${criticalProjects.length === 1 ? "s" : ""} Objekt${criticalProjects.length === 1 ? "" : "e"}`
-                        : `${warningCounts.warning} Hinweis${warningCounts.warning === 1 ? "" : "e"}`
-                      }
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {warningCounts.critical > 0 && `${warningCounts.critical} kritisch`}
-                      {warningCounts.critical > 0 && warningCounts.warning > 0 && " · "}
-                      {warningCounts.warning > 0 && `${warningCounts.warning} Warnungen`}
-                      {(warningCounts.critical > 0 || warningCounts.warning > 0) && warningCounts.info > 0 && " · "}
-                      {warningCounts.info > 0 && `${warningCounts.info} Info`}
-                    </p>
-                  </div>
-                  <ChevronRight size={16} className="text-muted-foreground shrink-0" />
-                </div>
-              </Link>
+              </section>
             )}
-          </>
-        )}
 
-        <div>
-          <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Schnellaktionen</h3>
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1 -mx-6 px-6 md:mx-0 md:px-0 md:flex-wrap">
-            {[
-              { href: "/objekte", icon: Plus, label: "Neues Objekt", accent: true },
-              { href: "/objekte", icon: Building2, label: "Alle Objekte" },
-              { href: "/stundensatz", icon: Calculator, label: "Verrechnungssatz" },
-              { href: "/auswertung", icon: BarChart3, label: "Controlling" },
-              { href: "/vorlagen", icon: BookOpen, label: "Vorlagen", pro: plan === "basic" },
-              { href: plan === "basic" ? "/upgrade" : "/auswertung", icon: FileText, label: "Angebot erstellen", pro: plan === "basic" },
-              { href: "/einstellungen", icon: Settings, label: "Einstellungen" },
-            ].map((a) => (
-              <Link key={a.label} href={a.href}>
-                <div className="w-24 h-24 shrink-0 rounded-2xl border border-border/30 bg-card hover:bg-secondary flex flex-col items-center justify-center gap-2 transition-colors cursor-pointer relative">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center ${a.accent ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    <a.icon size={18} />
-                  </div>
-                  <span className="text-[11px] font-medium text-foreground text-center leading-tight">{a.label}</span>
-                  {a.pro && (
-                    <span className="absolute top-1.5 right-1.5 text-[8px] font-bold bg-primary/10 text-primary px-1 rounded">PRO</span>
+            {activeProjects.length === 0 && (
+              <div className="bg-card border border-border/30 rounded-2xl p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                  <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Noch keine Objekte</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-[260px] mx-auto">
+                  Erstelle dein erstes Objekt, um mit der Kalkulation zu beginnen.
+                </p>
+              </div>
+            )}
+
+            {/* 3. Hauptaktion */}
+            <section>
+              <Button
+                size="lg"
+                className="w-full md:w-auto h-14 text-base font-semibold"
+                onClick={() => setLocation("/objekte")}
+              >
+                <Plus size={20} className="mr-2" /> Neues Objekt kalkulieren
+              </Button>
+            </section>
+
+            {/* 4. Offene Aufgaben & Plausibilitätsprüfungen */}
+            {warningCounts.total > 0 ? (
+              <section>
+                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                  Offene Aufgaben
+                </h2>
+                <div className="bg-card border border-border/30 rounded-2xl overflow-hidden">
+                  {criticalWarnings.map((cw, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setLocation(`/objekte/${cw.projectId}`)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors ${i < criticalWarnings.length - 1 ? "border-b border-border/20" : ""}`}
+                    >
+                      <AlertTriangle size={16} className="text-warning shrink-0" />
+                      <span className="text-sm text-foreground flex-1 min-w-0 truncate">{cw.text}</span>
+                      <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                    </button>
+                  ))}
+                  {warningCounts.total > criticalWarnings.length && (
+                    <div className="px-4 py-2 text-xs text-muted-foreground bg-secondary/30">
+                      + {warningCounts.total - criticalWarnings.length} weitere Hinweise
+                    </div>
                   )}
                 </div>
-              </Link>
-            ))}
-          </div>
-        </div>
+              </section>
+            ) : activeProjects.length > 0 ? (
+              <section>
+                <div className="flex items-center gap-3 bg-card border border-border/30 rounded-2xl px-4 py-3">
+                  <CheckCircle2 size={18} className="text-success shrink-0" />
+                  <span className="text-sm text-foreground">Keine offenen Aufgaben</span>
+                </div>
+              </section>
+            ) : null}
 
-        {recentProjects.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs uppercase tracking-widest text-muted-foreground">Zuletzt bearbeitet</h3>
-              <Link href="/objekte" className="text-xs text-primary font-medium">Alle anzeigen</Link>
-            </div>
-            <div className="space-y-2">
-              {recentProjects.map((p) => {
-                const t = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
-                const effectiveRate = p.hourlyRate ?? hourlyRate;
-                const projectMargin = effectiveRate > 0 && breakdown.vollkosten > 0
-                  ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
-                  : marginPercent;
-                const hasWarning = allWarnings.some((pw) => pw.projectId === p.id && pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning"));
-                return (
-                  <Link key={p.id} href={`/objekte/${p.id}`}>
-                    <div className="bg-card border border-border/20 rounded-2xl p-4 flex items-center justify-between hover:bg-secondary transition-colors cursor-pointer active:scale-[0.98]">
-                      <div className="min-w-0 flex-1 pr-3">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm text-foreground truncate">{p.name}</p>
-                          {hasWarning && <AlertTriangle size={14} className="text-yellow-400 shrink-0" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {p.customer || "—"} · {formatDate(p.updatedAt)}
-                        </p>
+            {/* 5. Schnellzugriffe */}
+            <section>
+              <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                Schnellzugriffe
+              </h2>
+              <div className="grid grid-cols-4 gap-3 md:flex md:gap-3">
+                {[
+                  { href: "/objekte", icon: Building2, label: "Alle Objekte" },
+                  { href: "/vorlagen", icon: FileStack, label: "Vorlagen" },
+                  { href: "/auswertung", icon: BarChart3, label: "Berichte" },
+                ].map((a) => (
+                  <Link key={a.label} href={a.href}>
+                    <div className="rounded-2xl border border-border/30 bg-card hover:bg-secondary/50 flex flex-col items-center justify-center gap-2 p-4 transition-colors cursor-pointer h-full">
+                      <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                        <a.icon size={18} className="text-muted-foreground" />
                       </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="text-right">
-                          <span className="font-semibold text-sm text-foreground block">{formatCurrency(t.cost)}</span>
-                          <span className={`text-[10px] ${projectMargin <= 0 ? "text-red-400" : projectMargin < marginPercent ? "text-yellow-400" : "text-muted-foreground"}`}>
-                            {formatNumber(projectMargin, 0)}% Marge
-                          </span>
-                        </div>
-                        <ChevronRight size={16} className="text-muted-foreground" />
-                      </div>
+                      <span className="text-[11px] font-medium text-foreground text-center leading-tight">{a.label}</span>
                     </div>
                   </Link>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {plan === "basic" && (
-          <Link href="/upgrade">
-            <div className="rounded-2xl p-5 border border-primary/20 bg-primary/5 flex items-center justify-between cursor-pointer group mt-2">
-              <div className="flex gap-4 items-center">
-                <div className="bg-primary/10 text-primary p-2.5 rounded-full"><Crown size={22} /></div>
-                <div>
-                  <h4 className="font-semibold text-foreground text-sm">Auf Pro upgraden</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">PDF-Export, Vorlagen & mehr</p>
-                </div>
+                ))}
+                <button
+                  onClick={() => {
+                    const exportData = useStore.getState().exportData;
+                    const json = exportData();
+                    const blob = new Blob([json], { type: "application/json" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `cleancalc-export-${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="rounded-2xl border border-border/30 bg-card hover:bg-secondary/50 flex flex-col items-center justify-center gap-2 p-4 transition-colors cursor-pointer"
+                >
+                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                    <Download size={18} className="text-muted-foreground" />
+                  </div>
+                  <span className="text-[11px] font-medium text-foreground text-center leading-tight">Export</span>
+                </button>
               </div>
-              <ChevronRight className="text-muted-foreground group-hover:translate-x-1 transition-transform" size={18} />
-            </div>
-          </Link>
+            </section>
+
+            {/* 6. Kompakte Steuerungskennzahlen */}
+            {activeProjects.length > 0 && (
+              <section>
+                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                  Steuerungskennzahlen
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-card border border-border/30 rounded-2xl p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Monatsumsatz</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(totalVolume)}</p>
+                  </div>
+                  <div className="bg-card border border-border/30 rounded-2xl p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Ø Marge</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{formatNumber(marginPercent, 1)} %</p>
+                  </div>
+                  <div className="bg-card border border-border/30 rounded-2xl p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Verrechnungssatz</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(hourlyRate)}/h</p>
+                  </div>
+                  <div className="bg-card border border-border/30 rounded-2xl p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Offene Objekte</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{activeProjects.length}</p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* 7. Weitere Listen — kritische Objekte */}
+            {warningCounts.critical > 0 && (
+              <section>
+                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                  Kritische Objekte
+                </h2>
+                <div className="space-y-2">
+                  {allWarnings
+                    .filter((pw) => pw.warnings.some((w) => w.severity === "critical"))
+                    .slice(0, 3)
+                    .map((pw) => (
+                      <Link key={pw.projectId} href={`/objekte/${pw.projectId}`}>
+                        <div className="bg-card border border-destructive/20 rounded-2xl p-4 flex items-center gap-3 hover:bg-secondary/50 transition-colors cursor-pointer">
+                          <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                            <AlertTriangle size={16} className="text-destructive" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{pw.projectName}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {pw.warnings.filter((w) => w.severity === "critical").map((w) => w.title).join(", ")}
+                            </p>
+                          </div>
+                          <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+                        </div>
+                      </Link>
+                    ))}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
 
