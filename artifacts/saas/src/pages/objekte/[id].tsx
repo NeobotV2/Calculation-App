@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { useStore, type Room } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
@@ -9,8 +9,10 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject, canAddRoom, canUseTemplates, canUsePDF } from "@/lib/feature-gates";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, Copy, Archive, FileText, BookOpen, MoreHorizontal, X } from "lucide-react";
+import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, Copy, Archive, FileText, BookOpen, MoreHorizontal, X, AlertTriangle, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
+import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { getProjectWarnings, type Warning } from "@/lib/warnings";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -21,10 +23,12 @@ export default function ObjektDetail() {
 
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const plan = useStore((s) => s.plan);
   const actions = useStoreActions();
 
   const [isEditingName, setIsEditingName] = useState(false);
+  const [warningsExpanded, setWarningsExpanded] = useState(false);
   const [nameInput, setNameInput] = useState("");
   const [customerInput, setCustomerInput] = useState("");
   const [locationInput, setLocationInput] = useState("");
@@ -53,6 +57,13 @@ export default function ObjektDetail() {
 
   const effectiveRate = project.hourlyRate ?? hourlyRate;
   const totals = calcProjectTotals(project, effectiveRate);
+
+  const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
+  const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
+  const warnings = useMemo(() => {
+    if (!project) return [];
+    return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate);
+  }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate]);
 
   const handleSaveName = async () => {
     if (nameInput.trim()) {
@@ -225,6 +236,55 @@ export default function ObjektDetail() {
             Verrechnungssatz: {formatCurrency(effectiveRate)}/h
           </p>
         </div>
+
+        {warnings.length > 0 && (
+          <div className={`rounded-2xl border mb-6 overflow-hidden ${
+            warnings.some((w) => w.severity === "critical")
+              ? "border-red-500/30 bg-red-500/5"
+              : warnings.some((w) => w.severity === "warning")
+                ? "border-yellow-500/30 bg-yellow-500/5"
+                : "border-blue-500/30 bg-blue-500/5"
+          }`}>
+            <button
+              onClick={() => setWarningsExpanded(!warningsExpanded)}
+              className="w-full flex items-center gap-3 p-4"
+            >
+              <AlertTriangle size={18} className={
+                warnings.some((w) => w.severity === "critical")
+                  ? "text-red-400"
+                  : warnings.some((w) => w.severity === "warning")
+                    ? "text-yellow-400"
+                    : "text-blue-400"
+              } />
+              <span className="font-medium text-sm text-foreground flex-1 text-left">
+                {warnings.length} Hinweis{warnings.length > 1 ? "e" : ""} zur Kalkulation
+              </span>
+              {warningsExpanded ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+            </button>
+            {warningsExpanded && (
+              <div className="px-4 pb-4 space-y-3">
+                {warnings.map((w) => (
+                  <div key={w.id} className="flex gap-3">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                      w.severity === "critical"
+                        ? "bg-red-500/20 text-red-400"
+                        : w.severity === "warning"
+                          ? "bg-yellow-500/20 text-yellow-400"
+                          : "bg-blue-500/20 text-blue-400"
+                    }`}>
+                      {w.severity === "info" ? <Info size={12} /> : <AlertTriangle size={12} />}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{w.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{w.message}</p>
+                      <p className="text-xs text-primary mt-1">{w.action}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6 snap-x">
           {[

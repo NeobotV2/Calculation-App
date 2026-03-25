@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject } from "@/lib/feature-gates";
-import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler } from "lucide-react";
+import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler, AlertTriangle } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
 import { FREQUENCY_LABELS } from "@/lib/calc";
-import { calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { getProjectWarnings, type Warning } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { ListSkeleton } from "@/components/list-skeleton";
@@ -76,6 +77,7 @@ export default function ObjekteList() {
 
   const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
   const targetMargin = hourlyRateConfig.gewinnmarge;
+  const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
 
   const projectsWithTotals = useMemo(() => {
     return projects.map((p) => {
@@ -85,9 +87,10 @@ export default function ObjekteList() {
       const marginPercent = effectiveRate > 0 && vollkosten > 0
         ? ((effectiveRate - vollkosten) / effectiveRate) * 100
         : targetMargin;
-      return { project: p, totals, marginPercent, effectiveRate };
+      const warnings = getProjectWarnings(p, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate);
+      return { project: p, totals, marginPercent, effectiveRate, warnings };
     });
-  }, [projects, hourlyRate, breakdown, targetMargin]);
+  }, [projects, hourlyRate, breakdown, targetMargin, hourlyRateConfig, isDefaultRate]);
 
   const filtered = useMemo(() => {
     let result = projectsWithTotals;
@@ -287,8 +290,10 @@ export default function ObjekteList() {
             </p>
           </div>
         ) : (
-          filtered.map(({ project: p, totals, marginPercent }) => {
+          filtered.map(({ project: p, totals, marginPercent, warnings }) => {
             const dominantInterval = getDominantFrequency(p);
+            const hasCritical = warnings.some((w) => w.severity === "critical");
+            const hasWarning = warnings.some((w) => w.severity === "warning");
             return (
               <div key={p.id} className="relative">
                 <Link href={`/objekte/${p.id}`}>
@@ -297,6 +302,9 @@ export default function ObjekteList() {
                       <div className="min-w-0 flex-1 pr-8">
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-base text-foreground truncate">{p.name}</h3>
+                          {(hasCritical || hasWarning) && (
+                            <AlertTriangle size={14} className={`shrink-0 ${hasCritical ? "text-red-400" : "text-yellow-400"}`} />
+                          )}
                           {p.status === "archived" && (
                             <span className="text-[10px] uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full shrink-0">Archiviert</span>
                           )}

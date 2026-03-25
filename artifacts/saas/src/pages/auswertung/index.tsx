@@ -1,10 +1,13 @@
+import { useMemo } from "react";
 import { Link } from "wouter";
 import { useStore } from "@/store/use-store";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { calcProjectTotals } from "@/lib/calc";
+import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { getAllProjectWarnings, countWarningsBySeverity } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
-import { BarChart3, Building2, ChevronRight, TrendingUp } from "lucide-react";
+import { BarChart3, Building2, ChevronRight, TrendingUp, AlertTriangle } from "lucide-react";
 import { ListSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -12,6 +15,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 export default function AuswertungGlobal() {
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const hydrated = useHydrated();
 
   const activeProjects = projects.filter((p) => p.status !== "archived");
@@ -32,6 +36,18 @@ export default function AuswertungGlobal() {
 
   const top5 = [...projectTotals].sort((a, b) => b.totals.cost - a.totals.cost).slice(0, 5);
   const avgPricePerSqm = totalArea > 0 ? totalCost / totalArea : 0;
+
+  const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
+
+  const allWarnings = useMemo(() => {
+    return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate);
+  }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate]);
+
+  const warningCounts = useMemo(() => countWarningsBySeverity(allWarnings), [allWarnings]);
+
+  const criticalWarnings = allWarnings.filter((pw) =>
+    pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning")
+  );
 
   const recentlyEdited = [...activeProjects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
@@ -84,6 +100,46 @@ export default function AuswertungGlobal() {
               </div>
             ))}
           </div>
+
+          {criticalWarnings.length > 0 && (
+            <div>
+              <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+                <AlertTriangle size={14} className="text-red-400" /> Kritische Objekte ({criticalWarnings.length})
+              </h3>
+              <div className="space-y-2">
+                {criticalWarnings.map((pw) => {
+                  const topWarning = pw.warnings.find((w) => w.severity === "critical") || pw.warnings[0];
+                  return (
+                    <Link key={pw.projectId} href={`/objekte/${pw.projectId}`}>
+                      <div className={`border rounded-2xl p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors cursor-pointer ${
+                        topWarning.severity === "critical"
+                          ? "border-red-500/20 bg-red-500/5"
+                          : "border-yellow-500/20 bg-yellow-500/5"
+                      }`}>
+                        <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                          <AlertTriangle size={16} className={topWarning.severity === "critical" ? "text-red-400 shrink-0" : "text-yellow-400 shrink-0"} />
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm text-foreground truncate">{pw.projectName}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{topWarning.title}: {topWarning.message}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            topWarning.severity === "critical"
+                              ? "bg-red-500/10 text-red-400"
+                              : "bg-yellow-500/10 text-yellow-400"
+                          }`}>
+                            {pw.warnings.length}
+                          </span>
+                          <ChevronRight size={14} className="text-muted-foreground" />
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {top5.length > 0 && (
             <div>

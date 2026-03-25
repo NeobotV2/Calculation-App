@@ -1,11 +1,14 @@
+import { useMemo } from "react";
 import { Link } from "wouter";
 import { useStore } from "@/store/use-store";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { calcProjectTotals } from "@/lib/calc";
+import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { getAllProjectWarnings, countWarningsBySeverity } from "@/lib/warnings";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Calculator, TrendingUp, Euro } from "lucide-react";
+import { Plus, Settings, Building2, ChevronRight, Crown, BarChart3, BookOpen, FileText, Calculator, TrendingUp, Euro, AlertTriangle } from "lucide-react";
 import { ListSkeleton, CardSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -36,9 +39,20 @@ export default function Home() {
   const avgPrice = totalArea > 0 ? totalVolume / totalArea : 0;
   const marginPercent = hourlyRateConfig.gewinnmarge;
 
+  const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
+
+  const allWarnings = useMemo(() => {
+    return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate);
+  }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate]);
+
+  const warningCounts = useMemo(() => countWarningsBySeverity(allWarnings), [allWarnings]);
+  const criticalProjects = allWarnings.filter((pw) => pw.warnings.some((w) => w.severity === "critical"));
+
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 3);
+
+  const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
 
   return (
     <PageTransition className="min-h-screen pb-24 bg-background">
@@ -121,6 +135,40 @@ export default function Home() {
                 <p className="text-xl font-bold tabular-nums text-foreground">{formatNumber(marginPercent, 1)} %</p>
               </div>
             </div>
+
+            {warningCounts.total > 0 && (
+              <Link href="/objekte">
+                <div className={`rounded-2xl p-4 border flex items-center gap-4 cursor-pointer hover:bg-secondary/50 transition-colors ${
+                  warningCounts.critical > 0
+                    ? "border-red-500/30 bg-red-500/5"
+                    : "border-yellow-500/30 bg-yellow-500/5"
+                }`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                    warningCounts.critical > 0
+                      ? "bg-red-500/10 text-red-400"
+                      : "bg-yellow-500/10 text-yellow-400"
+                  }`}>
+                    <AlertTriangle size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-foreground">
+                      {warningCounts.critical > 0
+                        ? `${criticalProjects.length} kritische${criticalProjects.length === 1 ? "s" : ""} Objekt${criticalProjects.length === 1 ? "" : "e"}`
+                        : `${warningCounts.warning} Hinweis${warningCounts.warning === 1 ? "" : "e"}`
+                      }
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {warningCounts.critical > 0 && `${warningCounts.critical} kritisch`}
+                      {warningCounts.critical > 0 && warningCounts.warning > 0 && " · "}
+                      {warningCounts.warning > 0 && `${warningCounts.warning} Warnungen`}
+                      {(warningCounts.critical > 0 || warningCounts.warning > 0) && warningCounts.info > 0 && " · "}
+                      {warningCounts.info > 0 && `${warningCounts.info} Info`}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+                </div>
+              </Link>
+            )}
           </>
         )}
 
@@ -160,11 +208,19 @@ export default function Home() {
             <div className="space-y-2">
               {recentProjects.map((p) => {
                 const t = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
+                const effectiveRate = p.hourlyRate ?? hourlyRate;
+                const projectMargin = effectiveRate > 0 && breakdown.vollkosten > 0
+                  ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
+                  : marginPercent;
+                const hasWarning = allWarnings.some((pw) => pw.projectId === p.id && pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning"));
                 return (
                   <Link key={p.id} href={`/objekte/${p.id}`}>
                     <div className="bg-card border border-border/20 rounded-2xl p-4 flex items-center justify-between hover:bg-secondary transition-colors cursor-pointer active:scale-[0.98]">
                       <div className="min-w-0 flex-1 pr-3">
-                        <p className="font-medium text-sm text-foreground truncate">{p.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm text-foreground truncate">{p.name}</p>
+                          {hasWarning && <AlertTriangle size={14} className="text-yellow-400 shrink-0" />}
+                        </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {p.customer || "—"} · {formatDate(p.updatedAt)}
                         </p>
@@ -172,7 +228,9 @@ export default function Home() {
                       <div className="flex items-center gap-3 shrink-0">
                         <div className="text-right">
                           <span className="font-semibold text-sm text-foreground block">{formatCurrency(t.cost)}</span>
-                          <span className="text-[10px] text-muted-foreground">{formatNumber(marginPercent, 0)}% Marge</span>
+                          <span className={`text-[10px] ${projectMargin <= 0 ? "text-red-400" : projectMargin < marginPercent ? "text-yellow-400" : "text-muted-foreground"}`}>
+                            {formatNumber(projectMargin, 0)}% Marge
+                          </span>
                         </div>
                         <ChevronRight size={16} className="text-muted-foreground" />
                       </div>
