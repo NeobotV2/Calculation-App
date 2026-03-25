@@ -78,7 +78,7 @@ export default function ObjekteList() {
   const hydrated = useHydrated();
 
   const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
-  const targetMargin = hourlyRateConfig.gewinnmarge;
+  const targetMargin = storeTargetMargin;
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
 
   const projectsWithTotals = useMemo(() => {

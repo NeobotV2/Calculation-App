@@ -4,8 +4,8 @@ import { useStore } from "@/store/use-store";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { calcProjectTotals } from "@/lib/calc";
-import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
-import { getAllProjectWarnings, countWarningsBySeverity } from "@/lib/warnings";
+import { getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { getAllProjectWarnings } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { BarChart3, Building2, ChevronRight, TrendingUp, AlertTriangle } from "lucide-react";
 import { ListSkeleton } from "@/components/list-skeleton";
@@ -44,8 +44,6 @@ export default function AuswertungGlobal() {
   const allWarnings = useMemo(() => {
     return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings, targetMargin);
   }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings, targetMargin]);
-
-  const warningCounts = useMemo(() => countWarningsBySeverity(allWarnings), [allWarnings]);
 
   const criticalWarnings = allWarnings.filter((pw) =>
     pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning")
