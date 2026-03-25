@@ -18,8 +18,8 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (open && triggerReason) {
-      trackPaywallViewed(triggerReason);
+    if (open) {
+      trackPaywallViewed(triggerReason || "general");
     }
   }, [open, triggerReason]);
 
