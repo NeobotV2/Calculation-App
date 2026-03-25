@@ -41,10 +41,13 @@ function relativeTime(dateStr: string): string {
   return `vor ${Math.floor(diffM / 12)} J.`;
 }
 
-function getStatusLabel(project: { rooms: unknown[]; status: string }): { label: string; color: string } {
+function getStatusLabel(project: { rooms: { area: number; frequency: string }[]; status: string }, hasWarnings: boolean): { label: string; color: string } {
   if (project.status === "archived") return { label: "Archiviert", color: "bg-muted text-muted-foreground" };
   if (project.rooms.length === 0) return { label: "Entwurf", color: "bg-secondary text-muted-foreground" };
-  return { label: "In Kalkulation", color: "bg-primary/10 text-primary" };
+  const incomplete = project.rooms.some((r) => r.area <= 0);
+  if (incomplete) return { label: "LV unvollständig", color: "bg-warning/10 text-warning" };
+  if (hasWarnings) return { label: "Prüfung offen", color: "bg-warning/10 text-warning" };
+  return { label: "Angebot erstellt", color: "bg-success/10 text-success" };
 }
 
 export default function Home() {
@@ -87,16 +90,19 @@ export default function Home() {
       .slice(0, 5);
   }, [activeProjects]);
 
-  const criticalWarnings = useMemo(() => {
-    const items: { text: string; projectId: string }[] = [];
+  const actionableWarnings = useMemo(() => {
+    const critical: { text: string; projectId: string; severity: "critical" }[] = [];
+    const warnings: { text: string; projectId: string; severity: "warning" }[] = [];
     for (const pw of allWarnings) {
       for (const w of pw.warnings) {
-        if (w.severity === "critical" || w.severity === "warning") {
-          items.push({ text: `${pw.projectName}: ${w.title}`, projectId: pw.projectId });
+        if (w.severity === "critical") {
+          critical.push({ text: `${pw.projectName}: ${w.title}`, projectId: pw.projectId, severity: "critical" });
+        } else if (w.severity === "warning") {
+          warnings.push({ text: `${pw.projectName}: ${w.title}`, projectId: pw.projectId, severity: "warning" });
         }
       }
     }
-    return items.slice(0, 5);
+    return { critical, warnings, total: critical.length + warnings.length };
   }, [allWarnings]);
 
   return (
@@ -130,7 +136,8 @@ export default function Home() {
                     const projectMargin = effectiveRate > 0 && breakdown.vollkosten > 0
                       ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
                       : marginPercent;
-                    const status = getStatusLabel(p);
+                    const hasProjectWarnings = allWarnings.some((pw) => pw.projectId === p.id && pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning"));
+                    const status = getStatusLabel(p, hasProjectWarnings);
                     return (
                       <Link key={p.id} href={`/objekte/${p.id}`}>
                         <div className="bg-card border border-border/30 rounded-2xl p-4 flex items-center justify-between hover:bg-secondary/50 transition-colors cursor-pointer active:scale-[0.98]">
@@ -188,27 +195,47 @@ export default function Home() {
             </section>
 
             {/* 4. Offene Aufgaben & Plausibilitätsprüfungen */}
-            {warningCounts.total > 0 ? (
+            {actionableWarnings.total > 0 ? (
               <section>
                 <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                   Offene Aufgaben
                 </h2>
                 <div className="bg-card border border-border/30 rounded-2xl overflow-hidden">
-                  {criticalWarnings.map((cw, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setLocation(`/objekte/${cw.projectId}`)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors ${i < criticalWarnings.length - 1 ? "border-b border-border/20" : ""}`}
-                    >
-                      <AlertTriangle size={16} className="text-warning shrink-0" />
-                      <span className="text-sm text-foreground flex-1 min-w-0 truncate">{cw.text}</span>
-                      <ChevronRight size={14} className="text-muted-foreground shrink-0" />
-                    </button>
-                  ))}
-                  {warningCounts.total > criticalWarnings.length && (
-                    <div className="px-4 py-2 text-xs text-muted-foreground bg-secondary/30">
-                      + {warningCounts.total - criticalWarnings.length} weitere Hinweise
-                    </div>
+                  {actionableWarnings.critical.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 bg-destructive/5 text-[11px] font-semibold uppercase tracking-widest text-destructive">
+                        Kritisch ({actionableWarnings.critical.length})
+                      </div>
+                      {actionableWarnings.critical.slice(0, 3).map((cw, i) => (
+                        <button
+                          key={`c-${i}`}
+                          onClick={() => setLocation(`/objekte/${cw.projectId}`)}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors ${i < Math.min(actionableWarnings.critical.length, 3) - 1 || actionableWarnings.warnings.length > 0 ? "border-b border-border/20" : ""}`}
+                        >
+                          <AlertTriangle size={16} className="text-destructive shrink-0" />
+                          <span className="text-sm text-foreground flex-1 min-w-0 truncate">{cw.text}</span>
+                          <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                        </button>
+                      ))}
+                    </>
+                  )}
+                  {actionableWarnings.warnings.length > 0 && (
+                    <>
+                      <div className="px-4 py-2 bg-warning/5 text-[11px] font-semibold uppercase tracking-widest text-warning">
+                        Hinweise ({actionableWarnings.warnings.length})
+                      </div>
+                      {actionableWarnings.warnings.slice(0, 3).map((cw, i) => (
+                        <button
+                          key={`w-${i}`}
+                          onClick={() => setLocation(`/objekte/${cw.projectId}`)}
+                          className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors ${i < Math.min(actionableWarnings.warnings.length, 3) - 1 ? "border-b border-border/20" : ""}`}
+                        >
+                          <AlertTriangle size={16} className="text-warning shrink-0" />
+                          <span className="text-sm text-foreground flex-1 min-w-0 truncate">{cw.text}</span>
+                          <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                        </button>
+                      ))}
+                    </>
                   )}
                 </div>
               </section>
@@ -283,7 +310,7 @@ export default function Home() {
                     <p className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(hourlyRate)}/h</p>
                   </div>
                   <div className="bg-card border border-border/30 rounded-2xl p-4">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Offene Objekte</p>
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Offene Angebote</p>
                     <p className="text-lg font-bold tabular-nums text-foreground">{activeProjects.length}</p>
                   </div>
                 </div>
