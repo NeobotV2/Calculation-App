@@ -1,0 +1,41 @@
+Ein Gebäudereiniger oder Objektleiter, der die App primär zum Kalkulieren öffnet, hat völlig andere Schmerzpunkte. Stell dir vor, ein Objektleiter bereitet in der Zentrale in der Max-Planck-Straße ein Angebot vor oder steht direkt beim Kunden zur Objektbegehung: Ihn interessiert in diesem Moment nicht der geplante Monatsumsatz des gesamten Unternehmens, sondern wie er schnell und fehlerfrei ein konkretes Leistungsverzeichnis (LV) in Zahlen übersetzt.
+
+Hier müssen wir das Konzept der App deutlich schärfen und branchenspezifischer werden:
+
+1. Das Dashboard muss den Workflow abbilden, nicht nur Ergebnisse
+Wenn die Hauptaufgabe "Kalkulieren" ist, muss das Dashboard den Nutzer genau dabei unterstützen.
+
+Kritik am Status Quo: Die Kacheln "3 Objekte" oder "21,9 Std/Monat" sind zu passiv.
+
+Der bessere Ansatz: Das Dashboard sollte Arbeitsstände (WIP - Work in Progress) zeigen. Zum Beispiel:
+
+"2 Kalkulationen im Entwurf" (Schnellzugriff, um weiterzuarbeiten)
+
+"1 Angebot wartet auf Kundenfreigabe"
+
+"Zuletzt bearbeitete Objekte" (mit direktem Einsprung in die Kalkulationsmaske)
+
+2. Branchenspezifische Kennzahlen (KPIs) in den Fokus rücken
+Bei der Unterhaltsreinigung geht es um Flächenleistungen und Reinigungsintervalle.
+
+Kritik am Status Quo: Die Angabe "5,84 €/m²" hängt etwas verloren im Raum. Ist das der Durchschnitt über alle Objekte? Das ist für eine spezifische Kalkulation wenig aussagekräftig, da eine Arztpraxis völlig andere m²-Preise hat als eine Industriehalle.
+
+Der bessere Ansatz: Zeige Parameter, die für die Kalkulation jetzt wichtig sind. Die "Schnellaktionen" könnten Vorlagen für Raumgruppen sein (z.B. "Neues Bürogebäude", "Neue Sanitäranlage"). Wenn das Dashboard globale Kennzahlen zeigen soll, dann eher Benchmarks: "Aktueller durchschnittlicher Tariflohn" oder die "Ø Richtleistung (m²/h)" als Referenzwert.
+
+3. Der Kalkulations-Funnel (Das Herzstück der UX)
+Da dies der Kern der App ist, muss der Prozess extrem glatt laufen. Die UX muss den Nutzer vor Fehlern bewahren (Poka Yoke Prinzip).
+
+Raumbuch vs. Pauschalkalkulation: Die App muss zwingend abfragen, auf welcher Basis kalkuliert wird. Wird stur nach Quadratmetern gerechnet (Pauschal) oder detailliert nach Raumbuch (Turnhalle vs. Teeküche)?
+
+Intervall-Logik: Die größte Fehlerquelle in der Unterhaltsreinigung ist die Berechnung der Jahresreinigungen (z.B. 2x wöchentlich = 104x im Jahr). Das muss die App dem Nutzer visuell einfach und unmissverständlich abnehmen.
+
+Rüst- und Wegezeiten: Diese werden oft vergessen. Die UX muss den Nutzer aktiv danach fragen (z.B. als obligatorischer Schritt vor dem Abschluss der Kalkulation), um die Marge abzusichern.
+
+4. Kontext der Nutzung: Tablet vs. Desktop
+Wird die App beim Kunden vor Ort genutzt (während man durch die Räume geht) oder am Schreibtisch aus Bauplänen heraus?
+
+Vor Ort (Mobile/Tablet): Die Buttons müssen riesig sein. Man hat vielleicht nur eine Hand frei. Der "Dark Mode" aus deinem Screenshot ist hier extrem anfällig für Spiegelungen auf dem Display. Ein klarer, kontrastreicher "Light Mode" ist Pflicht.
+
+Am Schreibtisch (Desktop): Hier braucht es Dichte. Der Nutzer will viele Zeilen eines Leistungsverzeichnisses gleichzeitig sehen und per Tab-Taste schnell Werte eintragen können.
+
+Wir müssen also weg von generischen Finanz-Kacheln und hin zu einem Werkzeug, das den Alltag eines Gebäudereinigers aktiv erleichtert.

@@ -1,0 +1,823 @@
+Baue meine mobile App für Gebäudereinigung, Kalkulation, Leistungsverzeichnisse, Objektaufnahme und Controlling als vollständiges, professionelles Product System neu auf.
+
+Die App darf nicht wie ein generisches SaaS Dashboard wirken. Sie muss wie ein präzises Arbeitswerkzeug für Gebäudereinigung aussehen und funktionieren.
+
+Ziel:
+Ein konsistentes, hochwertiges UX UI System für eine mobile Business App, die in zwei realen Nutzungssituationen funktioniert:
+
+1. operativ vor Ort auf Handy oder Tablet bei Objektaufnahme, Kalkulation und LV Erstellung
+2. im Büro für Controlling, Nachkalkulation, Angebotsübersicht und Steuerung
+
+Die App muss modern und hochwertig wirken, aber vor allem klar, belastbar, effizient, fachlich glaubwürdig und branchenlogisch aufgebaut sein.
+
+Wichtige Produktlogik:
+Nicht ein hübsches generisches Dashboard bauen.
+Stattdessen ein echtes branchenspezifisches Produkt für Gebäudereinigung.
+
+Die wichtigsten echten Aufgaben der Nutzer sind:
+weiterarbeiten an letzter Kalkulation
+neues Objekt aufnehmen
+Leistungsverzeichnis erstellen
+Raumgruppen und Flächen eingeben
+Turnus festlegen
+Rüstzeit und Wegezeit erfassen
+Verrechnungssatz und Marge prüfen
+Plausibilitätsfehler erkennen
+Angebot erzeugen
+Objekte verwalten
+wirtschaftliche Kennzahlen kontrollieren
+
+Die App braucht deshalb zwei Modi beziehungsweise zwei Nutzungsschwerpunkte:
+
+Arbeitsmodus
+für operative Aufgaben, Objektaufnahme, LV, Kalkulation, Weiterarbeiten
+
+Steuerungsmodus
+für Umsatz, Marge, Verrechnungssätze, Angebotslage, Abweichungen, Controlling
+
+Die Startseite muss primär auf den Arbeitsmodus optimiert sein.
+Controlling Inhalte sind wichtig, aber nicht das erste dominante Element.
+
+1. Grundprinzipien des gesamten Designs
+
+Definiere und setze appweit diese Prinzipien um:
+
+Klarheit
+Jede Seite muss in wenigen Sekunden verständlich sein.
+
+Fokus
+Es gibt pro Screen genau eine Hauptaktion.
+
+Semantik
+Farben, Icons und Zustände müssen die richtige Bedeutung transportieren.
+
+Vertrauen
+Alle Zahlen, Berechnungen, Summen und Trends müssen exakt und glaubwürdig sein.
+
+Effizienz
+Mobile Bedienung muss schnell, robust und mit wenig Reibung möglich sein.
+
+Branchenlogik
+Screens und Komponenten müssen aus dem Arbeitsalltag der Gebäudereinigung gedacht sein, nicht aus einer generischen Startup Demo.
+
+Konsistenz
+Die gesamte App muss wirken wie ein einziges zusammenhängendes Produkt.
+
+2. Theme Strategie
+
+Baue die App mit Theme System.
+
+Wichtig:
+Kein Dark Mode Dogma.
+Der Standard für die App ist ein High Contrast Light Theme, weil die App häufig in hellen Umgebungen, Eingangsbereichen, Treppenhäusern, Glasflächen, Foyers und bei Tageslicht genutzt wird.
+
+Zusätzlich optional ein Dark Theme anbieten.
+Aber Light Theme ist Default und operativer Standard.
+
+3. Design Tokens
+
+Lege ein zentrales Token System an, zum Beispiel in theme.ts oder tokens.ts.
+
+3.1 Light Theme Farben
+
+bg.app = #F4F7FB
+bg.surface = #FFFFFF
+bg.surfaceSubtle = #EEF3F8
+bg.surfaceElevated = #FFFFFF
+
+text.primary = #0F172A
+text.secondary = #475569
+text.tertiary = #64748B
+
+border.subtle = rgba(15,23,42,0.08)
+border.default = rgba(15,23,42,0.12)
+
+primary = #0F766E
+primary.pressed = #115E59
+primary.soft = #D9F3EF
+
+success = #16A34A
+success.soft = #DCFCE7
+
+warning = #D97706
+warning.soft = #FEF3C7
+
+danger = #DC2626
+danger.soft = #FEE2E2
+
+info = #2563EB
+info.soft = #DBEAFE
+
+focus = #0EA5E9
+
+3.2 Dark Theme Farben
+
+bg.app = #07111B
+bg.surface = #0B1623
+bg.surfaceSubtle = #101C2B
+bg.surfaceElevated = #152235
+
+text.primary = #F8FAFC
+text.secondary = #CBD5E1
+text.tertiary = #94A3B8
+
+border.subtle = rgba(255,255,255,0.08)
+border.default = rgba(255,255,255,0.12)
+
+primary = #2FB7A8
+primary.pressed = #259A8D
+primary.soft = rgba(47,183,168,0.18)
+
+success = #22C55E
+success.soft = rgba(34,197,94,0.16)
+
+warning = #F59E0B
+warning.soft = rgba(245,158,11,0.16)
+
+danger = #EF4444
+danger.soft = rgba(239,68,68,0.16)
+
+info = #38BDF8
+info.soft = rgba(56,189,248,0.16)
+
+focus = #38BDF8
+
+4. Farblogik
+
+Primary nur für:
+Hauptaktion
+aktive Navigation
+aktive Auswahl
+Fokuszustände
+wichtige Links
+selektierte Eingabeelemente
+
+Success nur für:
+positive Statusmeldungen
+gesunde Kennzahlen
+erfolgreiche Aktionen
+bestätigte Plausibilität
+
+Warning nur für:
+echte Hinweise mit mittlerem Handlungsbedarf
+keine Warnfarbe bei inhaltlich leerem Zustand
+
+Danger nur für:
+Fehler
+kritische Abweichungen
+unplausible Kalkulationen
+ungültige Eingaben
+
+Info nur für:
+neutrale Systemhinweise
+nicht kritische Hinweise
+
+Wichtige Regel:
+Nie ein Warning Icon oder gelbes Banner zeigen, wenn 0 Hinweise vorhanden sind.
+Wenn keine Hinweise vorhanden sind, das Element ausblenden oder einen ruhigen positiven Status zeigen.
+
+5. Typografie
+
+Nutze Inter oder eine vergleichbar nüchterne, sehr gut lesbare Sans Serif.
+
+Typo Tokens:
+
+screenTitle
+fontSize 32
+lineHeight 38
+fontWeight 700
+
+sectionTitle
+fontSize 20
+lineHeight 26
+fontWeight 600
+
+cardTitle
+fontSize 16
+lineHeight 22
+fontWeight 600
+
+kpiHero
+fontSize 36
+lineHeight 40
+fontWeight 700
+
+kpiLarge
+fontSize 28
+lineHeight 32
+fontWeight 700
+
+body
+fontSize 16
+lineHeight 24
+fontWeight 400
+
+bodySmall
+fontSize 14
+lineHeight 20
+fontWeight 400
+
+meta
+fontSize 12
+lineHeight 16
+fontWeight 500
+
+caption
+fontSize 11
+lineHeight 14
+fontWeight 500
+
+Regeln:
+Zahlen müssen besonders scanbar sein.
+Sekundärtexte müssen ausreichend Kontrast haben.
+Keine zu hellgrauen Meta Texte.
+Keine überdekorierte Typografie.
+
+6. Spacing und Radius
+
+Spacing Tokens:
+4
+8
+12
+16
+20
+24
+32
+40
+
+Radius Tokens:
+sm = 12
+md = 16
+lg = 20
+xl = 24
+
+Regeln:
+mobiles Seitenpadding 20 oder 24
+große Sektionen mit 24 oder 32 Abstand
+Karten innen 16 oder 20
+Touch Targets großzügig
+keine zufälligen Abstände
+
+7. Schatten und Flächen
+
+Sehr dezente Schatten.
+Mehr über Kontrast und Flächenhierarchie arbeiten als über Effekte.
+Subtile Borders nutzen.
+Keine lauten Glows.
+Keine spielerischen Neon Effekte.
+
+8. Navigationslogik
+
+Prüfe die Bottom Navigation fachlich und baue sie nach Arbeitslogik.
+
+Empfohlene Hauptnavigation:
+Start
+Kalkulation
+Objekte
+Controlling
+Mehr
+
+Profil muss nicht zwingend ein eigener Haupttab sein.
+Profil und Einstellungen können in Mehr liegen.
+
+Aktiver Tab:
+klar erkennbar über Primary
+gut lesbar
+sauberer aktiver Zustand
+
+Inaktiver Tab:
+ruhig
+sekundär
+nicht zu kontrastarm
+
+9. Startseite statt generischem Dashboard
+
+Baue nicht einfach ein klassisches KPI Dashboard.
+Baue eine mobile Arbeitsstartseite.
+
+Reihenfolge der Startseite:
+
+Bereich 1
+Header
+
+Titel:
+Start oder Arbeitsstart
+
+Darunter klar beschrifteter Kontext:
+zum Beispiel
+Mandant: AHAD Cleaning
+oder
+Workspace: Glanz
+oder
+Firma: AHAD Cleaning
+
+Keine unklaren Begriffe wie nur ein einzelnes Wort ohne Einordnung.
+
+Bereich 2
+Weiterarbeiten
+
+Dieser Bereich muss above the fold sichtbar sein.
+Das ist ein zentraler Use Case.
+
+Zeige zuletzt bearbeitete Elemente als echte Liste oder Kartenliste.
+Beispiele:
+Objektname
+Status
+letzte Bearbeitung
+Marge
+Fortschritt
+direkter Einstieg
+
+Beispiele für Status:
+Entwurf
+In Kalkulation
+LV unvollständig
+Angebot erstellt
+Prüfung offen
+
+Bereich 3
+Hauptaktion
+
+Genau eine dominante Hauptaktion:
+Neues Objekt kalkulieren
+
+Diese Aktion darf in Schnellaktionen nicht dupliziert werden.
+
+Bereich 4
+Offene Aufgaben und Plausibilitätsprüfungen
+
+Hierhin gehören die wirklich relevanten operativen Hinweise.
+Beispiele:
+2 Kalkulationen mit Marge unter Mindestziel
+1 Objekt ohne Turnus
+3 Entwürfe seit 7 Tagen unvollständig
+1 LV ohne Raumgruppe
+
+Wenn nichts anliegt:
+Bereich ausblenden oder sehr ruhig positiv darstellen.
+
+Bereich 5
+Schnellzugriffe
+
+Nur ergänzende Funktionen.
+Keine Duplikate der Hauptaktion.
+
+Geeignete Schnellzugriffe:
+Alle Objekte
+Angebote
+Kunden
+Vorlagen
+Berichte
+Export
+
+Bereich 6
+Kompakte Steuerungskennzahlen
+
+Nicht als riesige Hero Card oben.
+Nur als sekundäre Übersicht.
+Zum Beispiel:
+Monatsumsatz geplant
+Ø Marge
+Ø Verrechnungssatz
+offene Angebote
+
+Bereich 7
+Weitere Listen oder Verlauf
+
+Zum Beispiel:
+kürzlich erstellt
+kürzlich abgeschlossen
+letzte Angebote
+kritische Objekte
+
+10. Fachliche Kernbereiche der App
+
+Die App braucht mindestens diese Hauptbereiche:
+
+10.1 Start
+Weiterarbeiten
+offene Aufgaben
+Schnellzugriffe
+kompakte Kennzahlen
+
+10.2 Kalkulation
+neues Objekt
+Raumgruppen
+Flächen
+Turnus
+Leistungen
+Rüstzeit
+Wegezeit
+Verrechnungssatz
+Lohnkosten
+Material
+Marge
+Plausibilitätsprüfung
+Angebotsausgabe
+
+10.3 Objekte
+Objektlisten
+Filter
+Suche
+Status
+letzte Bearbeitung
+Deckungsbeitrag
+Objektdetails
+Historie
+
+10.4 Controlling
+Monatsumsatz
+Jahreshochrechnung
+Ø Verrechnungssatz
+Marge
+Zielabweichungen
+kritische Kalkulationen
+kritische Objekte
+Trends
+Vergleiche
+
+10.5 Mehr
+Einstellungen
+Profil
+Vorlagen
+Datenexport
+Theme Auswahl
+Support
+Rechtliches
+
+11. Branchen Komponenten statt generischer SaaS Bausteine
+
+Erstelle eine echte Komponentenbibliothek für Gebäudereinigung.
+
+11.1 Objektaufnahme Komponente
+Erfassung von:
+Objektname
+Kunde
+Adresse
+Objektart
+Ansprechpartner
+Besonderheiten
+Zugangsinfos
+
+11.2 Raumgruppen Editor
+Spezielle Eingabe für Raumgruppen.
+Beispiele:
+Büro
+Sanitär
+Flur
+Treppenhaus
+Teeküche
+Empfang
+Produktion
+Lager
+Glas innen
+Glas außen
+
+Jede Raumgruppe muss erfassen können:
+Bezeichnung
+Fläche in m²
+Anzahl
+Relevante Leistungsart
+Turnus
+optionale Bemerkung
+
+11.3 Turnus Selector
+Eigene UX Komponente für Turnus.
+Nicht nur ein simples Dropdown.
+
+Mögliche Varianten:
+täglich
+werktäglich
+Mo Mi Fr
+2x pro Woche
+1x wöchentlich
+14 tägig
+monatlich
+nach Bedarf
+
+Visualisierung:
+klar, schnell tippbar, mobil gut bedienbar
+
+11.4 Leistungsbaustein Komponente
+Leistungen als strukturierte Bausteine.
+Beispiele:
+Sichtreinigung
+Feuchtreinigung
+Nassreinigung
+Desinfektion
+Müllentsorgung
+Auffüllen Verbrauchsmaterial
+Glasreinigung
+Sonderleistung
+
+Jeder Baustein mit:
+Leistung
+Frequenz
+Zeitansatz
+Bemerkung
+
+11.5 Rüstzeit und Wegezeit Modul
+Diese Positionen dürfen nicht versteckt sein.
+Sie müssen als eigene sichtbare Kalkulationsbestandteile auftauchen.
+
+Zeige:
+Rüstzeit
+Wegezeit intern
+Fahrzeit extern falls relevant
+Begründung oder Quelle
+
+11.6 Verrechnungssatz Modul
+Klare Eingabe und Darstellung von:
+Lohnkosten
+Lohnnebenkosten
+Materialkosten
+Gemeinkosten
+Zuschläge
+Zielmarge
+empfohlener Verrechnungssatz
+
+11.7 Plausibilitäts Check Komponente
+Sehr wichtig.
+
+Prüfe und visualisiere:
+Marge unter Mindestziel
+zu niedriger Zeitansatz für Fläche
+fehlender Turnus
+fehlende Raumgruppe
+fehlende LV Position
+unplausible Glasfläche
+Rüstzeit fehlt
+Verrechnungssatz unter Mindestwert
+
+Klassifiziere:
+Info
+Hinweis
+kritisch
+
+Jeder Befund mit:
+klarer Text
+fachliche Ursache
+optionale Handlungsempfehlung
+
+11.8 LV Builder
+Leistungsverzeichnis als strukturierter Builder.
+Keine lose Textfläche.
+
+Muss können:
+Positionen hinzufügen
+sortieren
+gruppieren
+Positionen bearbeiten
+Vorlagen nutzen
+automatische Nummerierung
+saubere mobile Bedienung
+
+11.9 Inline Mengenerfassung
+Für Tablet und mobile Nutzung.
+Schnelle Eingabe ohne ständiges Auf und Zuklappen der Tastatur.
+Gute Zahleneingabe.
+Klare Einheiten.
+Schnellfokus zum nächsten Feld.
+
+11.10 Angebots Vorschau
+Saubere mobile Vorschau.
+Klare Prüfung vor PDF oder Export.
+Wichtige Kennzahlen sichtbar.
+
+12. Wiederverwendbare UI Komponenten
+
+Zusätzlich zu den Branchen Komponenten baue saubere Grundkomponenten.
+
+Primary Button
+Secondary Button
+Tertiary Button
+Icon Button
+Hero Section
+Status Badge
+KPI Card
+Compact KPI Card
+Alert Card
+Empty State
+List Row
+Section Header
+Segmented Control
+Search Bar
+Filter Chips
+Input Field
+Number Field
+Currency Field
+Percent Field
+Date Field
+Bottom Sheet
+Modal
+Tabs
+Skeleton Loader
+
+13. Regeln für CTAs
+
+Pro Seite nur eine dominante Primäraktion.
+Keine doppelte Hauptaktion auf demselben Screen.
+Schnellaktionen dürfen die Primäraktion nicht wiederholen.
+Jede Aktion muss in ihrer visuellen Gewichtung ihrer Wichtigkeit entsprechen.
+
+14. Regeln für Kennzahlen
+
+Kennzahlen nie nackt und isoliert darstellen.
+Jede wichtige KPI braucht möglichst:
+Titel
+Wert
+Einheit
+Kontext
+Status oder Trend
+
+Beispiele:
+Ø Marge
+10,0 Prozent
+1,5 Prozent unter Ziel
+
+Monatsumsatz geplant
+34.250 €
+4,2 Prozent über Vormonat
+
+Objekte
+18 aktiv
+3 in Bearbeitung
+
+Wenn keine Vergleichsdaten vorhanden sind:
+neutral bleiben
+keinen künstlichen Trend anzeigen
+
+Wichtig:
+Berechnungen exakt.
+Keine Rundungsfehler.
+Jahreswerte müssen mathematisch korrekt sein.
+
+15. Regeln für Warnungen und Hinweise
+
+Es gibt drei sinnvolle Ebenen:
+
+Info
+neutraler Hinweis ohne dringenden Handlungsbedarf
+
+Hinweis
+relevant, aber nicht kritisch
+
+Kritisch
+muss geprüft werden
+
+Niemals:
+Warning Card mit 0 Hinweisen
+Danger für Kleinigkeiten
+gelbe oder rote Banner als Dekoration
+
+16. Regeln für Formulare
+
+Mobile first.
+Kurze, klare Felder.
+Labels oberhalb der Felder.
+Fehlertexte konkret.
+Pflichtfelder eindeutig.
+Lange Formulare in logische Schritte teilen.
+
+Wichtige Eingabeflüsse:
+
+16.1 Neues Objekt
+Schritt 1 Stammdaten
+Schritt 2 Raumgruppen
+Schritt 3 Turnus und Leistungen
+Schritt 4 Zeiten und Kosten
+Schritt 5 Prüfung und Ergebnis
+
+16.2 Neue Kalkulation
+Schritt 1 Ausgangsdaten
+Schritt 2 Leistungsumfang
+Schritt 3 Zeitansätze
+Schritt 4 Verrechnungssatz und Marge
+Schritt 5 Plausibilitätsprüfung
+Schritt 6 Angebot oder Entwurf speichern
+
+16.3 Neues Leistungsverzeichnis
+Schritt 1 Objektbezug
+Schritt 2 Positionen
+Schritt 3 Turnus
+Schritt 4 Struktur und Prüfung
+Schritt 5 Ausgabe
+
+17. Screen Templates
+
+Definiere wiederverwendbare Templates.
+
+Template A
+Arbeitsstartseite
+
+Template B
+Listenansicht
+Objekte, Kunden, Angebote, Vorlagen
+
+Template C
+Detailseite
+Objekt, Kalkulation, LV, Kunde
+
+Template D
+Schrittweiser Formular Flow
+
+Template E
+Controlling Seite
+
+Template F
+Empty State
+
+Template G
+Warnung oder Fehlerzustand
+
+Alle Templates müssen dieselbe visuelle DNA haben.
+
+18. Copy Regeln
+
+Texte kurz, fachlich, professionell, deutsch.
+Kein Marketing Sprech.
+Keine generischen Buzzwords.
+Keine unklaren Einwort Labels ohne Kontext.
+
+Gute Beschriftungen:
+Neues Objekt kalkulieren
+Weiterarbeiten
+Plausibilitätsprüfung
+Marge unter Mindestziel
+Turnus festlegen
+Leistungsverzeichnis prüfen
+Rüstzeit ergänzen
+Alle Objekte
+Angebot erstellen
+Entwurf speichern
+
+Schlechte Beschriftungen:
+Insights
+Smart View
+Business Pulse
+Glanz ohne Kontext
+Performance Hub
+
+19. Accessibility
+
+Zwingend umsetzen:
+hohe Lesbarkeit im Light Theme
+gute Kontraste
+große Touchflächen
+sichtbare Fokuszustände
+Farben nie als einziges Signal
+Status immer zusätzlich textlich erklären
+lesbare Tabellen und Eingaben auf Tablet
+
+20. Motion
+
+Animationen dezent und funktional.
+Keine Show Effekte.
+Sanfte Übergänge.
+Ruhige State Changes.
+Skeleton Loading wo sinnvoll.
+Kein hektisches Verhalten.
+
+21. Technische Struktur
+
+Nutze ein zentrales Design System.
+Keine Hardcoded Einzelstyles pro Screen.
+Verwende Tokens und wiederverwendbare Komponenten.
+Komponenten müssen aus denselben Grundlagen gespeist werden.
+
+Erwartete Struktur:
+theme oder tokens Datei
+Component Library
+Screen Templates
+Branchenspezifische Komponenten
+saubere State Verwaltung
+konsistente spacing und typography Nutzung
+
+22. Konkrete Aufgabe für die Umsetzung
+
+Refaktoriere die gesamte App auf Basis dieser Produktspezifikation.
+
+Beginne mit:
+1. Startseite im Arbeitsmodus
+2. Kalkulations Flow
+3. Objektliste
+4. Objekt Detail
+5. Controlling Übersicht
+6. Mehr Bereich
+
+Prüfe dabei jede bestehende Seite auf:
+semantisch korrekte Farbverwendung
+klare Informationshierarchie
+keine doppelten Hauptaktionen
+fachlich sinnvolle Komponenten
+gute Lesbarkeit
+Light Theme Tauglichkeit
+konsistente Design Tokens
+mobile Bedienbarkeit
+
+Zielzustand:
+Die App soll wie eine hochwertige mobile SaaS Anwendung für Gebäudereinigung wirken, die operativ und kaufmännisch ernst zu nehmen ist.
+Nicht verspielt.
+Nicht generisch.
+Nicht wie ein Demo Dashboard.
+Sondern wie ein durchdachtes Arbeitswerkzeug für echte Kalkulation, LV und Steuerung.
