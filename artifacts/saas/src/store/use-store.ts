@@ -549,7 +549,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 7,
+      version: 8,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -603,6 +603,17 @@ export const useStore = create<AppState>()(
             ...state,
             targetMargin: state.targetMargin ?? state.hourlyRateConfig?.gewinnmarge ?? getDefaultConfig().gewinnmarge,
           };
+        }
+        if (version < 8) {
+          if (state.hourlyRateConfig && !state.hourlyRateConfig.cleaningType) {
+            state = {
+              ...state,
+              hourlyRateConfig: {
+                ...state.hourlyRateConfig,
+                cleaningType: "unterhalt",
+              },
+            };
+          }
         }
         return state;
       },

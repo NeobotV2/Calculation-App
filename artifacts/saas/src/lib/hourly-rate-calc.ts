@@ -1,6 +1,7 @@
 import { BUNDESLAENDER, DEFAULT_BUNDESLAND_ID } from "@/data/bundeslaender";
 
 export type EmploymentType = "minijob" | "teilzeit" | "vollzeit";
+export type CleaningType = "unterhalt" | "sonder" | "glas" | "bauend";
 
 export interface SVRate {
   label: string;
@@ -24,12 +25,20 @@ export interface OverheadItem {
 export interface HourlyRateConfig {
   baseLohn: number;
   employmentType: EmploymentType;
+  cleaningType: CleaningType;
   svRatesMinijob: SVRate[];
   svRatesVollzeit: SVRate[];
   ausfallzeiten: AusfallzeitenConfig;
   overheads: OverheadItem[];
   gewinnmarge: number;
 }
+
+export const CLEANING_TYPE_LABELS: Record<CleaningType, string> = {
+  unterhalt: "Unterhalt",
+  sonder: "Sonder",
+  glas: "Glas",
+  bauend: "Bauend",
+};
 
 export const DEFAULT_SV_RATES_MINIJOB: SVRate[] = [
   { label: "Krankenversicherung", rate: 13.0 },
@@ -54,10 +63,36 @@ export const DEFAULT_OVERHEADS: OverheadItem[] = [
   { id: "fahrtkosten", label: "Fahrtkosten", rate: 2 },
 ];
 
+export const CLEANING_TYPE_OVERHEADS: Record<CleaningType, OverheadItem[]> = {
+  unterhalt: DEFAULT_OVERHEADS.map((o) => ({ ...o })),
+  sonder: [
+    { id: "verwaltung", label: "Verwaltung / Overhead", rate: 8 },
+    { id: "material", label: "Material & Verbrauchsmittel", rate: 8 },
+    { id: "aufsicht", label: "Objektleitung / Aufsicht", rate: 5 },
+    { id: "risiko", label: "Risikozuschlag", rate: 6 },
+    { id: "fahrtkosten", label: "Fahrtkosten", rate: 2 },
+  ],
+  glas: [
+    { id: "verwaltung", label: "Verwaltung / Overhead", rate: 8 },
+    { id: "material", label: "Material & Verbrauchsmittel", rate: 7 },
+    { id: "aufsicht", label: "Objektleitung / Aufsicht", rate: 5 },
+    { id: "risiko", label: "Risikozuschlag", rate: 8 },
+    { id: "fahrtkosten", label: "Fahrtkosten", rate: 2 },
+  ],
+  bauend: [
+    { id: "verwaltung", label: "Verwaltung / Overhead", rate: 8 },
+    { id: "material", label: "Material & Verbrauchsmittel", rate: 11 },
+    { id: "aufsicht", label: "Objektleitung / Aufsicht", rate: 5 },
+    { id: "risiko", label: "Risikozuschlag", rate: 8 },
+    { id: "fahrtkosten", label: "Fahrtkosten", rate: 0 },
+  ],
+};
+
 export function getDefaultConfig(): HourlyRateConfig {
   return {
     baseLohn: 15.0,
     employmentType: "minijob",
+    cleaningType: "unterhalt",
     svRatesMinijob: DEFAULT_SV_RATES_MINIJOB.map((r) => ({ ...r })),
     svRatesVollzeit: DEFAULT_SV_RATES_VOLLZEIT.map((r) => ({ ...r })),
     ausfallzeiten: {

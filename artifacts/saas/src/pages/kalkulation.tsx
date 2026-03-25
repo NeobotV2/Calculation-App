@@ -10,8 +10,11 @@ import { BUNDESLAENDER } from "@/data/bundeslaender";
 import {
   type HourlyRateConfig,
   type EmploymentType,
+  type CleaningType,
   calcHourlyRate,
   getDefaultConfig,
+  CLEANING_TYPE_LABELS,
+  CLEANING_TYPE_OVERHEADS,
 } from "@/lib/hourly-rate-calc";
 import {
   ArrowLeft,
@@ -23,6 +26,8 @@ import {
   Percent,
   Calculator,
   RotateCcw,
+  Info,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -90,12 +95,33 @@ function NumberInput({
   );
 }
 
+function InfoPopover({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
+      >
+        {open ? <X size={12} className="text-primary" /> : <Info size={12} className="text-primary" />}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-8 z-50 w-72 bg-card border border-border/50 rounded-xl p-3 shadow-lg">
+          <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Section({
   title,
   icon: Icon,
   open,
   onToggle,
   badge,
+  tooltip,
   children,
 }: {
   title: string;
@@ -103,21 +129,26 @@ function Section({
   open: boolean;
   onToggle: () => void;
   badge?: string;
+  tooltip?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="bg-card border border-border/40 rounded-2xl overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-5 text-left"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+      <div className="flex items-center justify-between p-5">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onToggle}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+          className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
+        >
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
             <Icon size={18} className="text-primary" />
           </div>
           <span className="text-sm font-semibold text-foreground">{title}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
+          {tooltip && <InfoPopover text={tooltip} />}
           {badge && (
             <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
               {badge}
@@ -125,13 +156,14 @@ function Section({
           )}
           <ChevronDown
             size={18}
+            onClick={onToggle}
             className={cn(
-              "text-muted-foreground transition-transform duration-200",
+              "text-muted-foreground transition-transform duration-200 cursor-pointer",
               open && "rotate-180"
             )}
           />
         </div>
-      </button>
+      </div>
       {open && <div className="px-5 pb-5 space-y-4 border-t border-border/20 pt-4">{children}</div>}
     </div>
   );
@@ -229,6 +261,14 @@ export default function Kalkulation() {
     }
   };
 
+  const handleCleaningTypeChange = useCallback((type: CleaningType) => {
+    setConfig((c) => ({
+      ...c,
+      cleaningType: type,
+      overheads: CLEANING_TYPE_OVERHEADS[type].map((o) => ({ ...o })),
+    }));
+  }, []);
+
   const handleReset = () => {
     setConfig(getDefaultConfig());
     toast.success("Auf Standardwerte zurückgesetzt");
@@ -272,6 +312,33 @@ export default function Kalkulation() {
           </p>
           <p className="text-xs text-muted-foreground mt-2">
             Aktuell gespeichert: {fmtEuro(currentHourlyRate)} €/h
+          </p>
+        </div>
+
+        <div className="bg-card border border-border/40 rounded-2xl p-4">
+          <label className="text-xs font-medium text-muted-foreground mb-2 block">
+            Reinigungsart
+          </label>
+          <div className="grid grid-cols-4 gap-1.5">
+            {(["unterhalt", "sonder", "glas", "bauend"] as CleaningType[]).map(
+              (type) => (
+                <button
+                  key={type}
+                  onClick={() => handleCleaningTypeChange(type)}
+                  className={cn(
+                    "h-9 rounded-xl text-xs font-medium transition-all border",
+                    config.cleaningType === type
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background border-border/50 text-muted-foreground hover:border-border"
+                  )}
+                >
+                  {CLEANING_TYPE_LABELS[type]}
+                </button>
+              )
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">
+            Die Reinigungsart setzt Vorschlagswerte für Gemeinkosten. Sie können anschließend manuell anpassen.
           </p>
         </div>
 
@@ -328,6 +395,7 @@ export default function Kalkulation() {
           open={openSections.sv}
           onToggle={() => toggle("sv")}
           badge={`${fmtPct(svTotalRate)} %`}
+          tooltip="Gesetzliche Abgaben des Arbeitgebers: Kranken-, Renten-, Pflege- und Unfallversicherung. Bei Minijobs gelten Pauschalsätze."
         >
           <p className="text-xs text-muted-foreground -mt-1">
             {config.employmentType === "minijob"
@@ -377,6 +445,7 @@ export default function Kalkulation() {
           open={openSections.ausfall}
           onToggle={() => toggle("ausfall")}
           badge={`${fmtPct(breakdown.produktivitaetsquote * 100)} % produktiv`}
+          tooltip="Berücksichtigt, dass nicht jede bezahlte Stunde produktiv ist (Urlaub, Krankheit, Feiertage). Je höher der Ausfall, desto höher muss der Verrechnungssatz sein."
         >
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
@@ -494,6 +563,7 @@ export default function Kalkulation() {
           open={openSections.overhead}
           onToggle={() => toggle("overhead")}
           badge={`${fmtPct(breakdown.overheadTotalRate)} %`}
+          tooltip="Alle Kosten, die nicht direkt der Reinigung zugeordnet werden können: Verwaltung, Fahrzeuge, Material, Versicherungen."
         >
           <div className="space-y-3">
             {config.overheads.map((item, idx) => (
@@ -535,6 +605,7 @@ export default function Kalkulation() {
           open={openSections.gewinn}
           onToggle={() => toggle("gewinn")}
           badge={`${fmtPct(config.gewinnmarge)} %`}
+          tooltip="Der Aufschlag auf die Vollkosten, der den tatsächlichen Unternehmensgewinn ausmacht. Branchenüblich: 8–15%."
         >
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
@@ -621,6 +692,50 @@ export default function Kalkulation() {
               <span>= Verrechnungssatz</span>
               <span>{fmtEuro(breakdown.stundenverrechnungssatz)} €/h</span>
             </div>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border/40 rounded-2xl p-5">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Branchen-Benchmark
+          </h4>
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                <span className="text-sm text-foreground">Kritisch</span>
+              </div>
+              <span className="text-sm font-semibold text-red-400">
+                {fmtEuro(breakdown.vollkosten * 0.9)} €/h
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
+              Unter den Selbstkosten — Verlustzone
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
+                <span className="text-sm text-foreground">Mindest</span>
+              </div>
+              <span className="text-sm font-semibold text-yellow-400">
+                {fmtEuro(breakdown.vollkosten)} €/h
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
+              Vollkostendeckung, 0% Gewinn
+            </p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <span className="text-sm text-foreground">Empfohlen</span>
+              </div>
+              <span className="text-sm font-semibold text-emerald-400">
+                {fmtEuro(breakdown.stundenverrechnungssatz)} €/h
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
+              Ihr kalkulierter Satz inkl. {fmtPct(config.gewinnmarge)}% Gewinn
+            </p>
           </div>
         </div>
 
