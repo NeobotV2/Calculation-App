@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import capacitorStorage from "@/lib/capacitor-storage";
 import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
+import { type ThemeMode } from "@/lib/tokens";
 
 export type FrequencyKey =
   | "monthly"
@@ -93,6 +94,7 @@ interface AppState {
   hourlyRateConfig: HourlyRateConfig;
   disabledWarnings: string[];
   targetMargin: number;
+  theme: ThemeMode;
 
   projects: Project[];
   templates: Template[];
@@ -107,6 +109,7 @@ interface AppState {
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
   setDisabledWarnings: (warnings: string[]) => void;
   setTargetMargin: (margin: number) => void;
+  setTheme: (theme: ThemeMode) => void;
 
   addProject: (name: string, customer?: string) => string;
   updateProject: (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "rooms">>) => void;
@@ -218,6 +221,7 @@ export const useStore = create<AppState>()(
       hourlyRateConfig: getDefaultConfig(),
       disabledWarnings: [],
       targetMargin: getDefaultConfig().gewinnmarge,
+      theme: "light" as ThemeMode,
 
       projects: [],
       templates: [],
@@ -289,6 +293,7 @@ export const useStore = create<AppState>()(
 
       setDisabledWarnings: (warnings) => set({ disabledWarnings: warnings }),
       setTargetMargin: (margin) => set({ targetMargin: margin }),
+      setTheme: (theme) => set({ theme }),
 
       addProject: (name, customer) => {
         const id = uuidv4();
@@ -564,7 +569,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 9,
+      version: 10,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -644,6 +649,12 @@ export const useStore = create<AppState>()(
               },
             };
           }
+        }
+        if (version < 10) {
+          state = {
+            ...state,
+            theme: state.theme ?? "light",
+          };
         }
         return state;
       },

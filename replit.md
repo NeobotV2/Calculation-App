@@ -44,7 +44,7 @@ All packages extend a base `tsconfig.base.json` with `composite: true`. The root
 ### CleanCalc Pro Web SaaS (`artifacts/saas`)
 
 -   **Purpose**: Full-featured web application for commercial cleaning companies, primarily for the German market.
--   **UI/UX**: Mobile-first design using React, Vite, and Tailwind CSS v4. Features a dark premium theme (muted teal, dark background) and Inter font.
+-   **UI/UX**: Mobile-first design using React, Vite, and Tailwind CSS v4. Features a light default theme (light gray bg, white cards, teal primary #0F766E) with optional dark mode via `.dark` class on `<html>`. Design tokens in `src/lib/tokens.ts` (typography, spacing, radius). Inter font.
 -   **Data Management**: Dual-path data handling with Supabase for authenticated users (PostgreSQL backend) and Zustand with localStorage for demo mode.
 -   **Calculation Engine**: Room-based cost calculation with 125 default room types across 16 groups (BIV/RAL-based Leistungswerte), Zu-/Abschläge system (Verschmutzungsgrad, Möblierungsgrad, Bodenbelag) that adjusts effective performance values, and configurable hourly rate. Core formula: `area / effectivePerf * frequencyFactor * hourlyRate`.
 -   **Verrechnungssatz-Kalkulator**: Professional hourly rate calculator at `#/stundensatz` with 5-step cost buildup: Basislohn (Tariflohn LG1 €15/h, Minijob/Teilzeit/Vollzeit) → SV AG-Anteil → Ausfallzeiten (Bundesland-based Feiertage) → Gemeinkosten → Gewinnmarge = Verrechnungssatz. Config stored in `hourlyRateConfig` (Zustand, store v4). Engine in `src/lib/hourly-rate-calc.ts`, Bundesland data in `src/data/bundeslaender.ts`.
@@ -54,7 +54,7 @@ All packages extend a base `tsconfig.base.json` with `composite: true`. The root
 -   **Routing**: Hash-based routing using `wouter` for `#/path` URLs.
 -   **Authentication**: Supabase-based authentication (email/password) with session persistence, password reset, and email confirmation. AuthGuard manages redirects based on user state (splash, onboarding, home).
 -   **Feature Gates**: Implements plan-based feature gates (Basic vs. Pro) limiting projects, rooms per project, PDF export, and template usage.
--   **State Management**: Zustand with localStorage persistence (`cleancalc-storage`, version 3).
+-   **State Management**: Zustand with localStorage persistence (`cleancalc-storage`, version 10). Theme stored in state as `"light" | "dark"` with ThemeApplicator component in App.tsx.
 -   **Service Layer**: Clean service architecture with `auth-service`, `company-service`, `object-service`, `room-service`, `template-service`, `custom-room-type-service`, `settings-service`, `profile-service`, `plan-service`, `migration-service`. Pages access services via `use-store-actions` hook (bridges Zustand store + Supabase API).
 -   **UX Components**: Toast notifications (Sonner, German), confirm dialogs for all destructive actions, loading skeletons (list/card/detail), error boundary, network error states, empty states with CTAs, 404 page, session expiry detection. All user-facing messages in German.
 -   **Capacitor Integration**: Supports native builds for iOS/Android using Capacitor, with specific adaptations for storage, sharing, deep linking, and native back button handling.

@@ -86,6 +86,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ThemeApplicator() {
+  const theme = useStore((s) => s.theme);
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [theme]);
+  return null;
+}
+
 function DataSync() {
   useSupabaseSync();
   useAndroidBack();
@@ -150,6 +163,7 @@ function App() {
     <ErrorBoundary>
       <SupabaseAuthProvider>
         <WouterRouter hook={useHashLocation}>
+          <ThemeApplicator />
           <DataSync />
           <AuthGuard>
             <AppRouter />
