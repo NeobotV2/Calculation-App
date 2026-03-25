@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import capacitorStorage from "@/lib/capacitor-storage";
 import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
 import { type ThemeMode } from "@/lib/tokens";
+import { type PlanId } from "@/lib/billing-config";
 
 export type FrequencyKey =
   | "monthly"
@@ -78,7 +79,7 @@ interface AppState {
   isLoggedIn: boolean;
   isDemo: boolean;
   user: { name: string; email: string; role: string } | null;
-  plan: "basic" | "pro";
+  plan: PlanId;
 
   companyName: string;
   companyStreet: string;
@@ -108,8 +109,7 @@ interface AppState {
   completeOnboarding: (data: { role: string; companyName: string; hourlyRate: number; loadDemo: boolean }) => void;
   setDemoUser: (user: { name: string; email: string; role?: string }) => void;
   clearSession: () => void;
-  // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
-  upgradePlan: () => void;
+  upgradePlan: (plan?: PlanId) => void;
   updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string; companyLogo: string }>) => void;
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
   setDisabledWarnings: (warnings: string[]) => void;
@@ -205,7 +205,7 @@ export const useStore = create<AppState>()(
       isLoggedIn: false,
       isDemo: true,
       user: null,
-      plan: "basic",
+      plan: "free" as PlanId,
 
       companyName: "Meine Reinigungsfirma",
       companyStreet: "",
@@ -256,7 +256,7 @@ export const useStore = create<AppState>()(
             templates: [],
             customRoomTypes: [],
             hourlyRateConfig: getDefaultConfig(),
-            plan: "basic",
+            plan: "free" as PlanId,
             companyName: "Meine Reinigungsfirma",
             companyStreet: "",
             companyZip: "",
@@ -277,8 +277,7 @@ export const useStore = create<AppState>()(
           });
         }
       },
-      // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
-      upgradePlan: () => set({ plan: "pro" }),
+      upgradePlan: (planId?: PlanId) => set({ plan: planId ?? "pro_monthly" }),
 
       updateSettings: (data) => set((state) => ({ ...state, ...data })),
 
@@ -552,7 +551,7 @@ export const useStore = create<AppState>()(
           hourlyRateConfig: getDefaultConfig(),
           disabledWarnings: [],
           targetMargin: getDefaultConfig().gewinnmarge,
-          plan: "basic",
+          plan: "free" as PlanId,
           companyName: "Meine Reinigungsfirma",
           companyStreet: "",
           companyZip: "",
@@ -574,7 +573,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 10,
+      version: 11,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -659,6 +658,19 @@ export const useStore = create<AppState>()(
           state = {
             ...state,
             theme: state.theme ?? "light",
+          };
+        }
+        if (version < 11) {
+          const oldPlan = state.plan;
+          let newPlan: string = "free";
+          if (oldPlan === "pro") newPlan = "pro_monthly";
+          else if (oldPlan === "basic") newPlan = "free";
+          else if (["free", "pro_monthly", "pro_annual", "founding_annual", "business"].includes(oldPlan)) {
+            newPlan = oldPlan;
+          }
+          state = {
+            ...state,
+            plan: newPlan,
           };
         }
         return state;

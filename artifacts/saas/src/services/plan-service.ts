@@ -1,59 +1,78 @@
 import { supabase } from "@/lib/supabase";
+import { type PlanId, getPlanLimits, isPaidPlan } from "@/lib/billing-config";
 
-export type PlanType = "basic" | "pro";
+export type { PlanId };
 
 export interface Subscription {
-  plan: PlanType;
+  plan: PlanId;
   status: string;
+  storeSubscriptionId?: string;
+  currentPeriodEnd?: string;
+}
+
+const PLAN_DB_MAP: Record<string, PlanId> = {
+  basic: "free",
+  free: "free",
+  pro: "pro_monthly",
+  pro_monthly: "pro_monthly",
+  pro_annual: "pro_annual",
+  founding_annual: "founding_annual",
+  business: "business",
+};
+
+function mapDbPlan(dbPlan: string): PlanId {
+  return PLAN_DB_MAP[dbPlan] ?? "free";
 }
 
 export async function getSubscription(): Promise<Subscription | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("plan, status")
+    .select("plan, status, store_subscription_id, current_period_end")
     .single();
-  if (error) return null;
-  return { plan: data.plan as PlanType, status: data.status };
+  if (error || !data) return null;
+  return {
+    plan: mapDbPlan(data.plan),
+    status: data.status,
+    storeSubscriptionId: data.store_subscription_id ?? undefined,
+    currentPeriodEnd: data.current_period_end ?? undefined,
+  };
 }
-
-export const BASIC_LIMITS = {
-  maxProjects: 3,
-  maxRoomsPerProject: 20,
-} as const;
 
 export interface LimitCheck {
   allowed: boolean;
   reason?: string;
 }
 
-export async function checkObjectLimit(currentActiveCount: number, plan: PlanType): Promise<LimitCheck> {
-  if (plan === "pro") return { allowed: true };
-  if (currentActiveCount >= BASIC_LIMITS.maxProjects) {
-    return { allowed: false, reason: `Im Basic-Plan sind maximal ${BASIC_LIMITS.maxProjects} Objekte möglich.` };
+export function checkObjectLimit(currentActiveCount: number, plan: PlanId): LimitCheck {
+  if (isPaidPlan(plan)) return { allowed: true };
+  const limits = getPlanLimits(plan);
+  if (currentActiveCount >= limits.maxObjects) {
+    return { allowed: false, reason: `Im Free-Plan ist maximal ${limits.maxObjects} Objekt möglich.` };
   }
   return { allowed: true };
 }
 
-export async function checkRoomLimit(currentRoomCount: number, plan: PlanType): Promise<LimitCheck> {
-  if (plan === "pro") return { allowed: true };
-  if (currentRoomCount >= BASIC_LIMITS.maxRoomsPerProject) {
-    return { allowed: false, reason: `Im Basic-Plan sind maximal ${BASIC_LIMITS.maxRoomsPerProject} Räume pro Objekt möglich.` };
+export function checkRoomLimit(currentRoomCount: number, plan: PlanId): LimitCheck {
+  if (isPaidPlan(plan)) return { allowed: true };
+  const limits = getPlanLimits(plan);
+  if (currentRoomCount >= limits.maxRoomsPerProject) {
+    return { allowed: false, reason: `Im Free-Plan sind maximal ${limits.maxRoomsPerProject} Räume pro Objekt möglich.` };
   }
   return { allowed: true };
 }
 
-export function checkTemplateAccess(plan: PlanType): LimitCheck {
-  if (plan === "pro") return { allowed: true };
+export function checkTemplateAccess(plan: PlanId): LimitCheck {
+  if (isPaidPlan(plan)) return { allowed: true };
   return { allowed: false, reason: "Vorlagen sind ein Pro-Feature." };
 }
 
-export function checkPDFAccess(plan: PlanType): LimitCheck {
-  if (plan === "pro") return { allowed: true };
+export function checkPDFAccess(plan: PlanId): LimitCheck {
+  if (isPaidPlan(plan)) return { allowed: true };
   return { allowed: false, reason: "PDF-Export ist ein Pro-Feature." };
 }
 
-export function checkPerformanceOverride(plan: PlanType): LimitCheck {
-  if (plan === "pro") return { allowed: true };
+export function checkPerformanceOverride(plan: PlanId): LimitCheck {
+  if (isPaidPlan(plan)) return { allowed: true };
   return { allowed: false, reason: "Individuelle Leistungswerte sind ein Pro-Feature." };
 }

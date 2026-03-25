@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { canAddProject } from "@/lib/feature-gates";
+import { canAddProject, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
 import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler, AlertTriangle, Calendar, ArrowUpDown } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
 import { FREQUENCY_LABELS } from "@/lib/calc";
@@ -272,10 +272,10 @@ export default function ObjekteList() {
         </div>
       </div>
 
-      {plan === "basic" && projects.filter(p => p.status !== "archived").length >= 3 && (
+      {!isPaidPlan(plan) && projects.filter(p => p.status !== "archived").length >= getObjectLimit() && (
         <div className="mx-6 mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm text-muted-foreground flex items-center gap-2">
           <Building2 size={16} className="text-primary shrink-0" />
-          <span>Du nutzt {projects.filter(p => p.status !== "archived").length}/3 Objekte im Basic-Plan.</span>
+          <span>Du nutzt {projects.filter(p => p.status !== "archived").length}/{getObjectLimit()} Objekte im Free-Plan.</span>
         </div>
       )}
 

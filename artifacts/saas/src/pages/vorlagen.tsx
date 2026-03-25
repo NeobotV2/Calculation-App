@@ -6,6 +6,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canUseTemplates } from "@/lib/feature-gates";
+import { isPaidPlan } from "@/lib/billing-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, BookOpen, Plus, Trash2, Edit3, Check, X } from "lucide-react";
@@ -60,7 +61,7 @@ export default function Vorlagen() {
     setEditingId(null);
   };
 
-  if (plan === "basic") {
+  if (!isPaidPlan(plan)) {
     return (
       <PageTransition className="min-h-screen bg-background">
         <div className="safe-header px-4 pt-12 pb-3 flex items-center">

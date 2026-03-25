@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { canAddProject, BASIC_LIMITS } from "@/lib/feature-gates";
+import { canAddProject, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -146,8 +146,8 @@ export default function ObjektWizard() {
   const plan = useStore((s) => s.plan);
 
   const openAddRoom = () => {
-    if (plan !== "pro" && rooms.length >= BASIC_LIMITS.maxRoomsPerProject) {
-      setUpgradeReason(`Im Basic-Plan sind maximal ${BASIC_LIMITS.maxRoomsPerProject} Räume pro Objekt möglich.`);
+    if (!isPaidPlan(plan) && rooms.length >= getRoomLimit()) {
+      setUpgradeReason(`Im Free-Plan sind maximal ${getRoomLimit()} Räume pro Objekt möglich.`);
       setUpgradeOpen(true);
       return;
     }

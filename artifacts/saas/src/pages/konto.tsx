@@ -7,7 +7,8 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { BASIC_LIMITS } from "@/lib/feature-gates";
+import { getObjectLimit, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
+import { getPlanMeta } from "@/lib/billing-config";
 import { AppFooter } from "@/components/layout/AppFooter";
 
 export default function Konto() {
@@ -32,10 +33,12 @@ export default function Konto() {
   const emailConfirmed = authUser?.email_confirmed_at != null;
 
   const activeProjects = projects.filter(p => p.status !== "archived").length;
-  const projectLimit = plan === "pro" ? Infinity : BASIC_LIMITS.maxProjects;
-  const projectPercent = plan === "pro" ? 0 : Math.min(100, Math.round((activeProjects / projectLimit) * 100));
+  const objectLimit = getObjectLimit();
+  const roomLimit = getRoomLimit();
+  const projectPercent = isPaidPlan(plan) ? 0 : Math.min(100, Math.round((activeProjects / objectLimit) * 100));
   const largestProjectRooms = projects.reduce((max, p) => Math.max(max, p.rooms.length), 0);
-  const roomsPercent = plan === "pro" ? 0 : Math.min(100, Math.round((largestProjectRooms / BASIC_LIMITS.maxRoomsPerProject) * 100));
+  const roomsPercent = isPaidPlan(plan) ? 0 : Math.min(100, Math.round((largestProjectRooms / roomLimit) * 100));
+  const planMeta = getPlanMeta(plan);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -153,13 +156,13 @@ export default function Konto() {
           </div>
         )}
 
-        {plan === "basic" && (
+        {!isPaidPlan(plan) && (
           <div className="bg-card border border-border/40 rounded-3xl p-6">
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-4">Nutzung</p>
             <div>
               <div className="flex justify-between items-baseline mb-2">
                 <span className="text-sm font-medium text-foreground">Aktive Objekte</span>
-                <span className="text-sm text-muted-foreground">{activeProjects} / {BASIC_LIMITS.maxProjects}</span>
+                <span className="text-sm text-muted-foreground">{activeProjects} / {objectLimit}</span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
@@ -174,7 +177,7 @@ export default function Konto() {
             <div className="mt-5 pt-5 border-t border-border/20">
               <div className="flex justify-between items-baseline mb-2">
                 <span className="text-sm font-medium text-foreground">Räume (größtes Objekt)</span>
-                <span className="text-sm text-muted-foreground">{largestProjectRooms} / {BASIC_LIMITS.maxRoomsPerProject}</span>
+                <span className="text-sm text-muted-foreground">{largestProjectRooms} / {roomLimit}</span>
               </div>
               <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                 <div
@@ -189,31 +192,31 @@ export default function Konto() {
           </div>
         )}
 
-        <div className={`rounded-3xl p-1 border ${plan === "pro" ? "border-primary/50 bg-primary/5" : "border-border/40 bg-card"}`}>
+        <div className={`rounded-3xl p-1 border ${isPaidPlan(plan) ? "border-primary/50 bg-primary/5" : "border-border/40 bg-card"}`}>
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">Dein Plan</p>
                 <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  {plan === "pro" ? "Pro Version" : "Basic (Kostenlos)"}
-                  {plan === "pro" && <Crown size={24} className="text-primary" />}
+                  {isPaidPlan(plan) ? planMeta.label : "Free (Kostenlos)"}
+                  {isPaidPlan(plan) && <Crown size={24} className="text-primary" />}
                 </h3>
               </div>
             </div>
 
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{plan === "pro" ? "Unbegrenzte Objekte" : "3 Objekte"}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Unbegrenzte Objekte" : `${objectLimit} Objekt`}</span>
               </div>
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{plan === "pro" ? "PDF-Angebote exportieren" : "In-App Ansicht"}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "PDF-Angebote exportieren" : "In-App Ansicht"}</span>
               </div>
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{plan === "pro" ? "Vorlagen & Leistungswerte" : "Standard-Leistungswerte"}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Vorlagen & Leistungswerte" : "Standard-Leistungswerte"}</span>
               </div>
             </div>
 
-            {plan === "basic" && (
+            {!isPaidPlan(plan) && (
               <Button onClick={() => setLocation("/upgrade")} className="w-full h-14 text-lg">Jetzt auf Pro upgraden</Button>
             )}
           </div>

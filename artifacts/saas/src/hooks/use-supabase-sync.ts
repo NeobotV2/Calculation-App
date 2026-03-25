@@ -68,7 +68,7 @@ async function fetchAndApply(userId: string, userEmail: string, userMeta: Record
     defaultFrequency: settings?.default_frequency ?? "5x_week",
     pdfHeader: settings?.pdf_header ?? "",
     pdfFooter: settings?.pdf_footer ?? "",
-    plan: (subscription?.plan as "basic" | "pro") ?? "basic",
+    plan: ((subscription?.plan as string) === "pro" ? "pro_monthly" : (subscription?.plan as string) === "basic" ? "free" : (subscription?.plan ?? "free")) as import("@/lib/billing-config").PlanId,
     projects,
     templates,
     customRoomTypes,

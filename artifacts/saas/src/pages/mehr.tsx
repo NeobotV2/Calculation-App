@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
+import { isPaidPlan } from "@/lib/billing-config";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { AppFooter } from "@/components/layout/AppFooter";
 import {
@@ -51,7 +52,7 @@ export default function Mehr() {
     { label: "Datenexport", icon: Download, action: handleExport, subtitle: "Alle Daten als JSON sichern" },
   ];
 
-  if (plan === "basic") {
+  if (!isPaidPlan(plan)) {
     hauptItems.push({ label: "Upgrade auf Pro", icon: Crown, href: "/upgrade", subtitle: "Alle Funktionen freischalten", badge: "PRO" });
   }
 

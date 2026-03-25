@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FREQUENCY_LABELS } from "@/lib/calc";
+import { isPaidPlan } from "@/lib/billing-config";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
 import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle, ImagePlus, X, Sun, Moon, Palette } from "lucide-react";
 import { WARNING_TYPES } from "@/lib/warnings";
@@ -412,8 +413,8 @@ export default function Einstellungen() {
             <Layers size={16} /> Raumarten
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
-            <div className={plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}>
-              {customRoomTypes.length === 0 && plan === "pro" && (
+            <div className={!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}>
+              {customRoomTypes.length === 0 && isPaidPlan(plan) && (
                 <p className="text-sm text-muted-foreground mb-4">Noch keine eigenen Raumarten definiert.</p>
               )}
               {customRoomTypes.length > 0 && (
@@ -456,7 +457,7 @@ export default function Einstellungen() {
                 </Button>
               )}
             </div>
-            {plan === "basic" && (
+            {!isPaidPlan(plan) && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
                 <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
                   <Lock size={20} className="text-foreground" />
@@ -533,7 +534,7 @@ export default function Einstellungen() {
             <FileText size={16} /> PDF & Branding
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
-            <div className={`space-y-5 ${plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}`}>
+            <div className={`space-y-5 ${!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}`}>
               <p className="text-xs text-muted-foreground">
                 Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier kannst du optionale Zusatzzeilen eintragen.
               </p>
@@ -543,16 +544,16 @@ export default function Einstellungen() {
                   <div className="flex items-center gap-4">
                     <img src={companyLogo} alt="Logo" className="h-14 w-auto object-contain rounded-lg border border-border/30 bg-white p-1" />
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={plan === "basic"}>
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={!isPaidPlan(plan)}>
                         Ändern
                       </Button>
-                      <Button variant="outline" size="sm" onClick={handleRemoveLogo} disabled={plan === "basic"} className="text-destructive hover:bg-destructive/10">
+                      <Button variant="outline" size="sm" onClick={handleRemoveLogo} disabled={!isPaidPlan(plan)} className="text-destructive hover:bg-destructive/10">
                         <X size={14} className="mr-1" /> Entfernen
                       </Button>
                     </div>
                   </div>
                 ) : (
-                  <Button variant="outline" onClick={() => logoInputRef.current?.click()} className="w-full h-20 border-dashed flex flex-col items-center gap-1" disabled={plan === "basic"}>
+                  <Button variant="outline" onClick={() => logoInputRef.current?.click()} className="w-full h-20 border-dashed flex flex-col items-center gap-1" disabled={!isPaidPlan(plan)}>
                     <ImagePlus size={20} className="text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">Logo hochladen (max. 500 KB)</span>
                   </Button>
@@ -566,7 +567,7 @@ export default function Einstellungen() {
                   value={header}
                   onChange={(e) => setHeader(e.target.value)}
                   placeholder="z.B. Angebots-Nr., Datum, Adresse"
-                  disabled={plan === "basic"}
+                  disabled={!isPaidPlan(plan)}
                   className="bg-background border-border/50 h-12"
                 />
               </div>
@@ -576,16 +577,16 @@ export default function Einstellungen() {
                   value={footer}
                   onChange={(e) => setFooter(e.target.value)}
                   placeholder="Bankverbindung, HRB, etc."
-                  disabled={plan === "basic"}
+                  disabled={!isPaidPlan(plan)}
                   className="bg-background border-border/50 h-12"
                 />
               </div>
-              <Button onClick={handleSavePDF} className="w-full" disabled={plan === "basic" || isSaving}>
+              <Button onClick={handleSavePDF} className="w-full" disabled={!isPaidPlan(plan) || isSaving}>
                 <Save size={18} className="mr-2" /> PDF-Einstellungen speichern
               </Button>
             </div>
 
-            {plan === "basic" && (
+            {!isPaidPlan(plan) && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
                 <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
                   <Lock size={20} className="text-foreground" />
@@ -603,7 +604,7 @@ export default function Einstellungen() {
             <Building2 size={16} /> Branding
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
-            <div className={`space-y-5 ${plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}`}>
+            <div className={`space-y-5 ${!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}`}>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Firmenlogo (für PDF)</label>
                 <div className="w-full h-24 border-2 border-dashed border-border/50 rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-background">
@@ -611,7 +612,7 @@ export default function Einstellungen() {
                 </div>
               </div>
             </div>
-            {plan === "basic" && (
+            {!isPaidPlan(plan) && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
                 <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
                   <Lock size={20} className="text-foreground" />

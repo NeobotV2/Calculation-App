@@ -2,16 +2,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Crown, X, CheckCircle2, Lock } from "lucide-react";
 import { useStore } from "@/store/use-store";
-import { toast } from "sonner";
+import { useLocation } from "wouter";
+import { type UpgradeTrigger, UPGRADE_TRIGGER_COPY } from "@/lib/billing-config";
 
 interface UpgradeModalProps {
   open: boolean;
   onClose: () => void;
   reason?: string;
+  triggerReason?: UpgradeTrigger;
 }
 
-export function UpgradeModal({ open, onClose, reason }: UpgradeModalProps) {
-  const upgradePlan = useStore((s) => s.upgradePlan);
+export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeModalProps) {
+  const [, setLocation] = useLocation();
+
+  const triggerCopy = triggerReason ? UPGRADE_TRIGGER_COPY[triggerReason] : null;
+  const displayReason = reason || triggerCopy?.text;
 
   return (
     <AnimatePresence>
@@ -41,45 +46,38 @@ export function UpgradeModal({ open, onClose, reason }: UpgradeModalProps) {
                 </button>
               </div>
 
-              <h2 className="text-3xl font-semibold tracking-tight mb-2">Pro freischalten</h2>
+              <h2 className="text-3xl font-semibold tracking-tight mb-2">
+                {triggerCopy?.headline || "Pro freischalten"}
+              </h2>
 
-              {reason && (
+              {displayReason && (
                 <div className="flex items-start gap-3 bg-card border border-border/40 rounded-2xl p-4 mb-6 mt-4">
                   <Lock size={18} className="text-primary mt-0.5 shrink-0" />
-                  <p className="text-sm text-muted-foreground">{reason}</p>
+                  <p className="text-sm text-muted-foreground">{displayReason}</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 my-6">
-                <div className="bg-card border border-border/40 rounded-2xl p-4">
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 font-semibold">Basic</p>
-                  <p className="text-lg font-bold">Kostenlos</p>
-                  <div className="mt-3 space-y-2 text-sm text-muted-foreground">
-                    <p>3 Objekte</p>
-                    <p>20 Räume/Objekt</p>
-                    <p className="line-through opacity-50">PDF-Export</p>
-                    <p className="line-through opacity-50">Vorlagen</p>
+              <div className="my-6 space-y-3">
+                {[
+                  "Unbegrenzte Objekte & Kalkulationen",
+                  "Finale PDF-Angebote ohne Wasserzeichen",
+                  "Vorlagen & Wiederverwendung",
+                  "Volle Plausibilitätsprüfung",
+                  "Eigenes Branding & Logo",
+                ].map((feature) => (
+                  <div key={feature} className="flex items-center gap-2.5 text-sm text-foreground">
+                    <CheckCircle2 size={16} className="text-primary shrink-0" />
+                    <span>{feature}</span>
                   </div>
-                </div>
-                <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-4 relative">
-                  <div className="absolute -top-2.5 right-3 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">Empfohlen</div>
-                  <p className="text-[10px] uppercase tracking-widest text-primary mb-2 font-semibold">Pro</p>
-                  <p className="text-lg font-bold">29€<span className="text-sm font-normal text-muted-foreground">/Mo</span></p>
-                  <div className="mt-3 space-y-2 text-sm">
-                    <p className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-primary" /> Unbegrenzt</p>
-                    <p className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-primary" /> Unbegrenzt</p>
-                    <p className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-primary" /> PDF-Export</p>
-                    <p className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-primary" /> Vorlagen</p>
-                  </div>
-                </div>
+                ))}
               </div>
 
               <Button
-                onClick={() => { upgradePlan(); toast.success("Erfolgreich auf PRO upgegradet!"); onClose(); }}
+                onClick={() => { onClose(); setLocation("/upgrade"); }}
                 size="lg"
                 className="w-full h-14 text-lg mt-2"
               >
-                Jetzt upgraden
+                Jetzt Pro freischalten
               </Button>
 
               <button onClick={onClose} className="w-full text-center text-sm text-muted-foreground mt-4 py-2">

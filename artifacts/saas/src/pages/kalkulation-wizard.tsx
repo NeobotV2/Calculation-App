@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { canAddProject, canAddRoom, BASIC_LIMITS, canUsePDF } from "@/lib/feature-gates";
+import { canAddProject, canAddRoom, canUsePDF, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS, FREQUENCY_FACTORS, getEffectivePerformance } from "@/lib/calc";
 import {
   calcHourlyRate,
@@ -243,8 +243,8 @@ export default function KalkulationWizard() {
   };
 
   const openAddRoom = () => {
-    if (plan !== "pro" && rooms.length >= BASIC_LIMITS.maxRoomsPerProject) {
-      setUpgradeReason(`Im Basic-Plan sind maximal ${BASIC_LIMITS.maxRoomsPerProject} Räume pro Objekt möglich.`);
+    if (!isPaidPlan(plan) && rooms.length >= getRoomLimit()) {
+      setUpgradeReason(`Im Free-Plan sind maximal ${getRoomLimit()} Räume pro Objekt möglich.`);
       setUpgradeOpen(true);
       return;
     }
