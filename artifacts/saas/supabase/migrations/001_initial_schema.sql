@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS company_settings (
 CREATE TABLE IF NOT EXISTS subscriptions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
-  plan text NOT NULL DEFAULT 'basic' CHECK (plan IN ('basic', 'pro')),
+  plan text NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro_monthly', 'pro_annual', 'founding_annual', 'business')),
   status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'past_due')),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
