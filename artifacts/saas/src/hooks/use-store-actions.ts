@@ -184,6 +184,14 @@ export function useStoreActions() {
 
   const updateSettings = useCallback(async (data: {
     companyName?: string;
+    companyStreet?: string;
+    companyZip?: string;
+    companyCity?: string;
+    companyPhone?: string;
+    companyEmail?: string;
+    companyTaxNumber?: string;
+    companyVatId?: string;
+    companyManagingDirector?: string;
     hourlyRate?: number;
     vatRate?: number;
     defaultFrequency?: string;
@@ -197,6 +205,14 @@ export function useStoreActions() {
       if (data.defaultFrequency !== undefined) dbUpdates.default_frequency = data.defaultFrequency;
       if (data.pdfHeader !== undefined) dbUpdates.pdf_header = data.pdfHeader;
       if (data.pdfFooter !== undefined) dbUpdates.pdf_footer = data.pdfFooter;
+      if (data.companyStreet !== undefined) dbUpdates.company_street = data.companyStreet;
+      if (data.companyZip !== undefined) dbUpdates.company_zip = data.companyZip;
+      if (data.companyCity !== undefined) dbUpdates.company_city = data.companyCity;
+      if (data.companyPhone !== undefined) dbUpdates.company_phone = data.companyPhone;
+      if (data.companyEmail !== undefined) dbUpdates.company_email = data.companyEmail;
+      if (data.companyTaxNumber !== undefined) dbUpdates.company_tax_number = data.companyTaxNumber;
+      if (data.companyVatId !== undefined) dbUpdates.company_vat_id = data.companyVatId;
+      if (data.companyManagingDirector !== undefined) dbUpdates.company_managing_director = data.companyManagingDirector;
 
       if (data.companyName !== undefined) {
         await updateCompanyName(data.companyName);
@@ -209,6 +225,14 @@ export function useStoreActions() {
     }
     const store = useStore.getState();
     if (data.companyName !== undefined) store.updateSettings({ companyName: data.companyName });
+    if (data.companyStreet !== undefined) store.updateSettings({ companyStreet: data.companyStreet });
+    if (data.companyZip !== undefined) store.updateSettings({ companyZip: data.companyZip });
+    if (data.companyCity !== undefined) store.updateSettings({ companyCity: data.companyCity });
+    if (data.companyPhone !== undefined) store.updateSettings({ companyPhone: data.companyPhone });
+    if (data.companyEmail !== undefined) store.updateSettings({ companyEmail: data.companyEmail });
+    if (data.companyTaxNumber !== undefined) store.updateSettings({ companyTaxNumber: data.companyTaxNumber });
+    if (data.companyVatId !== undefined) store.updateSettings({ companyVatId: data.companyVatId });
+    if (data.companyManagingDirector !== undefined) store.updateSettings({ companyManagingDirector: data.companyManagingDirector });
     if (data.hourlyRate !== undefined) store.updateSettings({ hourlyRate: data.hourlyRate });
     if (data.vatRate !== undefined) store.updateSettings({ vatRate: data.vatRate });
     if (data.defaultFrequency !== undefined) store.updateSettings({ defaultFrequency: data.defaultFrequency as import("@/store/use-store").FrequencyKey });

@@ -10,13 +10,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight } from "lucide-react";
+import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AppFooter } from "@/components/layout/AppFooter";
 
 export default function Einstellungen() {
   const [, setLocation] = useLocation();
   const companyName = useStore((s) => s.companyName);
+  const companyStreet = useStore((s) => s.companyStreet);
+  const companyZip = useStore((s) => s.companyZip);
+  const companyCity = useStore((s) => s.companyCity);
+  const companyPhone = useStore((s) => s.companyPhone);
+  const companyEmail = useStore((s) => s.companyEmail);
+  const companyTaxNumber = useStore((s) => s.companyTaxNumber);
+  const companyVatId = useStore((s) => s.companyVatId);
+  const companyManagingDirector = useStore((s) => s.companyManagingDirector);
   const hourlyRate = useStore((s) => s.hourlyRate);
   const vatRate = useStore((s) => s.vatRate);
   const defaultFrequency = useStore((s) => s.defaultFrequency);
@@ -33,6 +41,14 @@ export default function Einstellungen() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [company, setCompany] = useState(companyName);
+  const [street, setStreet] = useState(companyStreet);
+  const [zip, setZip] = useState(companyZip);
+  const [city, setCity] = useState(companyCity);
+  const [phone, setPhone] = useState(companyPhone);
+  const [email, setEmail] = useState(companyEmail);
+  const [taxNumber, setTaxNumber] = useState(companyTaxNumber);
+  const [vatId, setVatId] = useState(companyVatId);
+  const [managingDirector, setManagingDirector] = useState(companyManagingDirector);
   const [rate, setRate] = useState(hourlyRate.toString().replace(".", ","));
   const [vat, setVat] = useState(vatRate.toString().replace(".", ","));
   const [freq, setFreq] = useState<FrequencyKey>(defaultFrequency);
@@ -47,11 +63,32 @@ export default function Einstellungen() {
   const [newRoomPerf, setNewRoomPerf] = useState("");
   const [showResetDefaults, setShowResetDefaults] = useState(false);
 
-  const handleSave = async () => {
+  const handleSaveCompanyData = async () => {
     setIsSaving(true);
     try {
       await actions.updateSettings({
         companyName: company.trim() || "Meine Reinigungsfirma",
+        companyStreet: street.trim(),
+        companyZip: zip.trim(),
+        companyCity: city.trim(),
+        companyPhone: phone.trim(),
+        companyEmail: email.trim(),
+        companyTaxNumber: taxNumber.trim(),
+        companyVatId: vatId.trim(),
+        companyManagingDirector: managingDirector.trim(),
+      });
+      toast.success("Firmenstammdaten gespeichert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await actions.updateSettings({
         hourlyRate: parseFloat(rate.replace(",", ".")) || 22.5,
         vatRate: parseFloat(vat.replace(",", ".")) || 0,
         defaultFrequency: freq,
@@ -158,12 +195,21 @@ export default function Einstellungen() {
       const text = ev.target?.result as string;
       if (importData(text)) {
         toast.success("Daten importiert");
-        setCompany(useStore.getState().companyName);
-        setRate(useStore.getState().hourlyRate.toString().replace(".", ","));
-        setVat(useStore.getState().vatRate.toString().replace(".", ","));
-        setFreq(useStore.getState().defaultFrequency);
-        setHeader(useStore.getState().pdfHeader);
-        setFooter(useStore.getState().pdfFooter);
+        const s = useStore.getState();
+        setCompany(s.companyName);
+        setStreet(s.companyStreet);
+        setZip(s.companyZip);
+        setCity(s.companyCity);
+        setPhone(s.companyPhone);
+        setEmail(s.companyEmail);
+        setTaxNumber(s.companyTaxNumber);
+        setVatId(s.companyVatId);
+        setManagingDirector(s.companyManagingDirector);
+        setRate(s.hourlyRate.toString().replace(".", ","));
+        setVat(s.vatRate.toString().replace(".", ","));
+        setFreq(s.defaultFrequency);
+        setHeader(s.pdfHeader);
+        setFooter(s.pdfFooter);
       } else {
         toast.error("Ungültige Datei");
       }
@@ -176,6 +222,14 @@ export default function Einstellungen() {
     try {
       await actions.updateSettings({
         companyName: "Meine Reinigungsfirma",
+        companyStreet: "",
+        companyZip: "",
+        companyCity: "",
+        companyPhone: "",
+        companyEmail: "",
+        companyTaxNumber: "",
+        companyVatId: "",
+        companyManagingDirector: "",
         hourlyRate: 22.5,
         vatRate: 0,
         defaultFrequency: "5x_week",
@@ -186,6 +240,14 @@ export default function Einstellungen() {
         resetToDefaults();
       }
       setCompany("Meine Reinigungsfirma");
+      setStreet("");
+      setZip("");
+      setCity("");
+      setPhone("");
+      setEmail("");
+      setTaxNumber("");
+      setVatId("");
+      setManagingDirector("");
       setRate("22,5");
       setVat("0");
       setFreq("5x_week");
@@ -206,13 +268,63 @@ export default function Einstellungen() {
       <div className="p-6 space-y-8">
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Building2 size={16} /> Firmendaten & Kalkulation
+            <Building2 size={16} /> Firmenstammdaten
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Firmenname</label>
               <Input value={company} onChange={(e) => setCompany(e.target.value)} className="bg-background border-border/50 h-12" />
             </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <MapPin size={14} /> Adresse
+              </label>
+              <div className="space-y-3">
+                <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Straße und Hausnummer" className="bg-background border-border/50 h-12" />
+                <div className="flex gap-3">
+                  <Input value={zip} onChange={(e) => setZip(e.target.value)} placeholder="PLZ" className="bg-background border-border/50 h-12 w-28" />
+                  <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ort" className="bg-background border-border/50 h-12 flex-1" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <Phone size={14} /> Telefon
+              </label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="z.B. +49 123 456789" type="tel" className="bg-background border-border/50 h-12" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <Mail size={14} /> E-Mail
+              </label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@firma.de" type="email" className="bg-background border-border/50 h-12" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <FileCheck size={14} /> Steuerliche Angaben
+              </label>
+              <div className="space-y-3">
+                <Input value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} placeholder="Steuernummer" className="bg-background border-border/50 h-12" />
+                <Input value={vatId} onChange={(e) => setVatId(e.target.value)} placeholder="USt-IdNr. (z.B. DE123456789)" className="bg-background border-border/50 h-12" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">Geschäftsführer</label>
+              <Input value={managingDirector} onChange={(e) => setManagingDirector(e.target.value)} placeholder="Vor- und Nachname" className="bg-background border-border/50 h-12" />
+            </div>
+            <div className="pt-2">
+              <Button onClick={handleSaveCompanyData} className="w-full" disabled={isSaving}>
+                <Save size={18} className="mr-2" /> Firmenstammdaten speichern
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
+            <Calculator size={16} /> Kalkulation
+          </h2>
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">Standard-Verrechnungssatz (€/h)</label>
               <div className="flex gap-2">
@@ -325,6 +437,9 @@ export default function Einstellungen() {
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
             <div className={`space-y-5 ${plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}`}>
+              <p className="text-xs text-muted-foreground">
+                Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier kannst du optionale Zusatzzeilen eintragen.
+              </p>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Kopfzeile (optional)</label>
                 <Input
@@ -340,7 +455,7 @@ export default function Einstellungen() {
                 <Input
                   value={footer}
                   onChange={(e) => setFooter(e.target.value)}
-                  placeholder="Bankverbindung, HRB, Steuernr., etc."
+                  placeholder="Bankverbindung, HRB, etc."
                   disabled={plan === "basic"}
                   className="bg-background border-border/50 h-12"
                 />
@@ -389,7 +504,7 @@ export default function Einstellungen() {
         onClose={() => setShowResetDefaults(false)}
         onConfirm={handleResetDefaults}
         title="Einstellungen zurücksetzen?"
-        description="Firmenname, Verrechnungssatz, MwSt., Häufigkeit, PDF-Einstellungen und eigene Raumarten werden auf Standard zurückgesetzt. Objekte und Vorlagen bleiben erhalten."
+        description="Firmenstammdaten, Verrechnungssatz, MwSt., Häufigkeit, PDF-Einstellungen und eigene Raumarten werden auf Standard zurückgesetzt. Objekte und Vorlagen bleiben erhalten."
         confirmLabel="Zurücksetzen"
         destructive
       />

@@ -15,6 +15,14 @@ export default function PrintView() {
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
   const companyName = useStore((s) => s.companyName);
+  const companyStreet = useStore((s) => s.companyStreet);
+  const companyZip = useStore((s) => s.companyZip);
+  const companyCity = useStore((s) => s.companyCity);
+  const companyPhone = useStore((s) => s.companyPhone);
+  const companyEmail = useStore((s) => s.companyEmail);
+  const companyTaxNumber = useStore((s) => s.companyTaxNumber);
+  const companyVatId = useStore((s) => s.companyVatId);
+  const companyManagingDirector = useStore((s) => s.companyManagingDirector);
   const vatRate = useStore((s) => s.vatRate);
   const pdfHeader = useStore((s) => s.pdfHeader);
   const pdfFooter = useStore((s) => s.pdfFooter);
@@ -34,6 +42,10 @@ export default function PrintView() {
   const totals = calcProjectTotals(project, effectiveRate);
   const vatAmount = vatRate > 0 ? totals.cost * (vatRate / 100) : 0;
 
+  const hasAddress = companyStreet || companyZip || companyCity;
+  const hasContact = companyPhone || companyEmail;
+  const hasFooterData = companyTaxNumber || companyVatId || companyManagingDirector || pdfFooter;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="no-print safe-header bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 pt-12 pb-3 flex items-center justify-between">
@@ -50,9 +62,25 @@ export default function PrintView() {
         <div className="print:text-black print:bg-white">
           {pdfHeader && <p className="text-sm text-muted-foreground print:text-gray-600 mb-4">{pdfHeader}</p>}
 
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight print:text-black">{companyName}</h1>
-            <p className="text-muted-foreground print:text-gray-500 mt-1">Angebot</p>
+          <div className="mb-8 flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight print:text-black">{companyName}</h1>
+              {hasAddress && (
+                <p className="text-sm text-muted-foreground print:text-gray-500 mt-1">
+                  {companyStreet}{companyStreet && (companyZip || companyCity) ? ", " : ""}{companyZip} {companyCity}
+                </p>
+              )}
+            </div>
+            {hasContact && (
+              <div className="text-right text-sm text-muted-foreground print:text-gray-500 mt-1">
+                {companyPhone && <p>{companyPhone}</p>}
+                {companyEmail && <p>{companyEmail}</p>}
+              </div>
+            )}
+          </div>
+
+          <div className="mb-2">
+            <p className="text-muted-foreground print:text-gray-500 text-lg font-medium">Angebot</p>
           </div>
 
           <div className="mb-8 space-y-1">
@@ -118,9 +146,16 @@ export default function PrintView() {
             </div>
           </div>
 
-          {pdfFooter && (
+          {hasFooterData && (
             <div className="mt-12 pt-4 border-t border-border/30 print:border-gray-200">
-              <p className="text-xs text-muted-foreground print:text-gray-500">{pdfFooter}</p>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground print:text-gray-500">
+                {companyManagingDirector && <span>Geschäftsführer: {companyManagingDirector}</span>}
+                {companyTaxNumber && <span>Steuernummer: {companyTaxNumber}</span>}
+                {companyVatId && <span>USt-IdNr.: {companyVatId}</span>}
+              </div>
+              {pdfFooter && (
+                <p className="text-xs text-muted-foreground print:text-gray-500 mt-2">{pdfFooter}</p>
+              )}
             </div>
           )}
 

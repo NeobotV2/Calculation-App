@@ -75,6 +75,14 @@ interface AppState {
   plan: "basic" | "pro";
 
   companyName: string;
+  companyStreet: string;
+  companyZip: string;
+  companyCity: string;
+  companyPhone: string;
+  companyEmail: string;
+  companyTaxNumber: string;
+  companyVatId: string;
+  companyManagingDirector: string;
   hourlyRate: number;
   vatRate: number;
   defaultFrequency: FrequencyKey;
@@ -92,7 +100,7 @@ interface AppState {
   clearSession: () => void;
   // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
   upgradePlan: () => void;
-  updateSettings: (data: Partial<{ companyName: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
+  updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
 
   addProject: (name: string, customer?: string) => string;
@@ -186,6 +194,14 @@ export const useStore = create<AppState>()(
       plan: "basic",
 
       companyName: "Meine Reinigungsfirma",
+      companyStreet: "",
+      companyZip: "",
+      companyCity: "",
+      companyPhone: "",
+      companyEmail: "",
+      companyTaxNumber: "",
+      companyVatId: "",
+      companyManagingDirector: "",
       hourlyRate: 22.50,
       vatRate: 0,
       defaultFrequency: "5x_week" as FrequencyKey,
@@ -224,6 +240,14 @@ export const useStore = create<AppState>()(
             hourlyRateConfig: getDefaultConfig(),
             plan: "basic",
             companyName: "Meine Reinigungsfirma",
+            companyStreet: "",
+            companyZip: "",
+            companyCity: "",
+            companyPhone: "",
+            companyEmail: "",
+            companyTaxNumber: "",
+            companyVatId: "",
+            companyManagingDirector: "",
             hourlyRate: 22.50,
             vatRate: 0,
             defaultFrequency: "5x_week" as FrequencyKey,
@@ -397,6 +421,14 @@ export const useStore = create<AppState>()(
         const s = get();
         return JSON.stringify({
           companyName: s.companyName,
+          companyStreet: s.companyStreet,
+          companyZip: s.companyZip,
+          companyCity: s.companyCity,
+          companyPhone: s.companyPhone,
+          companyEmail: s.companyEmail,
+          companyTaxNumber: s.companyTaxNumber,
+          companyVatId: s.companyVatId,
+          companyManagingDirector: s.companyManagingDirector,
           hourlyRate: s.hourlyRate,
           vatRate: s.vatRate,
           defaultFrequency: s.defaultFrequency,
@@ -415,6 +447,14 @@ export const useStore = create<AppState>()(
           if (!data || typeof data !== "object") return false;
           const updates: Partial<AppState> = {};
           if (data.companyName) updates.companyName = data.companyName;
+          if (data.companyStreet !== undefined) updates.companyStreet = data.companyStreet;
+          if (data.companyZip !== undefined) updates.companyZip = data.companyZip;
+          if (data.companyCity !== undefined) updates.companyCity = data.companyCity;
+          if (data.companyPhone !== undefined) updates.companyPhone = data.companyPhone;
+          if (data.companyEmail !== undefined) updates.companyEmail = data.companyEmail;
+          if (data.companyTaxNumber !== undefined) updates.companyTaxNumber = data.companyTaxNumber;
+          if (data.companyVatId !== undefined) updates.companyVatId = data.companyVatId;
+          if (data.companyManagingDirector !== undefined) updates.companyManagingDirector = data.companyManagingDirector;
           if (data.hourlyRate) updates.hourlyRate = data.hourlyRate;
           if (data.vatRate !== undefined) updates.vatRate = data.vatRate;
           if (data.defaultFrequency) updates.defaultFrequency = data.defaultFrequency;
@@ -434,6 +474,14 @@ export const useStore = create<AppState>()(
       resetToDefaults: () =>
         set({
           companyName: "Meine Reinigungsfirma",
+          companyStreet: "",
+          companyZip: "",
+          companyCity: "",
+          companyPhone: "",
+          companyEmail: "",
+          companyTaxNumber: "",
+          companyVatId: "",
+          companyManagingDirector: "",
           hourlyRate: 22.50,
           vatRate: 0,
           defaultFrequency: "5x_week" as FrequencyKey,
@@ -456,6 +504,14 @@ export const useStore = create<AppState>()(
           hourlyRateConfig: getDefaultConfig(),
           plan: "basic",
           companyName: "Meine Reinigungsfirma",
+          companyStreet: "",
+          companyZip: "",
+          companyCity: "",
+          companyPhone: "",
+          companyEmail: "",
+          companyTaxNumber: "",
+          companyVatId: "",
+          companyManagingDirector: "",
           hourlyRate: 22.50,
           vatRate: 0,
           defaultFrequency: "5x_week" as FrequencyKey,
@@ -468,7 +524,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 4,
+      version: 5,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -496,6 +552,19 @@ export const useStore = create<AppState>()(
           state = {
             ...state,
             hourlyRateConfig: state.hourlyRateConfig ?? getDefaultConfig(),
+          };
+        }
+        if (version < 5) {
+          state = {
+            ...state,
+            companyStreet: state.companyStreet ?? "",
+            companyZip: state.companyZip ?? "",
+            companyCity: state.companyCity ?? "",
+            companyPhone: state.companyPhone ?? "",
+            companyEmail: state.companyEmail ?? "",
+            companyTaxNumber: state.companyTaxNumber ?? "",
+            companyVatId: state.companyVatId ?? "",
+            companyManagingDirector: state.companyManagingDirector ?? "",
           };
         }
         return state;
