@@ -117,6 +117,7 @@ interface AppState {
   addRoom: (projectId: string, room: Omit<Room, "id">) => void;
   updateRoom: (projectId: string, roomId: string, room: Partial<Room>) => void;
   deleteRoom: (projectId: string, roomId: string) => void;
+  reorderRooms: (projectId: string, fromIndex: number, toIndex: number) => void;
 
   addCustomRoomType: (rt: Omit<CustomRoomType, "id">) => void;
   updateCustomRoomType: (id: string, data: Partial<Omit<CustomRoomType, "id">>) => void;
@@ -381,6 +382,17 @@ export const useStore = create<AppState>()(
                 }
               : p
           ),
+        })),
+
+      reorderRooms: (projectId, fromIndex, toIndex) =>
+        set((state) => ({
+          projects: state.projects.map((p) => {
+            if (p.id !== projectId) return p;
+            const rooms = [...p.rooms];
+            const [moved] = rooms.splice(fromIndex, 1);
+            rooms.splice(toIndex, 0, moved);
+            return { ...p, rooms, updatedAt: new Date().toISOString() };
+          }),
         })),
 
       addTemplate: (name, rooms) =>

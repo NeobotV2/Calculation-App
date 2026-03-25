@@ -6,7 +6,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw } from "lucide-react";
+import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { BASIC_LIMITS } from "@/lib/feature-gates";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -24,6 +24,7 @@ export default function Konto() {
   const { signOut, isAuthenticated, user: authUser, resendConfirmation } = useAuth();
 
   const [showReset, setShowReset] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -51,6 +52,19 @@ export default function Konto() {
     resetAll();
     toast.success("Alle Daten gelöscht");
     setLocation("/splash");
+  };
+
+  const handlePasswordChange = () => {
+    if (isAuthenticated) {
+      setLocation("/passwort-vergessen");
+    } else {
+      toast.info("Passwort-Änderung ist nur mit einem registrierten Account möglich.");
+    }
+  };
+
+  const handleDeleteAccount = () => {
+    toast.info("Account-Löschung wird in einer zukünftigen Version verfügbar sein. Kontaktiere uns per E-Mail.");
+    setShowDeleteAccount(false);
   };
 
   return (
@@ -206,16 +220,40 @@ export default function Konto() {
         </div>
 
         <div className="space-y-1">
+          <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-3 ml-1">Konto-Verwaltung</h3>
+          <button
+            onClick={handlePasswordChange}
+            className="w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors rounded-b-none"
+          >
+            <span className="flex items-center gap-3">
+              <Key size={16} className="text-muted-foreground" />
+              Passwort ändern
+            </span>
+            <ChevronRight size={14} className="text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => setShowDeleteAccount(true)}
+            className="w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition-colors rounded-t-none border-t-0"
+          >
+            <span className="flex items-center gap-3">
+              <Trash2 size={16} />
+              Account löschen
+            </span>
+            <ChevronRight size={14} className="text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="space-y-1">
           <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-3 ml-1">Rechtliches</h3>
           {[
             { href: "/impressum", icon: FileText, label: "Impressum" },
             { href: "/datenschutz", icon: Shield, label: "Datenschutzerklärung" },
             { href: "/agb", icon: ScrollText, label: "AGB" },
-          ].map((item) => (
+          ].map((item, i, arr) => (
             <button
               key={item.href}
               onClick={() => setLocation(item.href)}
-              className="w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors first:rounded-b-none last:rounded-t-none [&:not(:first-child):not(:last-child)]:rounded-none border-t-0 first:border-t"
+              className={`w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 text-sm text-foreground hover:bg-secondary transition-colors ${i === 0 ? "rounded-xl rounded-b-none" : i === arr.length - 1 ? "rounded-xl rounded-t-none border-t-0" : "rounded-none border-t-0"}`}
             >
               <span className="flex items-center gap-3">
                 <item.icon size={16} className="text-muted-foreground" />
@@ -256,6 +294,15 @@ export default function Konto() {
         description="ACHTUNG: Dies löscht sämtliche Objekte, Vorlagen und Einstellungen unwiderruflich. Die App wird zurückgesetzt."
         confirmLabel="Alles löschen"
         destructive
+      />
+
+      <ConfirmDialog
+        open={showDeleteAccount}
+        onClose={() => setShowDeleteAccount(false)}
+        onConfirm={handleDeleteAccount}
+        title="Account löschen?"
+        description="Die Account-Löschung wird in einer zukünftigen Version direkt in der App möglich sein. Aktuell kontaktiere uns bitte per E-Mail."
+        confirmLabel="Verstanden"
       />
 
       <AppFooter />

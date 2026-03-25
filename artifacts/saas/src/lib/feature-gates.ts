@@ -26,7 +26,15 @@ export function canAddRoom(projectId: string): { allowed: boolean; reason?: stri
 }
 
 export function canUsePDF(): { allowed: boolean; reason?: string } {
-  return { allowed: true };
+  const { plan } = useStore.getState();
+  if (plan === "pro") return { allowed: true };
+  return { allowed: false, reason: "PDF-Export ist ein Pro-Feature. Im Basic-Plan kannst du die Vorschau sehen, aber nicht exportieren." };
+}
+
+export function canUseBranding(): { allowed: boolean; reason?: string } {
+  const { plan } = useStore.getState();
+  if (plan === "pro") return { allowed: true };
+  return { allowed: false, reason: "Eigenes Branding ist ein Pro-Feature." };
 }
 
 export function canUseTemplates(): { allowed: boolean; reason?: string } {

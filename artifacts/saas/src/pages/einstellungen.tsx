@@ -545,6 +545,32 @@ export default function Einstellungen() {
 
         <section className="space-y-4">
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
+            <Building2 size={16} /> Branding
+          </h2>
+          <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
+            <div className={`space-y-5 ${plan === "basic" ? "opacity-30 select-none pointer-events-none" : ""}`}>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Firmenlogo (für PDF)</label>
+                <div className="w-full h-24 border-2 border-dashed border-border/50 rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-background">
+                  Logo-Upload (demnächst verfügbar)
+                </div>
+              </div>
+            </div>
+            {plan === "basic" && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
+                <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
+                  <Lock size={20} className="text-foreground" />
+                </div>
+                <p className="font-semibold text-foreground mb-1">Nur im Pro Plan</p>
+                <p className="text-xs text-muted-foreground mb-4">Eigenes Logo & Branding.</p>
+                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Upgrade ansehen</Button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
             <Download size={16} /> Daten & Sicherung
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">

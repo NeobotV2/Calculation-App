@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canAddProject } from "@/lib/feature-gates";
-import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler, AlertTriangle } from "lucide-react";
+import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore, Trash2, Edit3, Zap, ChevronDown, Clock, Ruler, AlertTriangle, Calendar, ArrowUpDown } from "lucide-react";
 import { calcProjectTotals } from "@/lib/calc";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";

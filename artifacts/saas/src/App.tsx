@@ -32,6 +32,7 @@ import AGB from "@/pages/agb";
 import NotFound from "@/pages/not-found";
 import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/legacy-redirect";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { CookieNotice } from "@/components/cookie-notice";
 import { useAndroidBack } from "@/hooks/use-android-back";
 
 function SessionLoader() {
@@ -135,6 +136,7 @@ function App() {
             <AppRouter />
           </AuthGuard>
           <Toaster position="top-center" />
+          <CookieNotice />
         </WouterRouter>
       </SupabaseAuthProvider>
     </ErrorBoundary>

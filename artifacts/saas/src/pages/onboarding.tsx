@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { useStore } from "@/store/use-store";
-import { Building2, User, Play } from "lucide-react";
+import { Building2, User, Play, Sparkles, ArrowRight, SkipForward } from "lucide-react";
 
 const ROLES = ["Inhaber / GF", "Vertrieb", "Objektleitung", "Kalkulation"];
+const TOTAL_STEPS = 5;
 
 export default function Onboarding() {
   const [, setLocation] = useLocation();
@@ -28,21 +29,60 @@ export default function Onboarding() {
     setLocation("/");
   };
 
+  const handleSkip = () => {
+    completeOnboarding({
+      role: "Benutzer",
+      companyName: "Meine Firma",
+      hourlyRate: 22.50,
+      loadDemo: true,
+    });
+    setLocation("/");
+  };
+
   const nextStep = () => setStep(s => s + 1);
 
   return (
     <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto">
       <div className="flex-1 flex flex-col p-6 pt-12 relative">
-        <div className="w-full bg-border h-1 rounded-full mb-12 overflow-hidden">
-          <div 
-            className="h-full bg-primary transition-all duration-300"
-            style={{ width: `${(step / 3) * 100}%` }}
-          />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex-1 bg-border h-1 rounded-full overflow-hidden mr-4">
+            <div 
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
+            />
+          </div>
+          {step < TOTAL_STEPS && (
+            <button
+              onClick={handleSkip}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <SkipForward size={14} /> Überspringen
+            </button>
+          )}
         </div>
 
         <AnimatePresence mode="wait">
           {step === 1 && (
-            <PageTransition key="step1" className="flex-1 flex flex-col">
+            <PageTransition key="step1" className="flex-1 flex flex-col justify-center">
+              <div className="text-center mb-12">
+                <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                  <Sparkles size={40} className="text-primary" />
+                </div>
+                <h1 className="text-4xl font-semibold tracking-tight mb-3">
+                  Willkommen bei CleanCalc <span className="text-primary">Pro</span>
+                </h1>
+                <p className="text-muted-foreground text-lg px-2">
+                  Die professionelle Kalkulationslösung für Gebäudereiniger. In wenigen Schritten eingerichtet.
+                </p>
+              </div>
+              <Button onClick={nextStep} size="lg" className="w-full h-14 text-lg">
+                Los geht's <ArrowRight size={20} className="ml-2" />
+              </Button>
+            </PageTransition>
+          )}
+
+          {step === 2 && (
+            <PageTransition key="step2" className="flex-1 flex flex-col">
               <div className="flex-1">
                 <h2 className="text-3xl font-semibold tracking-tight mb-2">Wie ist deine Rolle?</h2>
                 <p className="text-muted-foreground text-lg mb-8">Das hilft uns, die App für dich anzupassen.</p>
@@ -64,8 +104,8 @@ export default function Onboarding() {
             </PageTransition>
           )}
 
-          {step === 2 && (
-            <PageTransition key="step2" className="flex-1 flex flex-col">
+          {step === 3 && (
+            <PageTransition key="step3" className="flex-1 flex flex-col">
               <div className="flex-1">
                 <h2 className="text-3xl font-semibold tracking-tight mb-2">Firma & Verrechnungssatz</h2>
                 <p className="text-muted-foreground text-lg mb-8">Diese Angaben kannst du jederzeit ändern.</p>
@@ -96,12 +136,12 @@ export default function Onboarding() {
             </PageTransition>
           )}
 
-          {step === 3 && (
-            <PageTransition key="step3" className="flex-1 flex flex-col">
+          {step === 4 && (
+            <PageTransition key="step4" className="flex-1 flex flex-col">
               <div className="flex-1 flex flex-col justify-center">
                 <div className="text-center mb-10">
-                  <h2 className="text-4xl font-semibold tracking-tight mb-3">Fast geschafft!</h2>
-                  <p className="text-muted-foreground text-lg">Wie möchtest du starten?</p>
+                  <h2 className="text-4xl font-semibold tracking-tight mb-3">Wie möchtest du starten?</h2>
+                  <p className="text-muted-foreground text-lg">Wähle deinen Einstieg.</p>
                 </div>
                 
                 <div className="space-y-4">
@@ -112,7 +152,7 @@ export default function Onboarding() {
                       </div>
                       <div>
                         <h3 className="text-xl font-bold text-foreground">Mit Demo starten</h3>
-                        <p className="text-primary mt-1">Lade ein Beispiel-Objekt</p>
+                        <p className="text-primary mt-1">Lade Beispiel-Objekte zum Testen</p>
                       </div>
                     </div>
                   </button>
@@ -123,13 +163,37 @@ export default function Onboarding() {
                         <Building2 size={24} />
                       </div>
                       <div>
-                        <h3 className="text-xl font-bold text-foreground">Leeres Objekt</h3>
+                        <h3 className="text-xl font-bold text-foreground">Leeres Projekt</h3>
                         <p className="text-muted-foreground mt-1">Ganz von vorne anfangen</p>
                       </div>
                     </div>
                   </button>
                 </div>
               </div>
+            </PageTransition>
+          )}
+
+          {step === 5 && (
+            <PageTransition key="step5" className="flex-1 flex flex-col justify-center">
+              <div className="text-center mb-10">
+                <h2 className="text-3xl font-semibold tracking-tight mb-3">Account erstellen?</h2>
+                <p className="text-muted-foreground text-lg px-2">
+                  Sichere deine Daten in der Cloud. Du kannst die App auch erst ohne Account testen.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <Button onClick={() => { handleComplete(true); setTimeout(() => setLocation("/register"), 100); }} size="lg" className="w-full h-14 text-lg">
+                  Account erstellen
+                </Button>
+                <Button variant="outline" onClick={() => handleComplete(true)} size="lg" className="w-full h-14 text-base">
+                  Erst mal ohne Account testen
+                </Button>
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground mt-6 px-4">
+                Im Demo-Modus werden deine Daten lokal gespeichert. Du kannst jederzeit einen Account erstellen.
+              </p>
             </PageTransition>
           )}
         </AnimatePresence>

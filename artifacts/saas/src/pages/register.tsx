@@ -21,6 +21,9 @@ export default function Register() {
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [showMigration, setShowMigration] = useState(false);
+  const [migrationData, setMigrationData] = useState<ReturnType<typeof getDemoData>>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,16 +66,30 @@ export default function Register() {
 
     if (hasDemoData()) {
       const data = getDemoData();
-      if (data) {
-        const success = await migrateDemoData(data);
-        if (success) {
-          toast.success("Demo-Daten in dein Konto übernommen!");
-        }
+      if (data && (data.projects.length > 0 || data.templates.length > 0)) {
+        setMigrationData(data);
+        setShowMigration(true);
+        return;
+      }
+    }
+    clearDemoData();
+    setLocation("/");
+  };
+
+  const handleMigrate = async (accept: boolean) => {
+    if (accept && migrationData) {
+      setIsMigrating(true);
+      const success = await migrateDemoData(migrationData);
+      setIsMigrating(false);
+      if (success) {
+        toast.success("Demo-Daten erfolgreich übernommen!");
+      } else {
+        toast.error("Fehler beim Übernehmen der Demo-Daten.");
       }
     } else {
       clearDemoData();
     }
-
+    setShowMigration(false);
     setLocation("/");
   };
 
@@ -97,6 +114,58 @@ export default function Register() {
       }, 1000);
     }
   };
+
+  if (showMigration) {
+    return (
+      <PageTransition className="min-h-screen bg-background flex flex-col px-6">
+        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
+          <div className="flex justify-center mb-8">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground">
+              CleanCalc <span className="text-primary">Pro</span>
+            </h2>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-center mb-3 text-foreground">
+            Demo-Daten gefunden
+          </h1>
+          <p className="text-muted-foreground text-base text-center mb-8">
+            Du hast im Demo-Modus Daten erstellt. Möchtest du diese in dein neues Konto übernehmen?
+          </p>
+          {migrationData && (
+            <div className="bg-card border border-border/40 rounded-2xl p-4 mb-8">
+              <p className="text-sm text-muted-foreground">
+                {migrationData.projects.length} Objekt{migrationData.projects.length !== 1 ? "e" : ""},
+                {" "}{migrationData.templates.length} Vorlage{migrationData.templates.length !== 1 ? "n" : ""}
+              </p>
+            </div>
+          )}
+          <div className="space-y-3">
+            <Button
+              className="w-full h-14 text-lg"
+              onClick={() => handleMigrate(true)}
+              disabled={isMigrating}
+            >
+              {isMigrating ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Wird übertragen...
+                </span>
+              ) : (
+                "Ja, Daten übernehmen"
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-14 text-base"
+              onClick={() => handleMigrate(false)}
+              disabled={isMigrating}
+            >
+              Nein, mit leerem Konto starten
+            </Button>
+          </div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   if (needsConfirmation) {
     return (

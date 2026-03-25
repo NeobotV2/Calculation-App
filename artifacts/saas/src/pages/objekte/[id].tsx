@@ -27,6 +27,7 @@ export default function ObjektDetail() {
   const disabledWarnings = useStore((s) => s.disabledWarnings);
   const targetMargin = useStore((s) => s.targetMargin);
   const plan = useStore((s) => s.plan);
+  const reorderRooms = useStore((s) => s.reorderRooms);
   const actions = useStoreActions();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -139,6 +140,18 @@ export default function ObjektDetail() {
     setMenuOpen(false);
   };
 
+  const handleOpenPDF = () => {
+    const gate = canUsePDF();
+    if (!gate.allowed) {
+      setUpgradeReason(gate.reason || "");
+      setUpgradeOpen(true);
+      setMenuOpen(false);
+      return;
+    }
+    setLocation(`/print/${project.id}`);
+    setMenuOpen(false);
+  };
+
   const handleDuplicate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
@@ -186,6 +199,12 @@ export default function ObjektDetail() {
     setDeleteRoomId(null);
   };
 
+  const handleMoveRoom = (index: number, direction: "up" | "down") => {
+    const target = direction === "up" ? index - 1 : index + 1;
+    if (target < 0 || target >= project.rooms.length) return;
+    reorderRooms(project.id, index, target);
+  };
+
   return (
     <PageTransition className="min-h-screen bg-background pb-32">
       <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12">
@@ -209,10 +228,7 @@ export default function ObjektDetail() {
             <button onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" /> Info bearbeiten</button>
             <button onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
             <button onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" /> Als Vorlage speichern</button>
-            <button onClick={() => {
-              setLocation(`/print/${project.id}`);
-              setMenuOpen(false);
-            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> Angebot als PDF</button>
+            <button onClick={handleOpenPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> Angebot als PDF</button>
             <button onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" /> Archivieren</button>
             <button onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} /> Löschen</button>
           </div>
@@ -343,7 +359,7 @@ export default function ObjektDetail() {
             </div>
           ) : (
             <div className="space-y-2">
-              {project.rooms.map((room) => {
+              {project.rooms.map((room, index) => {
                 const rc = calcRoom(room, effectiveRate);
                 return (
                   <div
@@ -351,6 +367,22 @@ export default function ObjektDetail() {
                     className="glass-card p-4 flex items-center group cursor-pointer hover:bg-secondary transition-colors"
                     onClick={() => { setEditingRoom(room); setSheetOpen(true); }}
                   >
+                    <div className="flex flex-col gap-0.5 mr-2 shrink-0">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleMoveRoom(index, "up"); }}
+                        disabled={index === 0}
+                        className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${index === 0 ? "opacity-20" : "hover:bg-muted"}`}
+                      >
+                        <ChevronUp size={14} className="text-muted-foreground" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleMoveRoom(index, "down"); }}
+                        disabled={index === project.rooms.length - 1}
+                        className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${index === project.rooms.length - 1 ? "opacity-20" : "hover:bg-muted"}`}
+                      >
+                        <ChevronDown size={14} className="text-muted-foreground" />
+                      </button>
+                    </div>
                     <div className="flex-1 min-w-0 pr-3">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-medium text-sm text-foreground truncate">{room.name || room.typeName}</h4>
