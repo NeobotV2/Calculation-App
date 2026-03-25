@@ -18,6 +18,7 @@ import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { ListSkeleton } from "@/components/list-skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { trackFreeLimitReached } from "@/services/analytics-service";
 import type { Project, FrequencyKey } from "@/store/use-store";
 
 type FilterKey = "all" | "active" | "archived" | "low_margin" | "high_hours";
@@ -121,10 +122,15 @@ export default function ObjekteList() {
     return result;
   }, [projectsWithTotals, filter, search, sortBy, targetMargin]);
 
+  const activeProjectCount = projects.filter(p => p.status !== "archived").length;
+
   const showUpgrade = (gate: { reason?: string; trigger?: UpgradeTrigger }) => {
     setUpgradeReason(gate.reason || "");
     setUpgradeTrigger(gate.trigger);
     setUpgradeOpen(true);
+    if (gate.trigger) {
+      trackFreeLimitReached(gate.trigger, activeProjectCount);
+    }
   };
 
   const handleCreate = () => {
@@ -230,7 +236,7 @@ export default function ObjekteList() {
       <div className="safe-header p-6 pb-2 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
         <div className="flex items-center justify-between mb-5 mt-2 max-w-6xl mx-auto">
           <h1 className="text-4xl font-semibold tracking-tight">Objekte</h1>
-          <span className="text-sm text-muted-foreground">{projects.filter(p => p.status !== "archived").length} aktiv</span>
+          <span className="text-sm text-muted-foreground">{activeProjectCount} aktiv</span>
         </div>
         <div className="relative mb-4 max-w-6xl mx-auto">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
@@ -277,10 +283,10 @@ export default function ObjekteList() {
         </div>
       </div>
 
-      {!isPaidPlan(plan) && projects.filter(p => p.status !== "archived").length >= getObjectLimit() && (
+      {!isPaidPlan(plan) && activeProjectCount >= getObjectLimit() && (
         <div className="mx-6 mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm text-muted-foreground flex items-center gap-2">
           <Building2 size={16} className="text-primary shrink-0" />
-          <span>Sie nutzen {projects.filter(p => p.status !== "archived").length}/{getObjectLimit()} Objekte im Basic-Plan.</span>
+          <span>Sie nutzen {activeProjectCount}/{getObjectLimit()} Objekte im Basic-Plan.</span>
         </div>
       )}
 

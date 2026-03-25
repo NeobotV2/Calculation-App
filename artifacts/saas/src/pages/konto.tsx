@@ -5,10 +5,12 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2 } from "lucide-react";
+import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { getObjectLimit, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
-import { getPlanMeta } from "@/lib/billing-config";
+import { getPlanMeta, isFoundingPlan } from "@/lib/billing-config";
+import { isNative } from "@/lib/capacitor";
+import { trackUpgradeCtaClicked } from "@/services/analytics-service";
 import { AppFooter } from "@/components/layout/AppFooter";
 
 export default function Konto() {
@@ -200,6 +202,7 @@ export default function Konto() {
                 <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
                   {isPaidPlan(plan) ? planMeta.label : "Basic (Kostenlos)"}
                   {isPaidPlan(plan) && <Crown size={24} className="text-primary" />}
+                  {isFoundingPlan(plan) && <Sparkles size={18} className="text-primary" />}
                 </h3>
               </div>
             </div>
@@ -217,10 +220,43 @@ export default function Konto() {
             </div>
 
             {!isPaidPlan(plan) && (
-              <Button onClick={() => setLocation("/upgrade")} className="w-full h-14 text-lg">Pro-Plan ansehen</Button>
+              <Button onClick={() => { trackUpgradeCtaClicked("konto"); setLocation("/upgrade"); }} className="w-full h-14 text-lg">Pro-Plan ansehen</Button>
             )}
           </div>
         </div>
+
+        {isPaidPlan(plan) && (
+          <div className="bg-card border border-border/40 rounded-3xl p-6">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-4">Abonnement</p>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Plan</span>
+                <span className="text-sm font-medium text-foreground">{planMeta.label}</span>
+              </div>
+              {isFoundingPlan(plan) && (
+                <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2">
+                  <Sparkles size={14} className="text-primary" />
+                  <span className="text-xs text-foreground">Founding Member — Ihr Sondertarif bleibt dauerhaft erhalten.</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <span className="text-sm font-medium text-success">Aktiv</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Nächste Verlängerung</span>
+                <span className="text-sm text-muted-foreground">—</span>
+              </div>
+              <div className="pt-3 border-t border-border/20">
+                <p className="text-xs text-muted-foreground text-center">
+                  {isNative
+                    ? "Abo-Verwaltung und Kündigung erfolgen über die Einstellungen Ihres App Stores."
+                    : "Abonnements werden über den App Store / Google Play verwaltet."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="space-y-1">
           <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-3 ml-1">Konto-Verwaltung</h3>

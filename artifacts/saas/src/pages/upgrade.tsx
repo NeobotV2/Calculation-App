@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -7,6 +8,7 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { PRICING, formatCents, isPaidPlan } from "@/lib/billing-config";
 import { isFoundingOfferAvailable, getFoundingOfferRemainingSlots, getFoundingOfferMaxSlots } from "@/services/founding-offer-service";
+import { trackUpgradePageViewed, trackSubscriptionStarted, trackFoundingOfferViewed } from "@/services/analytics-service";
 
 const BENEFITS = [
   { icon: Building2, text: "Unbegrenzt Objekte & Räume kalkulieren" },
@@ -24,6 +26,13 @@ export default function Upgrade() {
   const foundingAvailable = isFoundingOfferAvailable();
   const remainingSlots = getFoundingOfferRemainingSlots();
   const maxSlots = getFoundingOfferMaxSlots();
+
+  useEffect(() => {
+    if (!isPaidPlan(plan)) {
+      trackUpgradePageViewed();
+      if (foundingAvailable) trackFoundingOfferViewed();
+    }
+  }, []);
 
   if (isPaidPlan(plan)) {
     return (
@@ -46,6 +55,7 @@ export default function Upgrade() {
   }
 
   const handleSelectPlan = (planKey: "pro_monthly" | "pro_annual" | "founding_annual") => {
+    trackSubscriptionStarted(planKey, plan);
     upgradePlan(planKey);
     toast.success("Pro-Plan aktiviert — Sie können jetzt ohne Einschränkungen kalkulieren.");
     setLocation("/");

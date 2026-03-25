@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { useStore } from "@/store/use-store";
 import { Building2, User, Play, Sparkles, ArrowRight, SkipForward } from "lucide-react";
+import { trackOnboardingCompleted, trackOnboardingSkipped } from "@/services/analytics-service";
 
 const ROLES = ["Inhaber / GF", "Vertrieb", "Objektleitung", "Kalkulation"];
 const TOTAL_STEPS = 5;
@@ -20,6 +21,7 @@ export default function Onboarding() {
   const [hourlyRate, setHourlyRate] = useState("22,50");
 
   const handleComplete = (loadDemo: boolean) => {
+    trackOnboardingCompleted(loadDemo);
     completeOnboarding({
       role: role || "Benutzer",
       companyName: companyName || "Meine Firma",
@@ -30,6 +32,7 @@ export default function Onboarding() {
   };
 
   const handleSkip = () => {
+    trackOnboardingSkipped();
     completeOnboarding({
       role: "Benutzer",
       companyName: "Meine Firma",
@@ -72,7 +75,7 @@ export default function Onboarding() {
                   Willkommen bei CleanCalc <span className="text-primary">Pro</span>
                 </h1>
                 <p className="text-muted-foreground text-lg px-2">
-                  Die professionelle Kalkulationslösung für Gebäudereiniger. In wenigen Schritten eingerichtet.
+                  Die professionelle Kalkulationslösung für Gebäudereiniger. Kalkulieren Sie Ihr erstes Objekt kostenlos.
                 </p>
               </div>
               <Button onClick={nextStep} size="lg" className="w-full h-14 text-lg">
@@ -140,8 +143,8 @@ export default function Onboarding() {
             <PageTransition key="step4" className="flex-1 flex flex-col">
               <div className="flex-1 flex flex-col justify-center">
                 <div className="text-center mb-10">
-                  <h2 className="text-4xl font-semibold tracking-tight mb-3">Wie möchtest du starten?</h2>
-                  <p className="text-muted-foreground text-lg">Wähle deinen Einstieg.</p>
+                  <h2 className="text-4xl font-semibold tracking-tight mb-3">Wie möchten Sie starten?</h2>
+                  <p className="text-muted-foreground text-lg">Sie können sofort mit einem Objekt loslegen — kostenlos und unverbindlich.</p>
                 </div>
                 
                 <div className="space-y-4">
@@ -178,7 +181,7 @@ export default function Onboarding() {
               <div className="text-center mb-10">
                 <h2 className="text-3xl font-semibold tracking-tight mb-3">Account erstellen?</h2>
                 <p className="text-muted-foreground text-lg px-2">
-                  Sichere deine Daten in der Cloud. Du kannst die App auch erst ohne Account testen.
+                  Sichern Sie Ihre Daten in der Cloud. Sie können die App auch erst ohne Account testen.
                 </p>
               </div>
 
@@ -187,12 +190,12 @@ export default function Onboarding() {
                   Account erstellen
                 </Button>
                 <Button variant="outline" onClick={() => handleComplete(true)} size="lg" className="w-full h-14 text-base">
-                  Erst mal ohne Account testen
+                  Erst ohne Account testen
                 </Button>
               </div>
 
               <p className="text-xs text-center text-muted-foreground mt-6 px-4">
-                Im Demo-Modus werden deine Daten lokal gespeichert. Du kannst jederzeit einen Account erstellen.
+                Im Basic-Plan kalkulieren Sie ein Objekt kostenlos. Für unbegrenzte Objekte und PDF-Export steht der Pro-Plan bereit.
               </p>
             </PageTransition>
           )}

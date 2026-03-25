@@ -37,7 +37,7 @@ export function canAddRoom(projectId: string): GateResult {
     return {
       allowed: false,
       reason: `Im Basic-Plan sind maximal ${limits.maxRoomsPerProject} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.`,
-      trigger: "general",
+      trigger: "room_limit",
     };
   }
   return { allowed: true };
