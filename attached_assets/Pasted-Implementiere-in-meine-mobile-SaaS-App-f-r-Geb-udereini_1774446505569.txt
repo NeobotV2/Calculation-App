@@ -1,0 +1,432 @@
+Implementiere in meine mobile SaaS App für Gebäudereinigung ein vollständiges Monetarisierungs und Paywall System auf Basis dieser Produktlogik.
+
+Wichtiger Kontext:
+Die App ist eine mobile Arbeits und Kalkulations App für Gebäudereinigung mit Fokus auf Objektaufnahme, Leistungsverzeichnis, Kalkulation, Turnus, Rüstzeit, Wegezeit, Plausibilitätsprüfung, Angebotserstellung und Controlling.
+
+Die App wird primär über TikTok vermarktet, dann im App Store und Play Store heruntergeladen und als SaaS Abo verkauft.
+
+Zielgruppe:
+Nicht Solo Putzkräfte mit sehr einfachem Bedarf.
+Primäre Zielgruppe sind Inhaber, Geschäftsführer, Kalkulatoren und Objektleiter von Reinigungsfirmen mit echtem kaufmännischem Bedarf.
+Typisch Betriebe mit etwa 3 bis 50 Mitarbeitern.
+
+Wichtige Preislogik:
+Zum Launch KEIN klassisches 3 Tarif Modell prominent zeigen.
+Zum Launch soll die App primär mit einem klaren Hauptplan funktionieren.
+
+Monetarisierungsmodell für den Launch:
+1. Free Erlebnis mit genau 1 Objekt
+2. Pro Monatsabo
+3. Pro Jahresabo
+4. Founding Offer für frühe Nutzer
+5. Business noch nicht prominent, optional nur versteckt oder als Kontaktlösung vorbereitet
+
+Preise:
+Pro monatlich: 79 €
+Pro jährlich regulär: 708 € pro Jahr, entspricht 59 € pro Monat
+Founding Offer: 348 € für das erste Jahr, entspricht 29 € pro Monat, nur für die ersten 100 oder 200 Kunden, ausschließlich als Jahreszahlung
+Business vorerst nicht sichtbar als Hauptplan, aber technisch vorbereitbar
+
+Wichtige strategische Regel:
+Kein billiger Starter Tarif beim Launch.
+Keine 7 Tage Trial Logik als primäres Modell.
+Stattdessen ein objektbasiertes Freemium Modell.
+
+Free Modell:
+Der Nutzer kann die App kostenlos mit genau 1 echten Objekt nutzen.
+Er soll den Kernnutzen erleben können.
+Er soll eine echte Objektaufnahme und eine echte Kalkulation durchspielen können.
+
+Im Free Plan enthalten:
+1. 1 Objekt anlegen
+2. Raumgruppen erfassen
+3. Flächen eingeben
+4. Turnus festlegen
+5. Leistungsbausteine auswählen
+6. Rüstzeit und Wegezeit erfassen
+7. Kalkulation sehen
+8. Plausibilitätsprüfung erleben
+9. Angebotsvorschau sehen
+
+Im Free Plan NICHT vollständig freigegeben:
+1. Kein zweites Objekt
+2. Kein finaler PDF Export ohne Upgrade
+3. Kein PDF Export oder alternativ nur mit stark sichtbarem Wasserzeichen
+4. Keine unbegrenzten Vorlagen
+5. Kein voller Dokumenten Export
+6. Keine White Label Ausgabe
+7. Keine unbegrenzte Nutzung
+
+Wichtige Conversion Logik:
+Der Nutzer soll den Wert der App vor dem Bezahlen real erleben.
+Die Bezahlschranke soll erst dann kommen, wenn echter Wert sichtbar geworden ist.
+Das heißt:
+Nicht direkt beim Start blockieren.
+Erst an den wertigen Grenzen sperren.
+
+Die wichtigsten Free zu Paid Trigger:
+1. Der Nutzer will ein zweites Objekt anlegen
+2. Der Nutzer will ein Angebot final als PDF exportieren
+3. Der Nutzer will das Wasserzeichen entfernen
+4. Der Nutzer will Vorlagen speichern oder mehrfach nutzen
+5. Der Nutzer will unbegrenzt kalkulieren
+6. Der Nutzer will seine Kalkulation professionell an Kunden senden
+
+Implementiere folgende Produktlogik:
+
+1. Subscription Architektur
+Baue ein sauberes Subscription System mit folgenden internen Entitlements oder Access Levels:
+
+free
+pro_monthly
+pro_annual
+founding_annual
+business_optional
+
+Lege ein zentrales Access Control System an, damit Screens, Aktionen, Exporte und Limits sauber auf Basis der Entitlements gesteuert werden.
+
+Beispiele:
+free darf genau 1 Objekt haben
+free darf keine vollständigen Exporte ohne Upgrade
+pro_monthly darf unbegrenzt Objekte und Exporte
+pro_annual darf unbegrenzt Objekte und Exporte
+founding_annual funktional wie pro_annual, aber mit speziellem Preisflag
+business später für Multi User oder Teams vorbereiten
+
+2. Usage Limits
+Implementiere harte und weiche Limits sauber.
+
+Für free:
+maxObjects = 1
+maxTemplates = 0 oder sehr begrenzt
+pdfExport = false oder nur watermark
+whiteLabel = false
+fullExport = false
+multiObject = false
+
+Für pro_monthly, pro_annual, founding_annual:
+unlimitedObjects = true
+fullPdfExport = true
+templateSaving = true
+brandingOptions = true
+plausibilityFull = true
+documentExport = true
+
+Baue die Limits zentral in ein pricingConfig oder billingConfig System.
+
+3. Founding Offer Logik
+Implementiere eine Founding Offer Mechanik.
+
+Anforderungen:
+1. Founding Offer nur für Jahreszahlung
+2. Founding Offer nur für erste definierte Anzahl Kunden, z. B. 100 oder 200
+3. Founding Offer muss technisch abschaltbar sein
+4. Founding Offer muss mit Countdown oder Restplätze Anzeige optional vorbereitet sein
+5. Founding Offer darf nicht lebenslang für immer gelten, sondern zunächst als erster Jahrespreis modelliert sein
+6. Die UI soll den Founding Preis als zeitlich oder mengenmäßig limitiertes Angebot darstellen
+
+Beispieltexte:
+Founding Offer
+Erstes Jahr 348 €
+entspricht 29 € pro Monat
+nur für die ersten 100 Nutzer
+danach regulär 708 € pro Jahr
+
+Wichtig:
+Die Founding Logik muss in der Paywall technisch priorisiert dargestellt werden, solange sie aktiv ist.
+
+4. Paywall UX
+Baue keine generische App Store Paywall, sondern eine B2B SaaS Paywall, die den Wert klar kommuniziert.
+
+Die Paywall muss an mehreren Stellen sauber ausgelöst werden:
+1. Beim Versuch, ein zweites Objekt anzulegen
+2. Beim Versuch, PDF Export ohne Upgrade zu nutzen
+3. Beim Versuch, Wasserzeichen zu entfernen
+4. Beim Versuch, Vorlagen zu speichern
+5. Optional im Mehr Bereich unter Upgrade
+
+Die Paywall soll nicht aggressiv oder billig wirken.
+Sie soll klar, professionell und wertorientiert sein.
+
+Wichtige Botschaft:
+Nicht Funktionen verkaufen, sondern Ergebnisse.
+
+Nutze Copy in dieser Richtung:
+Erstelle professionelle Angebote in Minuten
+Vergiss keine Rüstzeiten mehr
+Verliere keine Marge durch Rechenfehler
+Kalkuliere direkt beim Kunden vor Ort
+Arbeite mit unbegrenzten Objekten und Exporten
+
+5. Paywall Struktur
+Erstelle eine saubere Paywall mit diesen Bereichen:
+
+Bereich 1
+Headline
+Zum Beispiel:
+Mehr Aufträge sauber kalkulieren
+oder
+Professionelle Kalkulation ohne Limit
+
+Bereich 2
+Subheadline
+Zum Beispiel:
+Nutze unbegrenzte Objekte, finale PDF Angebote und volle Plausibilitätsprüfung
+
+Bereich 3
+Wertargumente
+Zum Beispiel:
+Unbegrenzte Objekte
+Finale PDF Angebote ohne Wasserzeichen
+Volle Plausibilitätsprüfung
+Vorlagen und Wiederverwendung
+Schneller kalkulieren, weniger Marge verlieren
+
+Bereich 4
+Preisoptionen
+Wenn Founding aktiv:
+Founding Annual als empfohlene Option
+Pro Monthly als Alternative
+
+Wenn Founding inaktiv:
+Pro Annual als empfohlene Option
+Pro Monthly als Alternative
+
+Bereich 5
+CTA
+Zum Beispiel:
+Jetzt Pro freischalten
+oder
+Founding Preis sichern
+
+Bereich 6
+kleiner Trust Bereich
+Zum Beispiel:
+Jederzeit in den Store Einstellungen kündbar
+Sichere Abwicklung über App Store oder Play Store
+
+6. Preisdarstellung
+Baue die Preislogik klar und hochwertig.
+
+Wenn Founding aktiv:
+Zeige Annual Founding als Hauptempfehlung.
+Visuell klar hervorgehoben.
+Zusätzlicher Hinweis:
+Nur für kurze Zeit oder nur für erste Nutzer
+
+Empfohlene Darstellung:
+Founding
+348 € / Jahr
+29 € / Monat im ersten Jahr
+danach regulär 708 € / Jahr
+
+Alternative:
+Monatlich
+79 € / Monat
+
+Wenn Founding nicht aktiv:
+Pro jährlich
+708 € / Jahr
+59 € / Monat
+
+Alternative:
+Monatlich
+79 € / Monat
+
+7. Free State Messaging
+Implementiere in der App klare Hinweise für Free Nutzer, aber ohne Nervigkeit.
+
+Beispiele:
+Du nutzt aktuell 1 von 1 kostenlosen Objekten
+PDF Export ohne Wasserzeichen ist in Pro enthalten
+Für weitere Objekte benötigst du Pro
+
+Diese Hinweise sollen ruhig, professionell und kontextbezogen sein.
+Keine billigen roten Banner.
+Keine nervigen Popups bei jeder Aktion.
+
+8. Upgrade Trigger Screens
+Baue speziell optimierte Upgrade Trigger für folgende Situationen:
+
+A. Zweites Objekt anlegen
+Headline:
+Mehr als ein Objekt kalkulieren
+Text:
+Mit Pro arbeitest du mit unbegrenzten Objekten, Angeboten und Vorlagen
+
+B. PDF Export
+Headline:
+Finales Angebot exportieren
+Text:
+Erstelle professionelle PDF Angebote ohne Wasserzeichen und sende sie direkt an Kunden
+
+C. Vorlagen speichern
+Headline:
+Vorlagen professionell nutzen
+Text:
+Speichere wiederkehrende Leistungsverzeichnisse und beschleunige deine Angebotsprozesse
+
+D. Wasserzeichen entfernen
+Headline:
+Dokumente ohne Fremdbranding
+Text:
+Nutze saubere, professionelle Angebote mit deinem eigenen Firmenauftritt
+
+9. Feature Unlock Matrix
+Implementiere folgende Logik:
+
+Free:
+1 Objekt
+Kalkulation möglich
+Plausibilitätscheck sichtbar
+Angebotsvorschau sichtbar
+kein voller PDF Export
+kein zweites Objekt
+keine oder stark begrenzte Vorlagen
+
+Pro Monthly:
+unbegrenzte Objekte
+volle Kalkulation
+volle Plausibilitätsprüfung
+finaler PDF Export
+Vorlagen
+kein Wasserzeichen
+volle Nutzung
+
+Pro Annual:
+gleicher Funktionsumfang wie Pro Monthly
+besserer Preis
+
+Founding Annual:
+gleicher Funktionsumfang wie Pro Annual
+nur spezieller Preis und Founding Label
+
+10. Billing Architektur
+Bereite die App sauber für echte In App Purchases oder Store Subscriptions vor.
+
+Baue die Billing Logik modular.
+Kein hart verdrahteter UI Code.
+Benötigt:
+billing service
+subscription state provider
+feature gate system
+paywall trigger service
+pricing config
+remote config oder serverseitig vorbereitbare Flags für Founding
+
+Implementiere die Architektur so, dass später Apple App Store und Google Play Store Anbindungen sauber eingebaut oder erweitert werden können.
+
+11. Remote Config Vorbereitung
+Bereite folgende Werte als konfigurierbare Variablen vor:
+
+foundingOfferEnabled = true oder false
+foundingOfferMaxCustomers = 100 oder 200
+foundingOfferCurrentCount
+foundingAnnualPrice = 34800 Cent
+regularAnnualPrice = 70800 Cent
+regularMonthlyPrice = 7900 Cent
+freeMaxObjects = 1
+freePdfWatermark = true
+businessPlanVisible = false
+
+Diese Konfiguration soll leicht änderbar sein, ohne die gesamte UI umzubauen.
+
+12. App Store und Play Store Logik
+Bereite die Produktstruktur so vor, dass folgende Produkte sauber angebunden werden können:
+
+pro_monthly
+pro_annual
+founding_annual optional nur solange aktiv
+
+Falls Founding im Store technisch nicht als separates Produkt gelöst wird, dann architektonisch so vorbereiten, dass es alternativ serverseitig oder per Offer Mapping abgebildet werden kann.
+
+13. Onboarding und Conversion
+Baue bereits im Onboarding die Value Story ein.
+
+Der Nutzer soll früh verstehen:
+1. Mit der App kann er professionell kalkulieren
+2. Er kann ein erstes Objekt kostenlos testen
+3. Für unbegrenzte Nutzung und finale Dokumente gibt es Pro
+
+Im Onboarding nicht sofort hard sell.
+Nur Erwartung sauber setzen.
+
+14. Settings und Account Bereich
+Implementiere im Mehr Bereich oder Account Bereich:
+
+aktueller Plan
+Free, Pro Monthly, Pro Annual oder Founding
+Status der Subscription
+Upgrade Button falls Free
+Abo verwalten falls Paid
+Founding Label wenn aktiv
+Hinweis auf Rechnungsabwicklung über Store
+
+15. Analytics Events
+Implementiere Tracking Events für Conversion Optimierung.
+
+Beispiele:
+paywall_viewed
+paywall_trigger_second_object
+paywall_trigger_pdf_export
+paywall_trigger_template_save
+subscription_started_monthly
+subscription_started_annual
+subscription_started_founding
+founding_offer_viewed
+founding_offer_claimed
+upgrade_cta_clicked
+free_limit_reached
+
+Wichtig:
+Die Events sollen sauber strukturiert sein, damit später ausgewertet werden kann, welcher Trigger am besten konvertiert.
+
+16. Design Anforderungen
+Die Monetarisierungs Screens müssen zum bestehenden UX/UI System passen.
+Nicht wie fremde Marketing Screens wirken.
+Light Theme first.
+Professionell, ruhig, B2B orientiert.
+Keine aggressive Consumer App Optik.
+Keine schrillen Farben.
+Annual oder Founding Option als empfohlene Karte markieren, aber nicht billig oder gimmickhaft.
+
+17. Copy Stil
+Die Texte sollen kurz, klar, wertorientiert und professionell sein.
+Keine generischen App Store Phrasen.
+Keine übertriebene Sales Sprache.
+Keine Buzzwords.
+Deutsch als Standardsprache.
+Texte sollen die Schmerzpunkte der Zielgruppe treffen:
+Zeit sparen
+Angebote schneller erstellen
+Marge sichern
+sauber kalkulieren
+professionell auftreten
+
+18. Konkrete Aufgaben jetzt
+Setze das Monetarisierungs System vollständig in der App um.
+
+Baue:
+1. Billing Architektur
+2. Entitlement System
+3. Free Limit Logik mit genau 1 Objekt
+4. PDF Export Gating
+5. Paywall Screens
+6. Founding Offer Priorisierung
+7. Settings Bereich für Planstatus
+8. Analytics Events
+9. Konfigurierbare Pricing Config
+10. Saubere Upgrade Flows an allen relevanten Stellen
+
+Wichtiges Endziel:
+Die App soll sich nicht wie eine billige Trial App anfühlen.
+Sie soll sich wie ein professionelles SaaS Produkt anfühlen, das ein echtes kostenloses erstes Erfolgserlebnis bietet und dann sauber in ein hochwertiges Pro Abo überführt.
+
+Prüfe nach Umsetzung alles gegen diese Fragen:
+1. Erlebt der Nutzer den Kernnutzen vor der Bezahlschranke
+2. Wird die Bezahlschranke erst an wertigen Punkten ausgelöst
+3. Ist der Founding Offer klar und attraktiv
+4. Ist Pro als hochwertiger Hauptplan positioniert
+5. Ist die Monetarisierung logisch, ruhig und professionell
+6. Sind alle Limits technisch zentral und sauber steuerbar
+7. Wirkt die Paywall wie Teil des Produkts und nicht wie ein Fremdkörper
