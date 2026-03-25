@@ -1,0 +1,400 @@
+Optisch ist die App schon stark.
+
+Sie wirkt deutlich hochwertiger als viele typische Handwerker Tools.
+Dark Theme, Karten, Typografie und die mobile Anmutung passen.
+Sie sieht nicht nach Bastellösung aus.
+
+Aber:
+
+Aktuell wirkt sie noch eher wie ein schönes Dashboard.
+Sie muss mehr wie ein unverzichtbares Arbeitswerkzeug für Kalkulation wirken.
+
+Das sind die wichtigsten Verbesserungen, die ich direkt sehe.
+
+1. Das größte Problem ist nicht das Design, sondern die Priorität der Informationen
+
+Ein Gebäudereiniger will in der App vor allem 3 Dinge:
+	1.	neues Objekt schnell kalkulieren
+	2.	sehen, ob die Marge stimmt
+	3.	Angebot direkt rausgeben
+
+Dein Startscreen zeigt aktuell eher Übersicht als Entscheidung.
+
+Besser für die Startseite
+
+Oben nicht „Guten Morgen“, sondern lieber:
+
+Dashboard
+oder
+Heute im Blick
+
+Und direkt darunter die wichtigsten Business Kennzahlen:
+
+Monatsumsatz geplant
+Ø Marge
+kritische Objekte
+offene Angebote
+letzte Kalkulationen
+
+Aktuell sind „Objekte“, „Räume“ und „€/m²“ nett, aber nicht die wichtigsten Steuerungsgrößen.
+
+Für deine Zielgruppe sind stärker:
+
+Vollkosten/h
+Verkaufssatz/h
+Ø Marge
+Deckungsbeitrag/Monat
+Stunden/Monat
+Anzahl unprofitabler Objekte
+
+2. Die App muss klarer auf den Hauptjob ausgerichtet werden
+
+Der Hauptjob ist nicht „durch Menüs klicken“.
+Der Hauptjob ist:
+
+Objekt anlegen
+Räume erfassen
+Leistungswerte prüfen
+Preis sehen
+PDF erstellen
+
+Deshalb sollte die wichtigste Aktion viel klarer sein
+
+Auf der Übersicht ganz oben:
+
+Neues Objekt kalkulieren
+
+Nicht nur als kleine Kachel bei Schnellaktionen, sondern als Hauptbutton.
+
+Zum Beispiel:
+
+Objekt kalkulieren
+Angebot erstellen
+Stundensatz prüfen
+
+Diese 3 Aktionen sind dein Kern.
+
+3. Die Objekte Liste ist noch zu schwach für den Alltag
+
+Die Karten auf der Objektseite sehen sauber aus, aber inhaltlich fehlt Entscheidungsrelevanz.
+
+Aktuell sehe ich im Wesentlichen:
+Name
+Preis
+Räume
+Datum
+
+Das reicht nicht.
+
+Eine Objektkarte sollte besser zeigen
+
+Objektname
+Kunde
+Standort
+Reinigungsintervall
+m²
+Stunden pro Monat
+Monatsumsatz
+Marge in %
+Status
+
+Zum Beispiel:
+
+Bürogebäude Müller GmbH
+VS Schwenningen
+2x wöchentlich
+530 m²
+18,4 h/Monat
+1.605,83 €
+Marge 21 %
+Angebot offen
+
+Dann kann der Nutzer die Liste wirklich steuern.
+
+Zusätzlich sinnvoll
+
+Filter nach:
+Aktiv
+Angebot offen
+Schwach kalkuliert
+Archiviert
+Nachkalkulation fehlt
+
+4. Deine Auswertung ist noch zu umsatzlastig und zu wenig unternehmerisch
+
+„Monatsvolumen gesamt“ ist okay, aber für Unternehmer nicht genug.
+
+Ein Reinigungsunternehmen braucht vor allem Antworten auf:
+
+Welche Objekte bringen Geld
+Welche Objekte fressen Marge
+Wo ist der Verrechnungssatz zu niedrig
+Wo ist der Sanitäranteil zu teuer
+Wo ist die Anfahrt zu hoch
+
+Deshalb in die Auswertung rein
+
+Top 5 nach Gewinn, nicht nur Umsatz
+schlechteste 5 nach Marge
+Ø Vollkosten/h
+Ø Verkaufssatz/h
+Stunden gesamt pro Monat
+kritische Objekte unter Zielmarge
+Verteilung nach Objektart
+Büro, Praxis, Treppenhaus, Bauend etc.
+
+Was auch fehlt
+
+Charts
+
+Nicht viele.
+Aber 2 bis 3 gute:
+
+Umsatz nach Objekt
+Marge nach Objekt
+Stunden nach Raumart
+
+Dann wirkt die Auswertung sofort viel wertvoller.
+
+5. Die App braucht ein sauberes Kalkulations Herzstück
+
+Der Stundensatz Kalkulator ist gut gedacht.
+Aber er darf nicht nur ein Taschenrechner sein.
+
+Er muss als Standardlogik in die ganze App greifen.
+
+Verbessern beim Stundensatz Kalkulator
+
+Der Nutzer sollte auswählen können:
+
+Unterhaltsreinigung
+Sonderreinigung
+Glasreinigung
+Bauendreinigung
+
+Denn die Zuschläge und Risiken sind anders.
+
+Außerdem wichtig
+
+Tooltips oder kurze Erklärungen bei:
+Ausfallzuschlag
+Gemeinkosten
+Gewinnmarge
+produktive Zeit
+
+Viele Nutzer verstehen die Formel sonst nicht sauber.
+
+Noch besser
+
+Unter dem Ergebnis direkt anzeigen:
+
+Empfohlener Mindest Verrechnungssatz
+Empfohlener Ziel Verrechnungssatz
+kritisch unterhalb von X €/h
+
+Dann wird aus dem Rechner ein Entscheidungswerkzeug.
+
+6. Das stärkste Feature fehlt optisch noch zu sehr: Leistungswerte und Raumlogik
+
+Du willst ja Benchmarks und Raumarten integrieren.
+Das muss in der UX sichtbar eine Hauptrolle spielen.
+
+Aktuell sehe ich in den Screens nichts, was diese App eindeutig von einem normalen Preisrechner unterscheidet.
+
+Genau das muss sichtbarer werden
+
+Eine eigene Seite oder ein eigener Bereich für:
+
+Leistungswerte
+Raumarten
+Standard Benchmarks
+eigene Benchmarks
+
+Zum Beispiel:
+
+Büro: 220 m²/h
+Sanitär: 65 m²/h
+Flur: 350 m²/h
+Treppenhaus: 140 m²/h
+Praxis: 110 m²/h
+
+Und pro Objekt dann:
+Branchenwert
+dein Firmenwert
+Projektwert
+
+Das wird eines deiner stärksten Verkaufsargumente.
+
+7. Safe Area und Mobile Layout müssen sauberer werden
+
+Das ist ein sichtbarer technischer Punkt.
+
+In mehreren Screens sitzt der Titel sehr nah unter der Browserleiste.
+Teilweise wirkt es, als ob der obere Bereich zu knapp gepolstert ist.
+
+Auch unten ist alles sehr dicht an der Browser UI.
+
+Das musst du technisch sauber lösen
+
+Oben mit Safe Area Inset arbeiten
+unten mit Safe Area Inset arbeiten
+Bottom Nav höher und sauber gepolstert
+Floating Action Button nicht zu nah am unteren Rand
+
+Auf iPhone wirkt die App sonst schnell wie „Webseite im Browser“ statt wie echte App.
+
+8. Die Texte können deutlich präziser werden
+
+Ein paar Begriffe sind noch zu allgemein.
+
+Ich würde umbenennen
+
+Guten Morgen → Dashboard oder Übersicht
+Monatsvolumen → Monatsumsatz geplant
+Auswertung → Kennzahlen oder Controlling
+Stundensatz → Verrechnungssatz
+PDF Export → Angebot als PDF
+Konto → Profil & Plan oder Konto
+
+Warum das wichtig ist
+
+Die App muss nach Branche klingen.
+Nicht generisch.
+
+Gerade bei Gebäudereinigern schafft präzise Sprache Vertrauen.
+
+9. Einstellungen sind aktuell funktional, aber noch nicht professionell genug gegliedert
+
+Alles wirkt noch etwas „untereinander weg gespeichert“.
+
+Besser wäre eine klare Trennung in Blöcke
+
+Allgemein
+Firmendaten
+Kalkulation
+Raumarten & Benchmarks
+PDF & Branding
+Rechtliches
+Konto
+
+Zusätzlich sehr wichtig
+
+Logo Upload mit Vorschau
+Briefkopf Vorschau
+PDF Muster direkt ansehen
+MwSt Logik sauber erklärt
+Standard LV Texte speichern
+
+Gerade das PDF Modul ist später verkaufsentscheidend.
+
+10. Das Konto wirkt wie Demo, aber noch nicht wie SaaS Produkt
+
+Der Demo Hinweis ist gut.
+Aber aktuell ist die Konto Seite noch mehr „technisch“ als „vertrieblich“.
+
+Besser für die Konto Seite
+
+Was ist im aktuellen Plan enthalten
+Was fehlt in Free
+Warum lohnt Pro
+Cloud Speicherung
+unbegrenzte Objekte
+Benchmarks
+PDF Angebote
+Vorlagen
+Mehrbenutzer später
+
+Zusätzlich
+
+„Jetzt anmelden“ sollte stärker mit Nutzen verkauft werden:
+
+Daten dauerhaft speichern
+auf mehreren Geräten nutzen
+PDF Angebote sichern
+Cloud Backup aktivieren
+
+Nicht nur „anmelden“, sondern klarer Mehrwert.
+
+11. Was deiner App aktuell noch fehlt, um wirklich unverwechselbar zu sein
+
+Im Moment sieht sie gut aus.
+Aber der Nutzer muss in 5 Sekunden verstehen:
+
+Diese App ist speziell für Gebäudereiniger gemacht.
+
+Das erreichst du durch 4 Dinge:
+
+1. Raumarten mit Benchmarks sichtbar machen
+
+Nicht versteckt in Einstellungen, sondern im Kernworkflow.
+
+2. Marge und Vollkosten überall sichtbar machen
+
+Nicht nur Umsatz.
+
+3. Intervall Logik einbauen
+
+täglich
+2x wöchentlich
+1x wöchentlich
+monatlich
+
+4. Warnsystem
+
+Zum Beispiel:
+
+Verrechnungssatz unter Vollkosten
+Marge unter Zielwert
+Sanitäranteil hoch
+Anfahrt kritisch
+Leistungswert unrealistisch
+
+Das macht die App intelligent.
+
+12. Meine Priorisierung für die nächsten Schritte
+
+Sofort verbessern
+	1.	Safe Area oben und unten
+	2.	Dashboard auf echte Kern KPIs umbauen
+	3.	Objekte Karten informativer machen
+	4.	Hauptbutton „Neues Objekt kalkulieren“
+	5.	bessere Begriffe und branchennähere Sprache
+
+Danach
+	1.	Benchmarks und Raumarten als zentrales Modul
+	2.	Intervall Kalkulation
+	3.	Warnsystem bei zu niedriger Marge
+	4.	PDF Vorschau mit Branding
+	5.	Vorlagen nach Objektart
+
+Danach
+	1.	Nachkalkulation Soll gegen Ist
+	2.	Top/Flop Objekte nach Gewinn
+	3.	Kundenhistorie
+	4.	mobile Objektbegehung mit Fotos
+	5.	Cloud Login statt nur lokal
+
+13. Mein ehrliches Fazit
+
+Die Basis ist stark.
+Vor allem optisch.
+
+Aber um daraus wirklich ein gutes Produkt zu machen, musst du von „schönes Dashboard“ zu „hartes Kalkulations und Steuerungstool“ gehen.
+
+Der größte Hebel ist nicht mehr Design.
+Der größte Hebel ist:
+
+mehr betriebswirtschaftliche Relevanz
+mehr Branchensprache
+mehr Entscheidungshilfen
+mehr klarer Workflow vom Objekt bis zum Angebot
+
+Am meisten würde ich jetzt diese drei Punkte schärfen:
+
+Objektkarten
+Auswertung
+Benchmarks plus Margenwarnung
+
+Das wird den Unterschied machen.
+
+Ich kann dir als Nächstes einen glasklaren Replit Prompt schreiben, der genau diese Verbesserungen in der App umsetzen soll.

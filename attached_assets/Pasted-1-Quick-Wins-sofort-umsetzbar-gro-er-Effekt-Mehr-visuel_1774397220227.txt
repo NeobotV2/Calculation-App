@@ -1,0 +1,39 @@
+1. Quick-Wins (sofort umsetzbar, großer Effekt)
+•  Mehr visuelle Auswertung In „Auswertung“ fehlen noch Charts. Füge hinzu:
+	•  Liniendiagramm: Monatsumsatz der letzten 6–12 Monate
+	•  Kreisdiagramm: Umsatz pro Objekt / Raumart
+	•  Balkendiagramm: Stunden pro Objekt Das macht die Seite sofort zum echten Dashboard.
+•  Objekt-Übersicht aufpeppen
+	•  Kleine Vorschaubilder (Fotos der Objekte) oben rechts in jeder Karte
+	•  Fortschrittsbalken oder farbigen Badge „Aktuell / Abgelaufen / Neu“
+	•  Sortierung nach Umsatz, Fläche oder letzter Bearbeitung (nicht nur alphabetisch)
+•  PDF-Vorschau direkt in der App Statt nur „PDF-Export“ → Button „Vorschau ansehen“. Dann kann der Nutzer nochmal korrigieren, bevor er runterlädt.
+2. Nächste große Features (Pro-Version noch wertvoller machen)
+•  Eigene Raummarten richtig nutzen (das ist aktuell noch totes Feature) Nutzer sollen eigene Raumarten anlegen können mit:
+	•  Name + Icon
+	•  Standard-Reinigungszeit pro m² oder pro Stück
+	•  Preis pro m² (kann vom Standard abweichen) Dann wird beim Anlegen eines Objekts automatisch die Fläche + Zeit + Preis berechnet → viel weniger manueller Aufwand.
+•  Vorlagen 2.0 Aktuell gibt es „Vorlagen“. Mach daraus richtig starke Angebotsvorlagen:
+	•  „Büro Standard 5x/Woche“
+	•  „Praxis mit OP-Bereich“
+	•  „Fitnessstudio“ Jede Vorlage hat vordefinierte Raummarten + Häufigkeit → mit einem Klick ein komplettes Objekt erstellen.
+•  Kundenverwaltung Aktuell nur „Kein Kunde“. Füge einen einfachen Kunden-Bereich hinzu (Name, Adresse, Ansprechpartner, letzte Angebote, offene Rechnungen). Dann kann man Angebote direkt einem Kunden zuordnen.
+•  Stundensatz-Kalkulator erweitern
+	•  Mehrere Mitarbeiter-Profile (z. B. „Reinigungskraft 15 €“ vs. „Teamleiter 18 €“)
+	•  Automatische Anpassung je nach Bundesland (SV-Sätze)
+	•  „Was-wäre-wenn“-Slider (z. B. „Wenn ich den Gewinn auf 35 % erhöhe…“)
+3. UX-Politur (kleine Dinge, die riesig wirken)
+•  Floating Action Button auf der Objekte-Seite ist gut, aber mach ihn kontextabhängig:
+	•  Auf Übersicht → „Neues Objekt“
+	•  Auf Objekte → „Neues Objekt“
+	•  Auf Auswertung → „Neuen Bericht erstellen“
+•  Suchfeld oben auf jeder Liste mit Echtzeit-Filter (schon vorhanden, aber noch etwas versteckt).
+•  Toast-Benachrichtigungen (z. B. „PDF erfolgreich exportiert“, „Objekt gespeichert“).
+•  Daten-Import/Export (CSV für Objekte + Kunden) – viele Nutzer kommen von Excel.
+•  Onboarding-Tour beim ersten Start (besonders für neue Pro-Nutzer).
+4. Kleinere, aber feine Details
+•  Firmenlogo hochladbar → erscheint automatisch im PDF-Kopf
+•  Dunkler Modus für das PDF (manche Kunden wollen hell, manche dark)
+•  Währungssymbol überall einheitlich (€ statt manchmal EUR)
+•  In der Konto-Übersicht: „Demo-Modus“-Banner etwas dezenter oder mit „Daten in Echtbetrieb übertragen“-Button
+•  Tastatur bei Zahlenfeldern automatisch numerisch (besonders bei m² und Preisen)
