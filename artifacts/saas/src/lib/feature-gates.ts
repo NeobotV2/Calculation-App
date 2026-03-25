@@ -120,4 +120,21 @@ export function isFreePlan(): boolean {
   return !isPaidPlan(getPlan());
 }
 
+export function getUpgradeTriggerReason(trigger: UpgradeTrigger): GateResult {
+  const gateMap: Record<UpgradeTrigger, () => GateResult> = {
+    second_object: canAddProject,
+    pdf_export: canUsePDF,
+    template_save: canUseTemplates,
+    watermark_remove: canRemoveWatermark,
+    branding: canUseBranding,
+    performance_override: canOverridePerformance,
+    general: () => {
+      const plan = getPlan();
+      if (isPaidPlan(plan)) return { allowed: true };
+      return { allowed: false, reason: "Dieses Feature erfordert ein Pro-Upgrade.", trigger: "general" as UpgradeTrigger };
+    },
+  };
+  return gateMap[trigger]();
+}
+
 export { isPaidPlan };
