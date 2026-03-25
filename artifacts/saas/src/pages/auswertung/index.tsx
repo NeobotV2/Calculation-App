@@ -3,14 +3,29 @@ import { Link } from "wouter";
 import { useStore } from "@/store/use-store";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
-import { calcProjectTotals } from "@/lib/calc";
+import { calcProjectTotals, calcRoom } from "@/lib/calc";
 import { getDefaultConfig } from "@/lib/hourly-rate-calc";
 import { getAllProjectWarnings } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
-import { BarChart3, Building2, ChevronRight, TrendingUp, AlertTriangle } from "lucide-react";
+import { BarChart3, Building2, ChevronRight, TrendingUp, AlertTriangle, PieChart as PieChartIcon, Clock } from "lucide-react";
 import { ListSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
+
+const CHART_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--chart-2, 173 58% 39%))",
+  "hsl(var(--chart-3, 197 37% 24%))",
+  "hsl(var(--chart-4, 43 74% 66%))",
+  "hsl(var(--chart-5, 27 87% 67%))",
+  "hsl(142 76% 36%)",
+  "hsl(262 83% 58%)",
+  "hsl(330 81% 60%)",
+  "hsl(200 98% 39%)",
+  "hsl(16 85% 55%)",
+];
 
 export default function AuswertungGlobal() {
   const projects = useStore((s) => s.projects);
@@ -52,6 +67,62 @@ export default function AuswertungGlobal() {
   const recentlyEdited = [...activeProjects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 5);
+
+  const revenueByProject = useMemo(() => {
+    return [...projectTotals]
+      .sort((a, b) => b.totals.cost - a.totals.cost)
+      .map(({ project: p, totals: t }) => ({
+        name: p.name.length > 15 ? p.name.slice(0, 14) + "…" : p.name,
+        fullName: p.name,
+        umsatz: Math.round(t.cost * 100) / 100,
+      }));
+  }, [projectTotals]);
+
+  const revenueByGroup = useMemo(() => {
+    const groupMap = new Map<string, number>();
+    activeProjects.forEach((p) => {
+      const rate = p.hourlyRate ?? hourlyRate;
+      p.rooms.forEach((r) => {
+        const rc = calcRoom(r, rate);
+        const existing = groupMap.get(r.groupName) || 0;
+        groupMap.set(r.groupName, existing + rc.monthlyCost);
+      });
+    });
+    return Array.from(groupMap.entries())
+      .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
+      .sort((a, b) => b.value - a.value);
+  }, [activeProjects, hourlyRate]);
+
+  const hoursByProject = useMemo(() => {
+    return [...projectTotals]
+      .sort((a, b) => b.totals.hours - a.totals.hours)
+      .map(({ project: p, totals: t }) => ({
+        name: p.name.length > 15 ? p.name.slice(0, 14) + "…" : p.name,
+        fullName: p.name,
+        stunden: Math.round(t.hours * 10) / 10,
+      }));
+  }, [projectTotals]);
+
+  const revenueChartConfig = useMemo(() => {
+    const config: Record<string, { label: string; color: string }> = {
+      umsatz: { label: "Umsatz", color: "hsl(var(--primary))" },
+    };
+    return config;
+  }, []);
+
+  const hoursChartConfig = useMemo(() => {
+    return {
+      stunden: { label: "Stunden", color: "hsl(var(--primary))" },
+    };
+  }, []);
+
+  const pieChartConfig = useMemo(() => {
+    const config: Record<string, { label: string; color: string }> = {};
+    revenueByGroup.forEach((item, i) => {
+      config[item.name] = { label: item.name, color: CHART_COLORS[i % CHART_COLORS.length] };
+    });
+    return config;
+  }, [revenueByGroup]);
 
   return (
     <PageTransition className="min-h-screen pb-24 bg-background">
@@ -138,6 +209,151 @@ export default function AuswertungGlobal() {
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {revenueByProject.length > 0 ? (
+            <div className="bg-card border border-border/20 rounded-2xl p-4">
+              <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                <BarChart3 size={14} /> Monatsumsatz pro Objekt
+              </h3>
+              <ChartContainer config={revenueChartConfig} className="aspect-[4/3] w-full">
+                <BarChart data={revenueByProject} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={0}
+                    angle={-35}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `${v} €`}
+                    width={65}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, name, item) => (
+                          <span className="font-medium">{formatCurrency(Number(value))}</span>
+                        )}
+                        labelFormatter={(label, payload) => {
+                          const item = payload?.[0]?.payload;
+                          return item?.fullName || label;
+                        }}
+                      />
+                    }
+                  />
+                  <Bar dataKey="umsatz" fill="var(--color-umsatz)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </div>
+          ) : (
+            <div className="bg-card border border-border/20 rounded-2xl p-6 text-center">
+              <BarChart3 size={24} className="text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Keine Umsatzdaten vorhanden</p>
+            </div>
+          )}
+
+          {revenueByGroup.length > 0 ? (
+            <div className="bg-card border border-border/20 rounded-2xl p-4">
+              <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                <PieChartIcon size={14} /> Umsatz nach Raumgruppe
+              </h3>
+              <ChartContainer config={pieChartConfig} className="aspect-square w-full max-w-[300px] mx-auto">
+                <PieChart>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) => (
+                          <span className="font-medium">{formatCurrency(Number(value))}</span>
+                        )}
+                        nameKey="name"
+                      />
+                    }
+                  />
+                  <Pie
+                    data={revenueByGroup}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="40%"
+                    outerRadius="75%"
+                    paddingAngle={2}
+                    label={({ name, percent }) =>
+                      `${name.length > 10 ? name.slice(0, 9) + "…" : name} ${(percent * 100).toFixed(0)}%`
+                    }
+                    labelLine={false}
+                  >
+                    {revenueByGroup.map((entry, index) => (
+                      <Cell key={entry.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            </div>
+          ) : (
+            <div className="bg-card border border-border/20 rounded-2xl p-6 text-center">
+              <PieChartIcon size={24} className="text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Keine Raumgruppen vorhanden</p>
+            </div>
+          )}
+
+          {hoursByProject.length > 0 ? (
+            <div className="bg-card border border-border/20 rounded-2xl p-4">
+              <h3 className="text-xs uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
+                <Clock size={14} /> Stunden pro Objekt (monatlich)
+              </h3>
+              <ChartContainer
+                config={hoursChartConfig}
+                className="w-full"
+                style={{ aspectRatio: `4 / ${Math.max(3, hoursByProject.length * 0.8)}` }}
+              >
+                <BarChart data={hoursByProject} layout="vertical" margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `${v} h`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 10 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={100}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) => (
+                          <span className="font-medium">{formatNumber(Number(value), 1)} h</span>
+                        )}
+                        labelFormatter={(label, payload) => {
+                          const item = payload?.[0]?.payload;
+                          return item?.fullName || label;
+                        }}
+                      />
+                    }
+                  />
+                  <Bar dataKey="stunden" fill="var(--color-stunden)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            </div>
+          ) : (
+            <div className="bg-card border border-border/20 rounded-2xl p-6 text-center">
+              <Clock size={24} className="text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Keine Stundendaten vorhanden</p>
             </div>
           )}
 
