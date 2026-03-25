@@ -171,7 +171,7 @@ export default function Konto() {
                 />
               </div>
               {projectPercent >= 100 && (
-                <p className="text-xs text-destructive mt-2">Limit erreicht — upgrade auf Pro für unbegrenzte Objekte.</p>
+                <p className="text-xs text-destructive mt-2">Objektlimit erreicht — mit dem Pro-Plan kalkulieren Sie unbegrenzt viele Objekte parallel.</p>
               )}
             </div>
             <div className="mt-5 pt-5 border-t border-border/20">
@@ -186,7 +186,7 @@ export default function Konto() {
                 />
               </div>
               {roomsPercent >= 100 && (
-                <p className="text-xs text-destructive mt-2">Raumlimit erreicht — upgrade auf Pro für unbegrenzte Räume.</p>
+                <p className="text-xs text-destructive mt-2">Raumlimit erreicht — im Pro-Plan gibt es keine Beschränkung bei der Raumanzahl.</p>
               )}
             </div>
           </div>
@@ -196,9 +196,9 @@ export default function Konto() {
           <div className="p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">Dein Plan</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">Ihr Plan</p>
                 <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  {isPaidPlan(plan) ? planMeta.label : "Free (Kostenlos)"}
+                  {isPaidPlan(plan) ? planMeta.label : "Basic (Kostenlos)"}
                   {isPaidPlan(plan) && <Crown size={24} className="text-primary" />}
                 </h3>
               </div>
@@ -206,18 +206,18 @@ export default function Konto() {
 
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Unbegrenzte Objekte" : `${objectLimit} Objekt`}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Unbegrenzt Objekte & Räume" : `${objectLimit} Objekt, begrenzte Räume`}</span>
               </div>
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "PDF-Angebote exportieren" : "In-App Ansicht"}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Druckfertige PDF-Angebote" : "Angebotsvorschau (kein PDF-Export)"}</span>
               </div>
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Vorlagen & Leistungswerte" : "Standard-Leistungswerte"}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Vorlagen, Branding & individuelle Leistungswerte" : "Standard-Leistungswerte"}</span>
               </div>
             </div>
 
             {!isPaidPlan(plan) && (
-              <Button onClick={() => setLocation("/upgrade")} className="w-full h-14 text-lg">Jetzt auf Pro upgraden</Button>
+              <Button onClick={() => setLocation("/upgrade")} className="w-full h-14 text-lg">Pro-Plan ansehen</Button>
             )}
           </div>
         </div>

@@ -293,7 +293,7 @@ export default function AuswertungDetail() {
         </Button>
       </div>
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason="pdf_export" />
     </PageTransition>
   );
 }

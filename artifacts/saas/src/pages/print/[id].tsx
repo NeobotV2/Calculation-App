@@ -108,7 +108,7 @@ export default function PrintView() {
           <Lock size={18} className="text-primary shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-foreground">Vorschau-Modus</p>
-            <p className="text-xs text-muted-foreground mt-1">Im Free-Plan kannst du die Angebotsvorschau sehen. Upgrade auf Pro, um PDF-Angebote zu exportieren und zu drucken.</p>
+            <p className="text-xs text-muted-foreground mt-1">Im Basic-Plan können Sie die Angebotsvorschau einsehen. Für den Export als druckfertiges PDF wechseln Sie zum Pro-Plan.</p>
             <div className="flex gap-2 mt-3">
               <Button variant="outline" size="sm" onClick={handleWatermarkUpgrade}>
                 Wasserzeichen entfernen

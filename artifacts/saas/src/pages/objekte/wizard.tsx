@@ -7,6 +7,7 @@ import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { canAddProject, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
+import { type UpgradeTrigger } from "@/lib/billing-config";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ export default function ObjektWizard() {
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
 
   const parsedRate = useMemo(() => {
     const v = rateInput ? parseFloat(rateInput.replace(",", ".")) : undefined;
@@ -147,7 +149,8 @@ export default function ObjektWizard() {
 
   const openAddRoom = () => {
     if (!isPaidPlan(plan) && rooms.length >= getRoomLimit()) {
-      setUpgradeReason(`Im Free-Plan sind maximal ${getRoomLimit()} Räume pro Objekt möglich.`);
+      setUpgradeReason(`Im Basic-Plan sind maximal ${getRoomLimit()} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.`);
+      setUpgradeTrigger("room_limit");
       setUpgradeOpen(true);
       return;
     }
@@ -164,6 +167,7 @@ export default function ObjektWizard() {
     const gate = canAddProject();
     if (!gate.allowed) {
       setUpgradeReason(gate.reason || "");
+      setUpgradeTrigger(gate.trigger);
       setUpgradeOpen(true);
       return;
     }
@@ -702,6 +706,7 @@ export default function ObjektWizard() {
         open={upgradeOpen}
         onClose={() => setUpgradeOpen(false)}
         reason={upgradeReason}
+        triggerReason={upgradeTrigger}
       />
 
       <ConfirmDialog

@@ -9,11 +9,11 @@ import { PRICING, formatCents, isPaidPlan } from "@/lib/billing-config";
 import { isFoundingOfferAvailable, getFoundingOfferRemainingSlots, getFoundingOfferMaxSlots } from "@/services/founding-offer-service";
 
 const BENEFITS = [
-  { icon: Building2, text: "Unbegrenzte Objekte & Räume kalkulieren" },
-  { icon: FileText, text: "Professionelle PDF-Angebote ohne Wasserzeichen" },
+  { icon: Building2, text: "Unbegrenzt Objekte & Räume kalkulieren" },
+  { icon: FileText, text: "Druckfertige PDF-Angebote für Ihre Auftraggeber" },
   { icon: Sparkles, text: "Vorlagen speichern & wiederverwenden" },
-  { icon: Clock, text: "Verliere keine Marge durch Rechenfehler" },
-  { icon: Star, text: "Eigenes Branding: Logo, Kopf- & Fußzeile" },
+  { icon: Clock, text: "Keine Marge durch Kalkulationsfehler verlieren" },
+  { icon: Star, text: "Eigenes Firmenbranding: Logo, Kopf- & Fußzeile" },
 ];
 
 export default function Upgrade() {
@@ -37,8 +37,8 @@ export default function Upgrade() {
           <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6">
             <Crown size={40} className="text-primary" />
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight mb-3">Du bist Pro!</h1>
-          <p className="text-muted-foreground max-w-sm">Du hast bereits vollen Zugang zu allen Pro-Funktionen. Viel Erfolg mit deinen Kalkulationen!</p>
+          <h1 className="text-3xl font-semibold tracking-tight mb-3">Pro-Plan aktiv</h1>
+          <p className="text-muted-foreground max-w-sm">Sie haben vollen Zugang zu allen Pro-Funktionen. Viel Erfolg mit Ihren Kalkulationen!</p>
           <Button onClick={() => setLocation("/")} variant="outline" className="mt-8">Zurück zum Start</Button>
         </div>
       </PageTransition>
@@ -47,7 +47,7 @@ export default function Upgrade() {
 
   const handleSelectPlan = (planKey: "pro_monthly" | "pro_annual" | "founding_annual") => {
     upgradePlan(planKey);
-    toast.success("Erfolgreich auf Pro upgegradet!");
+    toast.success("Pro-Plan aktiviert — Sie können jetzt ohne Einschränkungen kalkulieren.");
     setLocation("/");
   };
 
@@ -69,10 +69,10 @@ export default function Upgrade() {
             <Crown size={40} className="text-primary" />
           </div>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3 text-foreground">
-            Erstelle professionelle Angebote in Minuten.
+            Kalkulieren ohne Kompromisse.
           </h1>
           <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
-            Kalkuliere sicher, spare Zeit und verliere keine Marge durch Rechenfehler.
+            Vollständige Angebote, exakte Margen, professionelle Dokumente — alles in einer App.
           </p>
         </motion.div>
 
@@ -108,8 +108,8 @@ export default function Upgrade() {
                 </div>
                 <div className="flex items-start justify-between mb-4 mt-1">
                   <div>
-                    <h3 className="text-lg font-bold text-foreground">Founding Member</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Einmaliges Angebot — nur für die ersten {maxSlots} Nutzer</p>
+                    <h3 className="text-lg font-bold text-foreground">Gründer-Tarif</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Exklusiv für die ersten {maxSlots} Nutzer</p>
                   </div>
                   <Sparkles size={20} className="text-primary mt-1" />
                 </div>
@@ -122,7 +122,7 @@ export default function Upgrade() {
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                    Noch {remainingSlots} von {maxSlots} Plätzen frei
+                    Noch {remainingSlots} von {maxSlots} Plätzen verfügbar
                   </span>
                   <span className="text-xs font-semibold text-success">
                     {Math.round((1 - PRICING.foundingAnnual.annualPriceCents / PRICING.proAnnual.annualPriceCents) * 100)}% sparen
@@ -184,7 +184,7 @@ export default function Upgrade() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-bold text-foreground">Pro Monatlich</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Monatliche Abrechnung, jederzeit kündbar</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Monatlich kündbar, keine Mindestlaufzeit</p>
                 </div>
               </div>
               <div className="flex items-baseline gap-2 mb-1">
@@ -217,7 +217,7 @@ export default function Upgrade() {
           className="text-center space-y-2 pb-safe"
         >
           <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-            <ShieldCheck size={14} /> Sicher bezahlen über den App Store. Jederzeit kündbar.
+            <ShieldCheck size={14} /> Sichere Zahlung. Jederzeit kündbar.
           </p>
           <p className="text-[11px] text-muted-foreground/70">
             Es gelten unsere AGB und Datenschutzbestimmungen. Abonnements verlängern sich automatisch.

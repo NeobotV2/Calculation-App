@@ -7,6 +7,7 @@ import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { canAddProject, canAddRoom, canUsePDF, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
+import { type UpgradeTrigger } from "@/lib/billing-config";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS, FREQUENCY_FACTORS, getEffectivePerformance } from "@/lib/calc";
 import {
   calcHourlyRate,
@@ -149,6 +150,7 @@ export default function KalkulationWizard() {
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
 
   useEffect(() => {
     if (existingProject && !isNew) {
@@ -244,7 +246,8 @@ export default function KalkulationWizard() {
 
   const openAddRoom = () => {
     if (!isPaidPlan(plan) && rooms.length >= getRoomLimit()) {
-      setUpgradeReason(`Im Free-Plan sind maximal ${getRoomLimit()} Räume pro Objekt möglich.`);
+      setUpgradeReason(`Im Basic-Plan sind maximal ${getRoomLimit()} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.`);
+      setUpgradeTrigger("room_limit");
       setUpgradeOpen(true);
       return;
     }
@@ -274,6 +277,7 @@ export default function KalkulationWizard() {
         const gate = canAddProject();
         if (!gate.allowed) {
           setUpgradeReason(gate.reason || "");
+          setUpgradeTrigger(gate.trigger);
           setUpgradeOpen(true);
           setIsSaving(false);
           return;
@@ -1297,6 +1301,7 @@ export default function KalkulationWizard() {
                     const gate = canUsePDF();
                     if (!gate.allowed) {
                       setUpgradeReason(gate.reason || "");
+                      setUpgradeTrigger(gate.trigger);
                       setUpgradeOpen(true);
                       return;
                     }
@@ -1319,7 +1324,7 @@ export default function KalkulationWizard() {
         hourlyRate={effectiveRate}
       />
 
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason={upgradeTrigger} />
 
       <ConfirmDialog
         open={cancelConfirm}

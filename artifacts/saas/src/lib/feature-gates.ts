@@ -20,7 +20,7 @@ export function canAddProject(): GateResult {
   if (activeCount >= limits.maxObjects) {
     return {
       allowed: false,
-      reason: `Im Free-Plan ist maximal ${limits.maxObjects} Objekt möglich.`,
+      reason: `Im Basic-Plan können Sie maximal ${limits.maxObjects} Objekt verwalten. Für parallele Objekte und effizientere Angebotserstellung wechseln Sie zum Pro-Plan.`,
       trigger: "second_object",
     };
   }
@@ -36,7 +36,7 @@ export function canAddRoom(projectId: string): GateResult {
   if (project && project.rooms.length >= limits.maxRoomsPerProject) {
     return {
       allowed: false,
-      reason: `Im Free-Plan sind maximal ${limits.maxRoomsPerProject} Räume pro Objekt möglich.`,
+      reason: `Im Basic-Plan sind maximal ${limits.maxRoomsPerProject} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.`,
       trigger: "general",
     };
   }
@@ -48,7 +48,7 @@ export function canUsePDF(): GateResult {
   if (isPaidPlan(plan)) return { allowed: true };
   return {
     allowed: false,
-    reason: "PDF-Export ist ein Pro-Feature. Im Free-Plan kannst du die Vorschau sehen, aber nicht exportieren.",
+    reason: "Der PDF-Export ist im Pro-Plan verfügbar. Erstellen Sie druckfertige Angebote und senden Sie diese direkt an Ihre Auftraggeber.",
     trigger: "pdf_export",
   };
 }
@@ -62,7 +62,7 @@ export function canRemoveWatermark(): GateResult {
   if (isPaidPlan(plan)) return { allowed: true };
   return {
     allowed: false,
-    reason: "Dokumente ohne Wasserzeichen sind ein Pro-Feature.",
+    reason: "Professionelle Angebote ohne Fremdbranding sind im Pro-Plan enthalten — für einen seriösen Auftritt bei Ihren Kunden.",
     trigger: "watermark_remove",
   };
 }
@@ -72,7 +72,7 @@ export function canUseBranding(): GateResult {
   if (isPaidPlan(plan)) return { allowed: true };
   return {
     allowed: false,
-    reason: "Eigenes Branding ist ein Pro-Feature.",
+    reason: "Im Pro-Plan nutzen Sie Ihr Firmenlogo und individuelle Kopf-/Fußzeilen auf allen Dokumenten.",
     trigger: "branding",
   };
 }
@@ -82,7 +82,7 @@ export function canUseTemplates(): GateResult {
   if (isPaidPlan(plan)) return { allowed: true };
   return {
     allowed: false,
-    reason: "Vorlagen sind ein Pro-Feature.",
+    reason: "Vorlagen beschleunigen Ihre Angebotserstellung erheblich. Speichern Sie wiederkehrende Leistungsverzeichnisse im Pro-Plan.",
     trigger: "template_save",
   };
 }
@@ -96,7 +96,7 @@ export function canOverridePerformance(): GateResult {
   if (isPaidPlan(plan)) return { allowed: true };
   return {
     allowed: false,
-    reason: "Individuelle Leistungswerte sind ein Pro-Feature.",
+    reason: "Individuelle Leistungswerte sorgen für exakte Kalkulationen. Passen Sie Werte an Ihre Erfahrungsdaten an — verfügbar im Pro-Plan.",
     trigger: "performance_override",
   };
 }
@@ -128,10 +128,15 @@ export function getUpgradeTriggerReason(trigger: UpgradeTrigger): GateResult {
     watermark_remove: canRemoveWatermark,
     branding: canUseBranding,
     performance_override: canOverridePerformance,
+    room_limit: () => {
+      const plan = getPlan();
+      if (isPaidPlan(plan)) return { allowed: true };
+      return { allowed: false, reason: `Im Basic-Plan sind maximal ${getRoomLimit()} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.`, trigger: "room_limit" as UpgradeTrigger };
+    },
     general: () => {
       const plan = getPlan();
       if (isPaidPlan(plan)) return { allowed: true };
-      return { allowed: false, reason: "Dieses Feature erfordert ein Pro-Upgrade.", trigger: "general" as UpgradeTrigger };
+      return { allowed: false, reason: "Unbegrenzte Objekte, druckfertige PDF-Angebote und volle Kontrolle über Ihre Leistungswerte — alles im Pro-Plan.", trigger: "general" as UpgradeTrigger };
     },
   };
   return gateMap[trigger]();

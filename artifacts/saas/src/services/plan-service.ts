@@ -48,7 +48,7 @@ export function checkObjectLimit(currentActiveCount: number, plan: PlanId): Limi
   if (isPaidPlan(plan)) return { allowed: true };
   const limits = getPlanLimits(plan);
   if (currentActiveCount >= limits.maxObjects) {
-    return { allowed: false, reason: `Im Free-Plan ist maximal ${limits.maxObjects} Objekt möglich.` };
+    return { allowed: false, reason: `Im Basic-Plan können Sie maximal ${limits.maxObjects} Objekt verwalten. Für parallele Objekte und effizientere Angebotserstellung wechseln Sie zum Pro-Plan.` };
   }
   return { allowed: true };
 }
@@ -57,22 +57,22 @@ export function checkRoomLimit(currentRoomCount: number, plan: PlanId): LimitChe
   if (isPaidPlan(plan)) return { allowed: true };
   const limits = getPlanLimits(plan);
   if (currentRoomCount >= limits.maxRoomsPerProject) {
-    return { allowed: false, reason: `Im Free-Plan sind maximal ${limits.maxRoomsPerProject} Räume pro Objekt möglich.` };
+    return { allowed: false, reason: `Im Basic-Plan sind maximal ${limits.maxRoomsPerProject} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.` };
   }
   return { allowed: true };
 }
 
 export function checkTemplateAccess(plan: PlanId): LimitCheck {
   if (isPaidPlan(plan)) return { allowed: true };
-  return { allowed: false, reason: "Vorlagen sind ein Pro-Feature." };
+  return { allowed: false, reason: "Vorlagen beschleunigen Ihre Angebotserstellung erheblich. Speichern Sie wiederkehrende Leistungsverzeichnisse im Pro-Plan." };
 }
 
 export function checkPDFAccess(plan: PlanId): LimitCheck {
   if (isPaidPlan(plan)) return { allowed: true };
-  return { allowed: false, reason: "PDF-Export ist ein Pro-Feature." };
+  return { allowed: false, reason: "Der PDF-Export ist im Pro-Plan verfügbar. Erstellen Sie druckfertige Angebote und senden Sie diese direkt an Ihre Auftraggeber." };
 }
 
 export function checkPerformanceOverride(plan: PlanId): LimitCheck {
   if (isPaidPlan(plan)) return { allowed: true };
-  return { allowed: false, reason: "Individuelle Leistungswerte sind ein Pro-Feature." };
+  return { allowed: false, reason: "Individuelle Leistungswerte sorgen für exakte Kalkulationen. Passen Sie Werte an Ihre Erfahrungsdaten an — verfügbar im Pro-Plan." };
 }

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Crown, X, CheckCircle2, Lock } from "lucide-react";
+import { Crown, X, CheckCircle2, Lock, Minus } from "lucide-react";
 import { useStore } from "@/store/use-store";
 import { useLocation } from "wouter";
 import { type UpgradeTrigger, UPGRADE_TRIGGER_COPY } from "@/lib/billing-config";
@@ -47,7 +47,7 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
               </div>
 
               <h2 className="text-3xl font-semibold tracking-tight mb-2">
-                {triggerCopy?.headline || "Pro freischalten"}
+                {triggerCopy?.headline || "Funktion im Pro-Plan verfügbar"}
               </h2>
 
               {displayReason && (
@@ -57,19 +57,44 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
                 </div>
               )}
 
-              <div className="my-6 space-y-3">
-                {[
-                  "Unbegrenzte Objekte & Kalkulationen",
-                  "Finale PDF-Angebote ohne Wasserzeichen",
-                  "Vorlagen & Wiederverwendung",
-                  "Volle Plausibilitätsprüfung",
-                  "Eigenes Branding & Logo",
-                ].map((feature) => (
-                  <div key={feature} className="flex items-center gap-2.5 text-sm text-foreground">
-                    <CheckCircle2 size={16} className="text-primary shrink-0" />
-                    <span>{feature}</span>
-                  </div>
-                ))}
+              <div className="my-6">
+                <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-3">Basic vs. Pro im Vergleich</p>
+                <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-2 text-sm items-center">
+                  <span className="text-muted-foreground font-medium"></span>
+                  <span className="text-muted-foreground text-xs font-semibold text-center">Basic</span>
+                  <span className="text-primary text-xs font-semibold text-center">Pro</span>
+
+                  {[
+                    { label: "Objekte", basic: "1", pro: "Unbegrenzt" },
+                    { label: "Räume pro Objekt", basic: "3", pro: "Unbegrenzt" },
+                    { label: "PDF-Angebote", basic: false, pro: true },
+                    { label: "Vorlagen speichern", basic: false, pro: true },
+                    { label: "Eigene Leistungswerte", basic: false, pro: true },
+                    { label: "Firmenlogo & Branding", basic: false, pro: true },
+                  ].map((row) => (
+                    <>
+                      <span key={row.label} className="text-foreground">{row.label}</span>
+                      <span className="text-center">
+                        {typeof row.basic === "string" ? (
+                          <span className="text-muted-foreground text-xs">{row.basic}</span>
+                        ) : row.basic ? (
+                          <CheckCircle2 size={14} className="text-muted-foreground mx-auto" />
+                        ) : (
+                          <Minus size={14} className="text-muted-foreground/40 mx-auto" />
+                        )}
+                      </span>
+                      <span className="text-center">
+                        {typeof row.pro === "string" ? (
+                          <span className="text-primary text-xs font-medium">{row.pro}</span>
+                        ) : row.pro ? (
+                          <CheckCircle2 size={14} className="text-primary mx-auto" />
+                        ) : (
+                          <Minus size={14} className="text-muted-foreground/40 mx-auto" />
+                        )}
+                      </span>
+                    </>
+                  ))}
+                </div>
               </div>
 
               <Button
@@ -77,11 +102,11 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
                 size="lg"
                 className="w-full h-14 text-lg mt-2"
               >
-                Jetzt Pro freischalten
+                Pro-Plan ansehen
               </Button>
 
               <button onClick={onClose} className="w-full text-center text-sm text-muted-foreground mt-4 py-2">
-                Später
+                Nicht jetzt
               </button>
             </div>
           </motion.div>

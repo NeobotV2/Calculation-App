@@ -280,7 +280,7 @@ export default function ObjekteList() {
       {!isPaidPlan(plan) && projects.filter(p => p.status !== "archived").length >= getObjectLimit() && (
         <div className="mx-6 mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm text-muted-foreground flex items-center gap-2">
           <Building2 size={16} className="text-primary shrink-0" />
-          <span>Du nutzt {projects.filter(p => p.status !== "archived").length}/{getObjectLimit()} Objekte im Free-Plan.</span>
+          <span>Sie nutzen {projects.filter(p => p.status !== "archived").length}/{getObjectLimit()} Objekte im Basic-Plan.</span>
         </div>
       )}
 

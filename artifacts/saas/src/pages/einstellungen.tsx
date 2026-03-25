@@ -462,9 +462,9 @@ export default function Einstellungen() {
                 <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
                   <Lock size={20} className="text-foreground" />
                 </div>
-                <p className="font-semibold text-foreground mb-1">Nur im Pro Plan</p>
-                <p className="text-xs text-muted-foreground mb-4">Erstelle eigene Raumarten.</p>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Upgrade ansehen</Button>
+                <p className="font-semibold text-foreground mb-1">Erweiterte Raumarten im Pro-Plan</p>
+                <p className="text-xs text-muted-foreground mb-4">Legen Sie eigene Raumarten an, die zu Ihren Objekten passen.</p>
+                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Pro-Plan ansehen</Button>
               </div>
             )}
           </div>
@@ -536,7 +536,7 @@ export default function Einstellungen() {
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
             <div className={`space-y-5 ${!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}`}>
               <p className="text-xs text-muted-foreground">
-                Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier kannst du optionale Zusatzzeilen eintragen.
+                Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier können Sie optionale Zusatzzeilen eintragen.
               </p>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Firmenlogo</label>
@@ -591,9 +591,9 @@ export default function Einstellungen() {
                 <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
                   <Lock size={20} className="text-foreground" />
                 </div>
-                <p className="font-semibold text-foreground mb-1">Nur im Pro Plan</p>
-                <p className="text-xs text-muted-foreground mb-4">Individualisiere deine PDF-Angebote.</p>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Upgrade ansehen</Button>
+                <p className="font-semibold text-foreground mb-1">PDF-Dokumente anpassen</p>
+                <p className="text-xs text-muted-foreground mb-4">Gestalten Sie Kopf- und Fußzeilen Ihrer Angebots-PDFs individuell.</p>
+                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Pro-Plan ansehen</Button>
               </div>
             )}
           </div>
@@ -617,9 +617,9 @@ export default function Einstellungen() {
                 <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
                   <Lock size={20} className="text-foreground" />
                 </div>
-                <p className="font-semibold text-foreground mb-1">Nur im Pro Plan</p>
-                <p className="text-xs text-muted-foreground mb-4">Eigenes Logo & Branding.</p>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Upgrade ansehen</Button>
+                <p className="font-semibold text-foreground mb-1">Eigenes Firmenbranding</p>
+                <p className="text-xs text-muted-foreground mb-4">Ihr Logo und Ihre CI auf allen Dokumenten — für einen professionellen Auftritt.</p>
+                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Pro-Plan ansehen</Button>
               </div>
             )}
           </div>

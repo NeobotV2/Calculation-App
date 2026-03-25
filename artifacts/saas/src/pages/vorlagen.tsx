@@ -74,8 +74,8 @@ export default function Vorlagen() {
             <BookOpen size={28} className="text-primary" />
           </div>
           <h2 className="text-2xl font-semibold mb-2">Vorlagen</h2>
-          <p className="text-sm text-muted-foreground mb-6 max-w-[280px]">Speichere Objekte als Vorlagen, um sie für neue Kalkulationen wiederzuverwenden. Verfügbar im Pro-Plan.</p>
-          <Button onClick={() => setLocation("/upgrade")} size="lg">Auf Pro upgraden</Button>
+          <p className="text-sm text-muted-foreground mb-6 max-w-[280px]">Speichern Sie bewährte Kalkulationen als Vorlage und nutzen Sie diese für ähnliche Objekte — spart Zeit bei jedem neuen Angebot.</p>
+          <Button onClick={() => setLocation("/upgrade")} size="lg">Pro-Plan ansehen</Button>
         </div>
       </PageTransition>
     );

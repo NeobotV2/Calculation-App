@@ -390,7 +390,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
         </>
       )}
     </AnimatePresence>
-    <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={overrideGate.reason || ""} />
+    <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={overrideGate.reason || ""} triggerReason="performance_override" />
     </>
   );
 }

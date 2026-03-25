@@ -7,6 +7,7 @@ export type UpgradeTrigger =
   | "watermark_remove"
   | "branding"
   | "performance_override"
+  | "room_limit"
   | "general";
 
 export interface PlanLimits {
@@ -156,31 +157,35 @@ export function formatCents(cents: number): string {
 
 export const UPGRADE_TRIGGER_COPY: Record<UpgradeTrigger, { headline: string; text: string }> = {
   second_object: {
-    headline: "Mehr als ein Objekt kalkulieren",
-    text: "Mit Pro arbeitest du mit unbegrenzten Objekten, Angeboten und Vorlagen.",
+    headline: "Mehrere Objekte parallel kalkulieren",
+    text: "Wer nur ein Objekt kalkulieren kann, verliert Aufträge. Mit dem Pro-Plan verwalten Sie beliebig viele Objekte gleichzeitig.",
   },
   pdf_export: {
-    headline: "Finales Angebot exportieren",
-    text: "Erstelle professionelle PDF-Angebote ohne Wasserzeichen und sende sie direkt an Kunden.",
+    headline: "Druckfertige Angebote erstellen",
+    text: "Ohne PDF-Export bleibt Ihre Kalkulation intern. Im Pro-Plan erstellen Sie professionelle Angebotsdokumente für Ihre Auftraggeber.",
   },
   template_save: {
-    headline: "Vorlagen professionell nutzen",
-    text: "Speichere wiederkehrende Leistungsverzeichnisse und beschleunige deine Angebotsprozesse.",
+    headline: "Wiederkehrende Leistungen als Vorlage sichern",
+    text: "Ähnliche Objekte jedes Mal neu kalkulieren kostet Zeit. Speichern Sie bewährte Leistungsverzeichnisse und nutzen Sie diese als Vorlage.",
   },
   watermark_remove: {
-    headline: "Dokumente ohne Fremdbranding",
-    text: "Nutze saubere, professionelle Angebote mit deinem eigenen Firmenauftritt.",
+    headline: "Angebote ohne Fremdbranding versenden",
+    text: "Professionelle Angebote tragen Ihr Branding — nicht das eines Drittanbieters. Im Pro-Plan entfällt das Wasserzeichen.",
   },
   branding: {
-    headline: "Eigenes Firmenbranding",
-    text: "Nutze dein Firmenlogo und individuelle Kopf-/Fußzeilen auf allen Dokumenten.",
+    headline: "Ihr Firmenauftritt auf jedem Dokument",
+    text: "Firmenlogo, individuelle Kopf- und Fußzeilen — Ihre Dokumente sehen aus, als kämen sie direkt aus Ihrem Büro.",
   },
   performance_override: {
-    headline: "Individuelle Leistungswerte",
-    text: "Passe Leistungswerte pro Raum individuell an deine Erfahrungswerte an.",
+    headline: "Leistungswerte an Ihre Praxis anpassen",
+    text: "Standardwerte passen selten exakt. Hinterlegen Sie Ihre eigenen Erfahrungswerte für präzisere Kalkulationen und bessere Margen.",
+  },
+  room_limit: {
+    headline: "Mehr Räume pro Objekt kalkulieren",
+    text: "Komplexe Objekte erfordern detaillierte Raumpläne. Im Pro-Plan kalkulieren Sie beliebig viele Räume pro Objekt — ohne Einschränkung.",
   },
   general: {
-    headline: "Professionelle Kalkulation ohne Limit",
-    text: "Nutze unbegrenzte Objekte, finale PDF-Angebote und volle Plausibilitätsprüfung.",
+    headline: "Kalkulieren ohne Einschränkung",
+    text: "Unbegrenzte Objekte, druckfertige PDF-Angebote und volle Kontrolle über Ihre Leistungswerte — alles im Pro-Plan.",
   },
 };
