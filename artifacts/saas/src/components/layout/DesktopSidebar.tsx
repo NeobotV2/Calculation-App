@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "Start", icon: Home },
-  { href: "/stundensatz", label: "Kalkulation", icon: Calculator },
+  { href: "/kalkulation/neu", label: "Kalkulation", icon: Calculator },
   { href: "/objekte", label: "Objekte", icon: Building2 },
   { href: "/auswertung", label: "Controlling", icon: BarChart3 },
   { href: "/mehr", label: "Mehr", icon: Menu },
@@ -15,6 +15,7 @@ export function DesktopSidebar() {
 
   const isActive = (href: string) => {
     if (href === "/" && location !== "/") return false;
+    if (href === "/kalkulation/neu") return location.startsWith("/kalkulation");
     if (href === "/mehr") {
       const mehrSubRoutes = ["/mehr", "/einstellungen", "/konto", "/vorlagen", "/upgrade", "/impressum", "/datenschutz", "/agb"];
       return mehrSubRoutes.some((r) => location === r || location.startsWith(r + "/"));

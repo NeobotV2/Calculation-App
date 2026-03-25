@@ -228,6 +228,9 @@ export default function ObjektDetail() {
           <ArrowLeft size={20} />
         </Button>
         <div className="flex gap-2">
+          <Link href={`/kalkulation/${project.id}`}>
+            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" />Kalkulation</Button>
+          </Link>
           <Link href={`/auswertung/${project.id}`}>
             <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" />Controlling</Button>
           </Link>

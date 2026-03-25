@@ -23,7 +23,7 @@ import AuswertungDetail from "@/pages/auswertung/[id]";
 import Vorlagen from "@/pages/vorlagen";
 import PrintView from "@/pages/print/[id]";
 import Einstellungen from "@/pages/einstellungen";
-import Kalkulation from "@/pages/kalkulation";
+import KalkulationWizard from "@/pages/kalkulation-wizard";
 import Konto from "@/pages/konto";
 import Upgrade from "@/pages/upgrade";
 import Mehr from "@/pages/mehr";
@@ -31,7 +31,7 @@ import Impressum from "@/pages/impressum";
 import Datenschutz from "@/pages/datenschutz";
 import AGB from "@/pages/agb";
 import NotFound from "@/pages/not-found";
-import { KalkulationListRedirect, KalkulationDetailRedirect } from "@/pages/legacy-redirect";
+import { KalkulationListRedirect, KalkulationDetailRedirect, StundensatzRedirect } from "@/pages/legacy-redirect";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { CookieNotice } from "@/components/cookie-notice";
 import { useAndroidBack } from "@/hooks/use-android-back";
@@ -106,7 +106,7 @@ function DataSync() {
   return null;
 }
 
-const shellRoutes = ["/", "/objekte", "/auswertung", "/einstellungen", "/stundensatz", "/konto", "/vorlagen", "/upgrade", "/mehr"];
+const shellRoutes = ["/", "/objekte", "/auswertung", "/einstellungen", "/stundensatz", "/kalkulation", "/konto", "/vorlagen", "/upgrade", "/mehr"];
 
 function needsShell(loc: string): boolean {
   if (loc.startsWith("/print/")) return false;
@@ -139,7 +139,9 @@ function AppRouter() {
         <Route path="/vorlagen" component={Vorlagen} />
         <Route path="/print/:id" component={PrintView} />
         <Route path="/einstellungen" component={Einstellungen} />
-        <Route path="/stundensatz" component={Kalkulation} />
+        <Route path="/stundensatz" component={StundensatzRedirect} />
+        <Route path="/kalkulation/neu" component={KalkulationWizard} />
+        <Route path="/kalkulation/:id" component={KalkulationWizard} />
         <Route path="/konto" component={Konto} />
         <Route path="/upgrade" component={Upgrade} />
         <Route path="/mehr" component={Mehr} />
@@ -147,7 +149,6 @@ function AppRouter() {
         <Route path="/datenschutz" component={Datenschutz} />
         <Route path="/agb" component={AGB} />
         <Route path="/kalkulation" component={KalkulationListRedirect} />
-        <Route path="/kalkulation/:id" component={KalkulationDetailRedirect} />
         <Route component={NotFound} />
       </Switch>
     </AnimatePresence>

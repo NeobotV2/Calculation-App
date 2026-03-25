@@ -9,6 +9,10 @@ interface DbObject {
   location: string | null;
   notes: string | null;
   hourly_rate: number | null;
+  object_type: string | null;
+  contact_name: string | null;
+  ruestzeit: number | null;
+  wegezeit: number | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -42,6 +46,10 @@ function dbObjectToProject(obj: DbObject, rooms: DbRoom[]): Project {
     location: obj.location || undefined,
     notes: obj.notes || undefined,
     hourlyRate: obj.hourly_rate ? Number(obj.hourly_rate) : undefined,
+    objectType: obj.object_type || undefined,
+    rpiContactName: obj.contact_name || undefined,
+    ruestzeit: obj.ruestzeit != null ? Number(obj.ruestzeit) : undefined,
+    wegezeit: obj.wegezeit != null ? Number(obj.wegezeit) : undefined,
     status: obj.status as "active" | "archived",
     createdAt: obj.created_at,
     updatedAt: obj.updated_at,
@@ -111,7 +119,7 @@ export async function createObject(name: string, customer?: string): Promise<str
 
 export async function updateObject(
   id: string,
-  updates: Partial<Pick<Project, "name" | "customer" | "location" | "notes" | "hourlyRate" | "status">>
+  updates: Partial<Pick<Project, "name" | "customer" | "location" | "notes" | "hourlyRate" | "status" | "objectType" | "rpiContactName" | "ruestzeit" | "wegezeit">>
 ): Promise<boolean> {
   if (!supabase) return false;
   const dbUpdates: Record<string, unknown> = {};
@@ -119,8 +127,12 @@ export async function updateObject(
   if (updates.customer !== undefined) dbUpdates.customer = updates.customer || null;
   if (updates.location !== undefined) dbUpdates.location = updates.location || null;
   if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
-  if (updates.hourlyRate !== undefined) dbUpdates.hourly_rate = updates.hourlyRate;
+  if ("hourlyRate" in updates) dbUpdates.hourly_rate = updates.hourlyRate ?? null;
   if (updates.status !== undefined) dbUpdates.status = updates.status;
+  if (updates.objectType !== undefined) dbUpdates.object_type = updates.objectType || null;
+  if (updates.rpiContactName !== undefined) dbUpdates.contact_name = updates.rpiContactName || null;
+  if (updates.ruestzeit !== undefined) dbUpdates.ruestzeit = updates.ruestzeit;
+  if (updates.wegezeit !== undefined) dbUpdates.wegezeit = updates.wegezeit;
 
   const { error } = await supabase
     .from("cleaning_objects")
@@ -156,6 +168,10 @@ export async function duplicateObject(id: string): Promise<string | null> {
       location: original.location,
       notes: original.notes,
       hourly_rate: original.hourly_rate,
+      object_type: original.object_type,
+      contact_name: original.contact_name,
+      ruestzeit: original.ruestzeit,
+      wegezeit: original.wegezeit,
       status: "active",
     })
     .select("id")

@@ -54,7 +54,7 @@ export function calcRoom(room: Room, hourlyRate: number) {
 
 export function calcProjectTotals(project: Project | undefined, hourlyRate: number) {
   if (!project) {
-    return { area: 0, hours: 0, cost: 0, annualCost: 0, count: 0, pricePerSqm: 0 };
+    return { area: 0, hours: 0, cost: 0, annualCost: 0, count: 0, pricePerSqm: 0, ruestzeitHours: 0, wegezeitHours: 0 };
   }
   let area = 0;
   let hours = 0;
@@ -67,6 +67,18 @@ export function calcProjectTotals(project: Project | undefined, hourlyRate: numb
     cost += rc.monthlyCost;
   });
 
+  const visitsPerMonth = project.rooms.length > 0
+    ? Math.max(...project.rooms.map((r) => FREQUENCY_FACTORS[r.frequency]))
+    : 0;
+
+  const ruestzeitMinutes = project.ruestzeit ?? 0;
+  const wegezeitMinutes = project.wegezeit ?? 0;
+  const ruestzeitHours = (ruestzeitMinutes / 60) * visitsPerMonth;
+  const wegezeitHours = (wegezeitMinutes / 60) * visitsPerMonth;
+
+  hours += ruestzeitHours + wegezeitHours;
+  cost = hours * hourlyRate;
+
   return {
     area,
     hours,
@@ -74,5 +86,7 @@ export function calcProjectTotals(project: Project | undefined, hourlyRate: numb
     annualCost: cost * 12,
     count: project.rooms.length,
     pricePerSqm: area > 0 ? cost / area : 0,
+    ruestzeitHours,
+    wegezeitHours,
   };
 }

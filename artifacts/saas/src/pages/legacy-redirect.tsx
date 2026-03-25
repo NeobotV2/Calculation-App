@@ -4,7 +4,7 @@ import { useRoute, useLocation } from "wouter";
 export function KalkulationListRedirect() {
   const [, navigate] = useLocation();
   useEffect(() => {
-    navigate("/objekte", { replace: true });
+    navigate("/kalkulation/neu", { replace: true });
   }, [navigate]);
   return null;
 }
@@ -15,5 +15,13 @@ export function KalkulationDetailRedirect() {
   useEffect(() => {
     navigate(`/objekte/${params?.id || ""}`, { replace: true });
   }, [params?.id, navigate]);
+  return null;
+}
+
+export function StundensatzRedirect() {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate("/kalkulation/neu", { replace: true });
+  }, [navigate]);
   return null;
 }

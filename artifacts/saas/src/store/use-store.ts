@@ -46,6 +46,11 @@ export interface Project {
   location?: string;
   notes?: string;
   hourlyRate?: number;
+  objectType?: string;
+  rpiContactName?: string;
+  rpiContactPhone?: string;
+  ruestzeit?: number;
+  wegezeit?: number;
   status: "active" | "archived";
   createdAt: string;
   updatedAt: string;
