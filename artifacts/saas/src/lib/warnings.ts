@@ -69,7 +69,7 @@ export function getProjectWarnings(
     ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
     : 0;
 
-  if (marginPercent > 0 && marginPercent < marginTarget) {
+  if (marginPercent >= 0 && marginPercent < marginTarget && effectiveRate >= breakdown.vollkosten) {
     warnings.push({
       id: `${project.id}_low_margin`,
       severity: "warning",
