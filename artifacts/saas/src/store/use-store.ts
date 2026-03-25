@@ -271,10 +271,16 @@ export const useStore = create<AppState>()(
 
       updateHourlyRateConfig: (config) => {
         const breakdown = calcHourlyRate(config);
-        set({
+        const currentState = get();
+        const oldDefault = currentState.hourlyRateConfig.gewinnmarge;
+        const updates: Partial<AppState> = {
           hourlyRateConfig: config,
           hourlyRate: Math.round(breakdown.stundenverrechnungssatz * 100) / 100,
-        });
+        };
+        if (currentState.targetMargin === oldDefault) {
+          updates.targetMargin = config.gewinnmarge;
+        }
+        set(updates);
       },
 
       setDisabledWarnings: (warnings) => set({ disabledWarnings: warnings }),

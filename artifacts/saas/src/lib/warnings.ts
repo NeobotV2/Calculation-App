@@ -115,7 +115,7 @@ export function getProjectWarnings(
     }
   }
 
-  if (isDefaultRate) {
+  if (isDefaultRate && !project.hourlyRate) {
     warnings.push({
       id: `${project.id}_default_rate`,
       severity: "info",
