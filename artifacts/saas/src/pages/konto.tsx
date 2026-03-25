@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
-import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2, Sparkles } from "lucide-react";
+import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2, Sparkles, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { getObjectLimit, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { getPlanMeta, isFoundingPlan } from "@/lib/billing-config";
@@ -247,12 +247,29 @@ export default function Konto() {
                 <span className="text-sm text-muted-foreground">Nächste Verlängerung</span>
                 <span className="text-sm text-muted-foreground">—</span>
               </div>
-              <div className="pt-3 border-t border-border/20">
-                <p className="text-xs text-muted-foreground text-center">
-                  {isNative
-                    ? "Abo-Verwaltung und Kündigung erfolgen über die Einstellungen Ihres App Stores."
-                    : "Abonnements werden über den App Store / Google Play verwaltet."}
-                </p>
+              <div className="pt-3 border-t border-border/20 space-y-2">
+                {isNative ? (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between h-11 text-sm bg-background"
+                    onClick={() => {
+                      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                      const url = isIos
+                        ? "https://apps.apple.com/account/subscriptions"
+                        : "https://play.google.com/store/account/subscriptions";
+                      window.open(url, "_blank");
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      Abo verwalten
+                    </span>
+                    <ExternalLink size={14} className="text-muted-foreground" />
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Abonnements werden über den App Store / Google Play verwaltet.
+                  </p>
+                )}
               </div>
             </div>
           </div>
