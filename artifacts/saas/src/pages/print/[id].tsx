@@ -30,6 +30,7 @@ export default function PrintView() {
   const pdfHeader = useStore((s) => s.pdfHeader);
   const pdfFooter = useStore((s) => s.pdfFooter);
   const plan = useStore((s) => s.plan);
+  const companyLogo = useStore((s) => s.companyLogo);
 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
@@ -108,13 +109,16 @@ export default function PrintView() {
           {pdfHeader && <p className="text-sm text-muted-foreground print:text-gray-600 mb-4">{pdfHeader}</p>}
 
           <div className="mb-8 flex items-start justify-between">
-            <div>
+            <div className="flex items-center gap-4">
+              {companyLogo && <img src={companyLogo} alt="Logo" className="h-12 w-auto object-contain print:h-12" />}
+              <div>
               <h1 className="text-3xl font-bold tracking-tight print:text-black">{companyName}</h1>
               {hasAddress && (
                 <p className="text-sm text-muted-foreground print:text-gray-500 mt-1">
                   {companyStreet}{companyStreet && (companyZip || companyCity) ? ", " : ""}{companyZip} {companyCity}
                 </p>
               )}
+              </div>
             </div>
             <div className="flex flex-col items-end gap-2">
               <div className="w-16 h-16 border-2 border-dashed border-border/40 print:border-gray-300 rounded-xl flex items-center justify-center text-[10px] text-muted-foreground print:text-gray-400 text-center leading-tight">

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { PageTransition } from "@/components/layout/PageTransition";
@@ -7,7 +7,8 @@ import { calcProjectTotals, calcRoom } from "@/lib/calc";
 import { getDefaultConfig } from "@/lib/hourly-rate-calc";
 import { getAllProjectWarnings } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
-import { BarChart3, Building2, ChevronRight, TrendingUp, AlertTriangle, PieChart as PieChartIcon, Clock } from "lucide-react";
+import { BarChart3, Building2, ChevronRight, TrendingUp, AlertTriangle, PieChart as PieChartIcon, Clock, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/list-skeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
@@ -28,6 +29,7 @@ const CHART_COLORS = [
 ];
 
 export default function AuswertungGlobal() {
+  const [, setLocation] = useLocation();
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
@@ -402,6 +404,15 @@ export default function AuswertungGlobal() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {activeProjects.length > 0 && (
+        <div className="fixed bottom-20 right-6 z-40" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
+          <Button onClick={() => setLocation("/objekte")} className="h-14 px-6 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2">
+            <FileText size={20} />
+            <span className="font-semibold">Objekte verwalten</span>
+          </Button>
         </div>
       )}
 

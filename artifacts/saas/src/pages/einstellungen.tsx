@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle } from "lucide-react";
+import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle, ImagePlus, X } from "lucide-react";
 import { WARNING_TYPES } from "@/lib/warnings";
 import { toast } from "sonner";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -44,6 +44,8 @@ export default function Einstellungen() {
   const { isAuthenticated } = useAuth();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const companyLogo = useStore((s) => s.companyLogo);
 
   const [company, setCompany] = useState(companyName);
   const [street, setStreet] = useState(companyStreet);
@@ -121,6 +123,32 @@ export default function Einstellungen() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Bitte wähle eine Bilddatei aus.");
+      return;
+    }
+    if (file.size > 500 * 1024) {
+      toast.error("Das Bild ist zu groß (max. 500 KB).");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      actions.updateSettings({ companyLogo: base64 });
+      toast.success("Logo hochgeladen");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemoveLogo = () => {
+    actions.updateSettings({ companyLogo: "" });
+    toast.success("Logo entfernt");
   };
 
   const handleSaveRoomType = async () => {
@@ -243,6 +271,7 @@ export default function Einstellungen() {
         defaultFrequency: "5x_week",
         pdfHeader: "",
         pdfFooter: "",
+        companyLogo: "",
       });
       if (!isAuthenticated) {
         resetToDefaults();
@@ -507,6 +536,29 @@ export default function Einstellungen() {
               <p className="text-xs text-muted-foreground">
                 Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier kannst du optionale Zusatzzeilen eintragen.
               </p>
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">Firmenlogo</label>
+                {companyLogo ? (
+                  <div className="flex items-center gap-4">
+                    <img src={companyLogo} alt="Logo" className="h-14 w-auto object-contain rounded-lg border border-border/30 bg-white p-1" />
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={plan === "basic"}>
+                        Ändern
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handleRemoveLogo} disabled={plan === "basic"} className="text-destructive hover:bg-destructive/10">
+                        <X size={14} className="mr-1" /> Entfernen
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="outline" onClick={() => logoInputRef.current?.click()} className="w-full h-20 border-dashed flex flex-col items-center gap-1" disabled={plan === "basic"}>
+                    <ImagePlus size={20} className="text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Logo hochladen (max. 500 KB)</span>
+                  </Button>
+                )}
+                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                <p className="text-xs text-muted-foreground mt-1.5 ml-1">Wird im PDF-Briefkopf neben dem Firmennamen angezeigt.</p>
+              </div>
               <div>
                 <label className="text-sm font-medium text-foreground mb-2 block">Kopfzeile (optional)</label>
                 <Input

@@ -197,6 +197,7 @@ export function useStoreActions() {
     defaultFrequency?: string;
     pdfHeader?: string;
     pdfFooter?: string;
+    companyLogo?: string;
   }): Promise<void> => {
     if (isAuthenticated) {
       const dbUpdates: Record<string, unknown> = {};
@@ -220,6 +221,9 @@ export function useStoreActions() {
       if (Object.keys(dbUpdates).length > 0) {
         await settingsService.updateSettings(dbUpdates as Parameters<typeof settingsService.updateSettings>[0]);
       }
+      if (data.companyLogo !== undefined) {
+        useStore.getState().updateSettings({ companyLogo: data.companyLogo });
+      }
       await reload();
       return;
     }
@@ -238,6 +242,7 @@ export function useStoreActions() {
     if (data.defaultFrequency !== undefined) store.updateSettings({ defaultFrequency: data.defaultFrequency as import("@/store/use-store").FrequencyKey });
     if (data.pdfHeader !== undefined) store.updateSettings({ pdfHeader: data.pdfHeader });
     if (data.pdfFooter !== undefined) store.updateSettings({ pdfFooter: data.pdfFooter });
+    if (data.companyLogo !== undefined) store.updateSettings({ companyLogo: data.companyLogo });
   }, [isAuthenticated, reload]);
 
   return {

@@ -312,7 +312,10 @@ export default function ObjekteList() {
                           {p.status === "archived" && (
                             <span className="text-[10px] uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full shrink-0">Archiviert</span>
                           )}
-                          {p.status !== "archived" && (
+                          {p.status !== "archived" && (new Date().getTime() - new Date(p.createdAt).getTime()) < 7 * 24 * 60 * 60 * 1000 && (
+                            <span className="text-[10px] uppercase tracking-widest bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full shrink-0">Neu</span>
+                          )}
+                          {p.status !== "archived" && (new Date().getTime() - new Date(p.createdAt).getTime()) >= 7 * 24 * 60 * 60 * 1000 && (
                             <span className="text-[10px] uppercase tracking-widest bg-green-500/10 text-green-400 px-2 py-0.5 rounded-full shrink-0">Aktiv</span>
                           )}
                         </div>
@@ -396,8 +399,9 @@ export default function ObjekteList() {
           <Zap size={14} />
           Schnell erstellen
         </button>
-        <Button onClick={handleCreate} size="icon" className="w-14 h-14 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90" disabled={isWorking}>
-          <Plus size={26} />
+        <Button onClick={handleCreate} className="h-14 px-6 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2" disabled={isWorking}>
+          <Plus size={22} />
+          <span className="font-semibold">Neues Objekt</span>
         </Button>
       </div>
 

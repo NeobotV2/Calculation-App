@@ -88,6 +88,7 @@ interface AppState {
   defaultFrequency: FrequencyKey;
   pdfHeader: string;
   pdfFooter: string;
+  companyLogo: string;
   customRoomTypes: CustomRoomType[];
   hourlyRateConfig: HourlyRateConfig;
   disabledWarnings: string[];
@@ -102,7 +103,7 @@ interface AppState {
   clearSession: () => void;
   // Placeholder: will be replaced by RevenueCat in-app purchase flow (Task #11)
   upgradePlan: () => void;
-  updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
+  updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string; companyLogo: string }>) => void;
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
   setDisabledWarnings: (warnings: string[]) => void;
   setTargetMargin: (margin: number) => void;
@@ -212,6 +213,7 @@ export const useStore = create<AppState>()(
       defaultFrequency: "5x_week" as FrequencyKey,
       pdfHeader: "",
       pdfFooter: "",
+      companyLogo: "",
       customRoomTypes: [],
       hourlyRateConfig: getDefaultConfig(),
       disabledWarnings: [],
@@ -260,6 +262,7 @@ export const useStore = create<AppState>()(
             defaultFrequency: "5x_week" as FrequencyKey,
             pdfHeader: "",
             pdfFooter: "",
+            companyLogo: "",
             disabledWarnings: [],
             targetMargin: getDefaultConfig().gewinnmarge,
           });
