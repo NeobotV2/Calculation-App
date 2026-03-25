@@ -25,6 +25,7 @@ export default function ObjektDetail() {
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const disabledWarnings = useStore((s) => s.disabledWarnings);
+  const targetMargin = useStore((s) => s.targetMargin);
   const plan = useStore((s) => s.plan);
   const actions = useStoreActions();
 
@@ -64,9 +65,9 @@ export default function ObjektDetail() {
   const warnings = useMemo(() => {
     if (!project) return [];
     const disabled = new Set(disabledWarnings);
-    return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate)
+    return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, targetMargin)
       .filter((w) => !disabled.has(getWarningTypeKey(w.id)));
-  }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, disabledWarnings]);
+  }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, disabledWarnings, targetMargin]);
 
   const handleSaveName = async () => {
     if (nameInput.trim()) {

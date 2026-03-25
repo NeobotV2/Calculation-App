@@ -46,10 +46,12 @@ export function getProjectWarnings(
   globalHourlyRate: number,
   hourlyRateConfig: HourlyRateConfig,
   breakdown: HourlyRateBreakdown,
-  isDefaultRate: boolean
+  isDefaultRate: boolean,
+  targetMargin?: number
 ): Warning[] {
   const warnings: Warning[] = [];
   const effectiveRate = project.hourlyRate ?? globalHourlyRate;
+  const marginTarget = targetMargin ?? hourlyRateConfig.gewinnmarge;
 
   if (project.rooms.length === 0) return warnings;
 
@@ -66,14 +68,13 @@ export function getProjectWarnings(
   const marginPercent = effectiveRate > 0
     ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
     : 0;
-  const targetMargin = hourlyRateConfig.gewinnmarge;
 
-  if (marginPercent > 0 && marginPercent < targetMargin) {
+  if (marginPercent > 0 && marginPercent < marginTarget) {
     warnings.push({
       id: `${project.id}_low_margin`,
       severity: "warning",
       title: "Marge unter Zielwert",
-      message: `Die Marge liegt bei ${fmt(marginPercent)}% — unter dem Zielwert von ${fmt(targetMargin)}%.`,
+      message: `Die Marge liegt bei ${fmt(marginPercent)}% — unter dem Zielwert von ${fmt(marginTarget)}%.`,
       action: "Verrechnungssatz prüfen oder Leistungswerte der Räume optimieren.",
     });
   }
@@ -132,7 +133,8 @@ export function getAllProjectWarnings(
   globalHourlyRate: number,
   hourlyRateConfig: HourlyRateConfig,
   isDefaultRate: boolean,
-  disabledWarnings: string[] = []
+  disabledWarnings: string[] = [],
+  targetMargin?: number
 ): ProjectWarnings[] {
   const breakdown = calcHourlyRate(hourlyRateConfig);
   const activeProjects = projects.filter((p) => p.status !== "archived");
@@ -142,7 +144,7 @@ export function getAllProjectWarnings(
     .map((p) => ({
       projectId: p.id,
       projectName: p.name,
-      warnings: getProjectWarnings(p, globalHourlyRate, hourlyRateConfig, breakdown, isDefaultRate)
+      warnings: getProjectWarnings(p, globalHourlyRate, hourlyRateConfig, breakdown, isDefaultRate, targetMargin)
         .filter((w) => !disabled.has(getWarningTypeKey(w.id))),
     }))
     .filter((pw) => pw.warnings.length > 0);

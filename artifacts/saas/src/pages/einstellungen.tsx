@@ -34,6 +34,8 @@ export default function Einstellungen() {
   const customRoomTypes = useStore((s) => s.customRoomTypes);
   const disabledWarnings = useStore((s) => s.disabledWarnings);
   const setDisabledWarnings = useStore((s) => s.setDisabledWarnings);
+  const targetMarginStore = useStore((s) => s.targetMargin);
+  const setTargetMarginAction = useStore((s) => s.setTargetMargin);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const resetToDefaults = useStore((s) => s.resetToDefaults);
@@ -65,6 +67,7 @@ export default function Einstellungen() {
   const [newRoomGroup, setNewRoomGroup] = useState(DEFAULT_ROOM_GROUPS[0].id);
   const [newRoomPerf, setNewRoomPerf] = useState("");
   const [showResetDefaults, setShowResetDefaults] = useState(false);
+  const [targetMarginLocal, setTargetMarginLocal] = useState(String(targetMarginStore));
 
   const handleSaveCompanyData = async () => {
     setIsSaving(true);
@@ -438,8 +441,32 @@ export default function Einstellungen() {
           <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
             <AlertTriangle size={16} /> Warnhinweise
           </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">
-            <p className="text-xs text-muted-foreground mb-2">Einzelne Warnhinweise deaktivieren. Deaktivierte Warnungen werden nicht mehr angezeigt.</p>
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Ziel-Marge (%)</label>
+              <p className="text-xs text-muted-foreground">Objekte mit einer Marge unter diesem Wert erhalten eine Warnung.</p>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min={0}
+                max={100}
+                step={0.5}
+                value={targetMarginLocal}
+                onChange={(e) => setTargetMarginLocal(e.target.value)}
+                onBlur={() => {
+                  const val = parseFloat(targetMarginLocal);
+                  if (!isNaN(val) && val >= 0 && val <= 100) {
+                    setTargetMarginAction(val);
+                  } else {
+                    setTargetMarginLocal(String(targetMarginStore));
+                  }
+                }}
+                className="bg-background h-11 w-32"
+              />
+            </div>
+            <div className="border-t border-border/30 pt-3">
+              <p className="text-xs text-muted-foreground mb-2">Einzelne Warnhinweise deaktivieren. Deaktivierte Warnungen werden nicht mehr angezeigt.</p>
+            </div>
             {WARNING_TYPES.map((wt) => {
               const isDisabled = disabledWarnings.includes(wt.key);
               return (

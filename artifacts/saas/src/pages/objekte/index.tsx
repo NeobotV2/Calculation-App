@@ -60,6 +60,7 @@ export default function ObjekteList() {
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const disabledWarnings = useStore((s) => s.disabledWarnings);
+  const storeTargetMargin = useStore((s) => s.targetMargin);
   const plan = useStore((s) => s.plan);
   const actions = useStoreActions();
 
@@ -89,11 +90,11 @@ export default function ObjekteList() {
       const marginPercent = effectiveRate > 0 && vollkosten > 0
         ? ((effectiveRate - vollkosten) / effectiveRate) * 100
         : targetMargin;
-      const warnings = getProjectWarnings(p, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate)
+      const warnings = getProjectWarnings(p, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, storeTargetMargin)
         .filter((w) => !disabled.has(getWarningTypeKey(w.id)));
       return { project: p, totals, marginPercent, effectiveRate, warnings };
     });
-  }, [projects, hourlyRate, breakdown, targetMargin, hourlyRateConfig, isDefaultRate, disabledWarnings]);
+  }, [projects, hourlyRate, breakdown, targetMargin, hourlyRateConfig, isDefaultRate, disabledWarnings, storeTargetMargin]);
 
   const filtered = useMemo(() => {
     let result = projectsWithTotals;

@@ -91,6 +91,7 @@ interface AppState {
   customRoomTypes: CustomRoomType[];
   hourlyRateConfig: HourlyRateConfig;
   disabledWarnings: string[];
+  targetMargin: number;
 
   projects: Project[];
   templates: Template[];
@@ -104,6 +105,7 @@ interface AppState {
   updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
   setDisabledWarnings: (warnings: string[]) => void;
+  setTargetMargin: (margin: number) => void;
 
   addProject: (name: string, customer?: string) => string;
   updateProject: (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "rooms">>) => void;
@@ -212,6 +214,7 @@ export const useStore = create<AppState>()(
       customRoomTypes: [],
       hourlyRateConfig: getDefaultConfig(),
       disabledWarnings: [],
+      targetMargin: getDefaultConfig().gewinnmarge,
 
       projects: [],
       templates: [],
@@ -257,6 +260,7 @@ export const useStore = create<AppState>()(
             pdfHeader: "",
             pdfFooter: "",
             disabledWarnings: [],
+            targetMargin: getDefaultConfig().gewinnmarge,
           });
         }
       },
@@ -274,6 +278,7 @@ export const useStore = create<AppState>()(
       },
 
       setDisabledWarnings: (warnings) => set({ disabledWarnings: warnings }),
+      setTargetMargin: (margin) => set({ targetMargin: margin }),
 
       addProject: (name, customer) => {
         const id = uuidv4();
@@ -443,6 +448,7 @@ export const useStore = create<AppState>()(
           customRoomTypes: s.customRoomTypes,
           hourlyRateConfig: s.hourlyRateConfig,
           disabledWarnings: s.disabledWarnings,
+          targetMargin: s.targetMargin,
           projects: s.projects,
           templates: s.templates,
         }, null, 2);
@@ -470,6 +476,7 @@ export const useStore = create<AppState>()(
           if (Array.isArray(data.customRoomTypes)) updates.customRoomTypes = data.customRoomTypes;
           if (data.hourlyRateConfig) updates.hourlyRateConfig = data.hourlyRateConfig;
           if (Array.isArray(data.disabledWarnings)) updates.disabledWarnings = data.disabledWarnings;
+          if (typeof data.targetMargin === "number") updates.targetMargin = data.targetMargin;
           if (Array.isArray(data.projects)) updates.projects = data.projects;
           if (Array.isArray(data.templates)) updates.templates = data.templates;
           set(updates);
@@ -498,6 +505,7 @@ export const useStore = create<AppState>()(
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
           disabledWarnings: [],
+          targetMargin: getDefaultConfig().gewinnmarge,
         }),
 
       resetAll: () =>
@@ -512,6 +520,7 @@ export const useStore = create<AppState>()(
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
           disabledWarnings: [],
+          targetMargin: getDefaultConfig().gewinnmarge,
           plan: "basic",
           companyName: "Meine Reinigungsfirma",
           companyStreet: "",
@@ -534,7 +543,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 6,
+      version: 7,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -581,6 +590,12 @@ export const useStore = create<AppState>()(
           state = {
             ...state,
             disabledWarnings: state.disabledWarnings ?? [],
+          };
+        }
+        if (version < 7) {
+          state = {
+            ...state,
+            targetMargin: state.targetMargin ?? state.hourlyRateConfig?.gewinnmarge ?? getDefaultConfig().gewinnmarge,
           };
         }
         return state;
