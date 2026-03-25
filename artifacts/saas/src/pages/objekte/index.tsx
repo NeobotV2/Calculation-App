@@ -13,7 +13,7 @@ import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore,
 import { calcProjectTotals } from "@/lib/calc";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
-import { getProjectWarnings, type Warning } from "@/lib/warnings";
+import { getProjectWarnings, getWarningTypeKey, type Warning } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { ListSkeleton } from "@/components/list-skeleton";
@@ -59,6 +59,7 @@ export default function ObjekteList() {
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const disabledWarnings = useStore((s) => s.disabledWarnings);
   const plan = useStore((s) => s.plan);
   const actions = useStoreActions();
 
@@ -80,6 +81,7 @@ export default function ObjekteList() {
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
 
   const projectsWithTotals = useMemo(() => {
+    const disabled = new Set(disabledWarnings);
     return projects.map((p) => {
       const effectiveRate = p.hourlyRate ?? hourlyRate;
       const totals = calcProjectTotals(p, effectiveRate);
@@ -87,10 +89,11 @@ export default function ObjekteList() {
       const marginPercent = effectiveRate > 0 && vollkosten > 0
         ? ((effectiveRate - vollkosten) / effectiveRate) * 100
         : targetMargin;
-      const warnings = getProjectWarnings(p, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate);
+      const warnings = getProjectWarnings(p, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate)
+        .filter((w) => !disabled.has(getWarningTypeKey(w.id)));
       return { project: p, totals, marginPercent, effectiveRate, warnings };
     });
-  }, [projects, hourlyRate, breakdown, targetMargin, hourlyRateConfig, isDefaultRate]);
+  }, [projects, hourlyRate, breakdown, targetMargin, hourlyRateConfig, isDefaultRate, disabledWarnings]);
 
   const filtered = useMemo(() => {
     let result = projectsWithTotals;

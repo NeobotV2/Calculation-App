@@ -22,6 +22,25 @@ const SANITAER_GROUP_ID = "g2";
 const PERFORMANCE_DEVIATION_THRESHOLD = 0.5;
 const SANITAER_COST_THRESHOLD = 0.3;
 
+export const WARNING_TYPES = [
+  { key: "below_cost", label: "Unter Vollkosten", severity: "critical" as WarningSeverity },
+  { key: "low_margin", label: "Marge unter Zielwert", severity: "warning" as WarningSeverity },
+  { key: "perf", label: "Leistungswert unrealistisch", severity: "warning" as WarningSeverity },
+  { key: "sanitaer", label: "Hoher Sanitäranteil", severity: "info" as WarningSeverity },
+  { key: "default_rate", label: "Standard-Stundensatz", severity: "info" as WarningSeverity },
+] as const;
+
+export function getWarningTypeKey(warningId: string): string {
+  const parts = warningId.split("_");
+  parts.shift();
+  if (parts[0] === "below" && parts[1] === "cost") return "below_cost";
+  if (parts[0] === "low" && parts[1] === "margin") return "low_margin";
+  if (parts[0] === "default" && parts[1] === "rate") return "default_rate";
+  if (parts[0] === "perf") return "perf";
+  if (parts[0] === "sanitaer") return "sanitaer";
+  return parts.join("_");
+}
+
 export function getProjectWarnings(
   project: Project,
   globalHourlyRate: number,
@@ -112,16 +131,19 @@ export function getAllProjectWarnings(
   projects: Project[],
   globalHourlyRate: number,
   hourlyRateConfig: HourlyRateConfig,
-  isDefaultRate: boolean
+  isDefaultRate: boolean,
+  disabledWarnings: string[] = []
 ): ProjectWarnings[] {
   const breakdown = calcHourlyRate(hourlyRateConfig);
   const activeProjects = projects.filter((p) => p.status !== "archived");
+  const disabled = new Set(disabledWarnings);
 
   return activeProjects
     .map((p) => ({
       projectId: p.id,
       projectName: p.name,
-      warnings: getProjectWarnings(p, globalHourlyRate, hourlyRateConfig, breakdown, isDefaultRate),
+      warnings: getProjectWarnings(p, globalHourlyRate, hourlyRateConfig, breakdown, isDefaultRate)
+        .filter((w) => !disabled.has(getWarningTypeKey(w.id))),
     }))
     .filter((pw) => pw.warnings.length > 0);
 }

@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck } from "lucide-react";
+import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle } from "lucide-react";
+import { WARNING_TYPES } from "@/lib/warnings";
 import { toast } from "sonner";
 import { AppFooter } from "@/components/layout/AppFooter";
 
@@ -31,6 +32,8 @@ export default function Einstellungen() {
   const pdfHeader = useStore((s) => s.pdfHeader);
   const pdfFooter = useStore((s) => s.pdfFooter);
   const customRoomTypes = useStore((s) => s.customRoomTypes);
+  const disabledWarnings = useStore((s) => s.disabledWarnings);
+  const setDisabledWarnings = useStore((s) => s.setDisabledWarnings);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const resetToDefaults = useStore((s) => s.resetToDefaults);
@@ -428,6 +431,41 @@ export default function Einstellungen() {
                 <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Upgrade ansehen</Button>
               </div>
             )}
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
+            <AlertTriangle size={16} /> Warnhinweise
+          </h2>
+          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">
+            <p className="text-xs text-muted-foreground mb-2">Einzelne Warnhinweise deaktivieren. Deaktivierte Warnungen werden nicht mehr angezeigt.</p>
+            {WARNING_TYPES.map((wt) => {
+              const isDisabled = disabledWarnings.includes(wt.key);
+              return (
+                <label key={wt.key} className="flex items-center justify-between py-2 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${wt.severity === "critical" ? "bg-red-500" : wt.severity === "warning" ? "bg-yellow-500" : "bg-blue-400"}`} />
+                    <span className="text-sm text-foreground">{wt.label}</span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!isDisabled}
+                    onClick={() => {
+                      if (isDisabled) {
+                        setDisabledWarnings(disabledWarnings.filter((k) => k !== wt.key));
+                      } else {
+                        setDisabledWarnings([...disabledWarnings, wt.key]);
+                      }
+                    }}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${!isDisabled ? "bg-primary" : "bg-muted"}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${!isDisabled ? "translate-x-6" : "translate-x-1"}`} />
+                  </button>
+                </label>
+              );
+            })}
           </div>
         </section>
 

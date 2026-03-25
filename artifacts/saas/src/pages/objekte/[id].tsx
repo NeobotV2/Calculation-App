@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, Copy, Archive, FileText, BookOpen, MoreHorizontal, X, AlertTriangle, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
-import { getProjectWarnings, type Warning } from "@/lib/warnings";
+import { getProjectWarnings, getWarningTypeKey, type Warning } from "@/lib/warnings";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -24,6 +24,7 @@ export default function ObjektDetail() {
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const disabledWarnings = useStore((s) => s.disabledWarnings);
   const plan = useStore((s) => s.plan);
   const actions = useStoreActions();
 
@@ -62,8 +63,10 @@ export default function ObjektDetail() {
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
   const warnings = useMemo(() => {
     if (!project) return [];
-    return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate);
-  }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate]);
+    const disabled = new Set(disabledWarnings);
+    return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate)
+      .filter((w) => !disabled.has(getWarningTypeKey(w.id)));
+  }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, disabledWarnings]);
 
   const handleSaveName = async () => {
     if (nameInput.trim()) {

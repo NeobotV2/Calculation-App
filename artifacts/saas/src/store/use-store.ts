@@ -90,6 +90,7 @@ interface AppState {
   pdfFooter: string;
   customRoomTypes: CustomRoomType[];
   hourlyRateConfig: HourlyRateConfig;
+  disabledWarnings: string[];
 
   projects: Project[];
   templates: Template[];
@@ -102,6 +103,7 @@ interface AppState {
   upgradePlan: () => void;
   updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string }>) => void;
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
+  setDisabledWarnings: (warnings: string[]) => void;
 
   addProject: (name: string, customer?: string) => string;
   updateProject: (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "rooms">>) => void;
@@ -209,6 +211,7 @@ export const useStore = create<AppState>()(
       pdfFooter: "",
       customRoomTypes: [],
       hourlyRateConfig: getDefaultConfig(),
+      disabledWarnings: [],
 
       projects: [],
       templates: [],
@@ -253,6 +256,7 @@ export const useStore = create<AppState>()(
             defaultFrequency: "5x_week" as FrequencyKey,
             pdfHeader: "",
             pdfFooter: "",
+            disabledWarnings: [],
           });
         }
       },
@@ -268,6 +272,8 @@ export const useStore = create<AppState>()(
           hourlyRate: Math.round(breakdown.stundenverrechnungssatz * 100) / 100,
         });
       },
+
+      setDisabledWarnings: (warnings) => set({ disabledWarnings: warnings }),
 
       addProject: (name, customer) => {
         const id = uuidv4();
@@ -436,6 +442,7 @@ export const useStore = create<AppState>()(
           pdfFooter: s.pdfFooter,
           customRoomTypes: s.customRoomTypes,
           hourlyRateConfig: s.hourlyRateConfig,
+          disabledWarnings: s.disabledWarnings,
           projects: s.projects,
           templates: s.templates,
         }, null, 2);
@@ -462,6 +469,7 @@ export const useStore = create<AppState>()(
           if (data.pdfFooter !== undefined) updates.pdfFooter = data.pdfFooter;
           if (Array.isArray(data.customRoomTypes)) updates.customRoomTypes = data.customRoomTypes;
           if (data.hourlyRateConfig) updates.hourlyRateConfig = data.hourlyRateConfig;
+          if (Array.isArray(data.disabledWarnings)) updates.disabledWarnings = data.disabledWarnings;
           if (Array.isArray(data.projects)) updates.projects = data.projects;
           if (Array.isArray(data.templates)) updates.templates = data.templates;
           set(updates);
@@ -489,6 +497,7 @@ export const useStore = create<AppState>()(
           pdfFooter: "",
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
+          disabledWarnings: [],
         }),
 
       resetAll: () =>
@@ -502,6 +511,7 @@ export const useStore = create<AppState>()(
           templates: [],
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
+          disabledWarnings: [],
           plan: "basic",
           companyName: "Meine Reinigungsfirma",
           companyStreet: "",
@@ -524,7 +534,7 @@ export const useStore = create<AppState>()(
     {
       name: "cleancalc-storage",
       storage: createJSONStorage(() => capacitorStorage),
-      version: 5,
+      version: 6,
       migrate: (persisted: any, version: number) => {
         let state = persisted as any;
         if (version < 2) {
@@ -565,6 +575,12 @@ export const useStore = create<AppState>()(
             companyTaxNumber: state.companyTaxNumber ?? "",
             companyVatId: state.companyVatId ?? "",
             companyManagingDirector: state.companyManagingDirector ?? "",
+          };
+        }
+        if (version < 6) {
+          state = {
+            ...state,
+            disabledWarnings: state.disabledWarnings ?? [],
           };
         }
         return state;

@@ -16,6 +16,7 @@ export default function AuswertungGlobal() {
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const disabledWarnings = useStore((s) => s.disabledWarnings);
   const hydrated = useHydrated();
 
   const activeProjects = projects.filter((p) => p.status !== "archived");
@@ -40,8 +41,8 @@ export default function AuswertungGlobal() {
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
 
   const allWarnings = useMemo(() => {
-    return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate);
-  }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate]);
+    return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings);
+  }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings]);
 
   const warningCounts = useMemo(() => countWarningsBySeverity(allWarnings), [allWarnings]);
 

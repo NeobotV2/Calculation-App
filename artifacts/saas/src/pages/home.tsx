@@ -18,6 +18,7 @@ export default function Home() {
   const companyName = useStore((s) => s.companyName);
   const projects = useStore((s) => s.projects);
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const disabledWarnings = useStore((s) => s.disabledWarnings);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const plan = useStore((s) => s.plan);
   const hydrated = useHydrated();
@@ -42,11 +43,11 @@ export default function Home() {
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
 
   const allWarnings = useMemo(() => {
-    return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate);
-  }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate]);
+    return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings);
+  }, [projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings]);
 
   const warningCounts = useMemo(() => countWarningsBySeverity(allWarnings), [allWarnings]);
-  const criticalProjects = allWarnings.filter((pw) => pw.warnings.some((w) => w.severity === "critical"));
+  const criticalProjects = allWarnings.filter((pw) => pw.warnings.some((w) => w.severity === "critical" || w.severity === "warning"));
 
   const recentProjects = [...projects]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
