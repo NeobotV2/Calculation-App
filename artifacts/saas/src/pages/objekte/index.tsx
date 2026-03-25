@@ -283,10 +283,12 @@ export default function ObjekteList() {
         </div>
       </div>
 
-      {!isPaidPlan(plan) && activeProjectCount >= getObjectLimit() && (
-        <div className="mx-6 mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm text-muted-foreground flex items-center gap-2">
-          <Building2 size={16} className="text-primary shrink-0" />
-          <span>Sie nutzen {activeProjectCount}/{getObjectLimit()} Objekte im Basic-Plan.</span>
+      {!isPaidPlan(plan) && (
+        <div className="mx-6 mt-4 max-w-6xl md:mx-auto md:px-6">
+          <p className="text-xs text-muted-foreground">
+            Sie nutzen {activeProjectCount} von {getObjectLimit()} kostenlosen {getObjectLimit() === 1 ? "Objekt" : "Objekten"}.
+            {activeProjectCount >= getObjectLimit() && " Für weitere Objekte wechseln Sie zum Pro-Plan."}
+          </p>
         </div>
       )}
 

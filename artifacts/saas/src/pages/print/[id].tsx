@@ -104,20 +104,10 @@ export default function PrintView() {
       </div>
 
       {!canExport && (
-        <div className="no-print mx-4 mt-4 p-4 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-3">
-          <Lock size={18} className="text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-foreground">Vorschau-Modus</p>
-            <p className="text-xs text-muted-foreground mt-1">Im Basic-Plan können Sie die Angebotsvorschau einsehen. Für den Export als druckfertiges PDF wechseln Sie zum Pro-Plan.</p>
-            <div className="flex gap-2 mt-3">
-              <Button variant="outline" size="sm" onClick={handleWatermarkUpgrade}>
-                Wasserzeichen entfernen
-              </Button>
-              <Button size="sm" onClick={handleExport}>
-                PDF exportieren
-              </Button>
-            </div>
-          </div>
+        <div className="no-print mx-4 mt-4 px-4 py-3 rounded-xl">
+          <p className="text-xs text-muted-foreground text-center">
+            PDF-Export ohne Wasserzeichen ist im <button onClick={handleExport} className="underline text-primary hover:text-primary/80">Pro-Plan</button> enthalten.
+          </p>
         </div>
       )}
 

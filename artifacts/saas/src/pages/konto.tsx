@@ -200,7 +200,7 @@ export default function Konto() {
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">Ihr Plan</p>
                 <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  {isPaidPlan(plan) ? planMeta.label : "Basic (Kostenlos)"}
+                  {planMeta.label}
                   {isPaidPlan(plan) && <Crown size={24} className="text-primary" />}
                   {isFoundingPlan(plan) && <Sparkles size={18} className="text-primary" />}
                 </h3>
@@ -209,10 +209,10 @@ export default function Konto() {
 
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Unbegrenzt Objekte & Räume" : `${objectLimit} Objekt, begrenzte Räume`}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Unbegrenzt Objekte & Räume" : `${objectLimit} kostenlose${objectLimit === 1 ? "s" : ""} Objekt${objectLimit > 1 ? "e" : ""}`}</span>
               </div>
               <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Druckfertige PDF-Angebote" : "Angebotsvorschau (kein PDF-Export)"}</span>
+                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Druckfertige PDF-Angebote" : "Angebotsvorschau"}</span>
               </div>
               <div className="flex items-center gap-3 text-base text-foreground">
                 <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Vorlagen, Branding & individuelle Leistungswerte" : "Standard-Leistungswerte"}</span>

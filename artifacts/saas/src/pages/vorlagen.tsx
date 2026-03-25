@@ -70,12 +70,12 @@ export default function Vorlagen() {
           </Button>
         </div>
         <div className="flex flex-col items-center justify-center text-center py-20 px-6">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <BookOpen size={28} className="text-primary" />
+          <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <BookOpen size={28} className="text-muted-foreground" strokeWidth={1.5} />
           </div>
           <h2 className="text-2xl font-semibold mb-2">Vorlagen</h2>
           <p className="text-sm text-muted-foreground mb-6 max-w-[280px]">Speichern Sie bewährte Kalkulationen als Vorlage und nutzen Sie diese für ähnliche Objekte — spart Zeit bei jedem neuen Angebot.</p>
-          <Button onClick={() => setLocation("/upgrade")} size="lg">Pro-Plan ansehen</Button>
+          <p className="text-xs text-muted-foreground">Vorlagen sind im <button onClick={() => setLocation("/upgrade")} className="underline text-primary hover:text-primary/80">Pro-Plan</button> enthalten.</p>
         </div>
       </PageTransition>
     );
