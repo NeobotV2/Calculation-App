@@ -23,6 +23,7 @@ export type AnalyticsEvent =
   | "onboarding_skipped"
   | "landing_viewed"
   | "landing_cta_clicked"
+  | "lead_captured"
   | "signup_started"
   | "signup_completed"
   | "activation_first_object"
@@ -135,6 +136,10 @@ export function trackLandingViewed() {
 
 export function trackLandingCtaClicked(ctaLocation: string) {
   trackEvent("landing_cta_clicked", { cta_location: ctaLocation });
+}
+
+export function trackLeadCaptured(sourcePage?: string) {
+  trackEvent("lead_captured", { source_page: sourcePage });
 }
 
 export function trackSignupStarted(sourcePage?: string) {

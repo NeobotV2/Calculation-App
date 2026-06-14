@@ -1,10 +1,13 @@
 import { createRoot } from "react-dom/client";
 import { handleAuthCallback, handleNativeDeepLink } from "./lib/auth-callback";
 import { isNative } from "./lib/capacitor";
+import { initAnalytics } from "./services/analytics-providers";
 import App from "./App";
 import "./index.css";
 
 async function initApp() {
+  initAnalytics();
+
   await handleAuthCallback();
 
   if (isNative) {

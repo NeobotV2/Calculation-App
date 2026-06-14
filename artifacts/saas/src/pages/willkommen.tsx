@@ -17,8 +17,12 @@ import {
   X,
   Star,
   ChevronDown,
+  Mail,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useStore } from "@/store/use-store";
 import { PRICING, formatCents, FOUNDING_CONFIG } from "@/lib/billing-config";
 import {
@@ -26,6 +30,7 @@ import {
   trackLandingCtaClicked,
   trackSignupStarted,
 } from "@/services/analytics-service";
+import { submitLead } from "@/services/lead-service";
 
 /* ─────────────────────────────────────────────────────────────────────────
    CleanCalc Pro — Öffentliche Marketing-Landingpage (Top of Funnel)
@@ -57,6 +62,60 @@ function Reveal({
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function LeadCaptureForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (status === "loading") return;
+    setError("");
+    setStatus("loading");
+    const result = await submitLead({ email, source: "landing_newsletter" });
+    if (result.ok) {
+      setStatus("success");
+    } else {
+      setStatus("idle");
+      setError(result.error || "Eintragen fehlgeschlagen.");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="flex items-center justify-center gap-2.5 rounded-xl bg-success/10 text-success px-5 py-4 font-medium">
+        <CheckCircle2 size={20} /> Eingetragen — danke! Wir melden uns mit nützlichen Tipps.
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="ihre@firma.de"
+          aria-label="E-Mail-Adresse"
+          className="h-12 flex-1 bg-background"
+          required
+        />
+        <Button type="submit" size="lg" className="h-12 shrink-0" disabled={status === "loading"}>
+          {status === "loading" ? <Loader2 size={18} className="animate-spin" /> : <Mail size={18} />}
+          Auf dem Laufenden bleiben
+        </Button>
+      </div>
+      {error && <p className="text-sm text-destructive text-left">{error}</p>}
+      <p className="text-xs text-muted-foreground text-left">
+        Praxistipps zur Kalkulation & Produkt-Updates. Kein Spam, jederzeit abbestellbar.
+      </p>
+    </form>
+  );
 }
 
 const FEATURES = [
@@ -563,8 +622,27 @@ export default function Willkommen() {
         </div>
       </section>
 
+      {/* ── Lead-Capture / Newsletter ─────────────────────────────────── */}
+      <section className="max-w-3xl mx-auto px-5 md:px-8 pb-4">
+        <Reveal>
+          <div className="rounded-2xl border border-border/40 bg-card p-6 md:p-8 text-center">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <Mail size={24} className="text-primary" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight mb-2">Noch nicht startklar?</h2>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Tragen Sie sich ein und erhalten Sie Praxistipps rund um die Reinigungskalkulation
+              sowie Neuigkeiten zu CleanCalc Pro.
+            </p>
+            <div className="max-w-lg mx-auto">
+              <LeadCaptureForm />
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
       {/* ── Abschluss-CTA ─────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-5 md:px-8 pb-20">
+      <section className="max-w-6xl mx-auto px-5 md:px-8 py-16">
         <Reveal>
           <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-14 md:py-20 text-center">
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, white 0%, transparent 40%)" }} />
