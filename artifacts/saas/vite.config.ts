@@ -59,6 +59,25 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // Stabile Vendor-Chunks für besseres Caching und parallele Ladezeiten.
+        // Auf den realen Paketordner (/node_modules/<pkg>/) matchen, damit die
+        // pnpm-Virtual-Store-Ordnernamen (z. B. "framer-motion@11_react@19") nicht
+        // fälschlich in den React-Chunk wandern.
+        manualChunks(id: string) {
+          if (!id.includes("/node_modules/")) return;
+          if (/\/node_modules\/(react-dom|scheduler)\//.test(id)) return "react-vendor";
+          if (/\/node_modules\/react\//.test(id)) return "react-vendor";
+          if (/\/node_modules\/(recharts|d3-[^/]+|victory-vendor)\//.test(id)) return "charts";
+          if (id.includes("/node_modules/framer-motion/")) return "framer";
+          if (id.includes("/node_modules/@supabase/")) return "supabase";
+          if (id.includes("/node_modules/lucide-react/")) return "icons";
+          if (id.includes("/node_modules/@radix-ui/")) return "radix";
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     port,

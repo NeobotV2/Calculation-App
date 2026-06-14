@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { toast } from "sonner";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { getRedirectUrl } from "@/lib/capacitor";
 import type { User, Session } from "@supabase/supabase-js";
@@ -87,9 +88,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (event === "TOKEN_REFRESHED" && !session) {
-        import("sonner").then(({ toast }) => {
-          toast.error("Sitzung abgelaufen. Bitte melde dich erneut an.");
-        });
+        toast.error("Sitzung abgelaufen. Bitte melde dich erneut an.");
       }
 
       if (event === "SIGNED_OUT") {

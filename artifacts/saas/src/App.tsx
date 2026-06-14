@@ -1,6 +1,6 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useStore } from "@/store/use-store";
 import { useAuth, SupabaseAuthProvider } from "@/lib/auth-context";
 import { useSupabaseSync } from "@/hooks/use-supabase-sync";
@@ -8,51 +8,69 @@ import { AnimatePresence } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
 import { Sparkles } from "lucide-react";
 
-import Splash from "@/pages/splash";
-import Onboarding from "@/pages/onboarding";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
-import PasswortVergessen from "@/pages/passwort-vergessen";
-import PasswortReset from "@/pages/passwort-reset";
+// Eager: erste authentifizierte Ansicht + kleine Redirect-Helfer
 import Home from "@/pages/home";
-import ObjekteList from "@/pages/objekte/index";
-import ObjektDetail from "@/pages/objekte/[id]";
-import ObjektWizard from "@/pages/objekte/wizard";
-import AuswertungGlobal from "@/pages/auswertung/index";
-import AuswertungDetail from "@/pages/auswertung/[id]";
-import Vorlagen from "@/pages/vorlagen";
-import PrintView from "@/pages/print/[id]";
-import Einstellungen from "@/pages/einstellungen";
-import KalkulationWizard from "@/pages/kalkulation-wizard";
-import Konto from "@/pages/konto";
-import Upgrade from "@/pages/upgrade";
-import Mehr from "@/pages/mehr";
-import Impressum from "@/pages/impressum";
-import Datenschutz from "@/pages/datenschutz";
-import AGB from "@/pages/agb";
-import NotFound from "@/pages/not-found";
 import { KalkulationListRedirect, KalkulationDetailRedirect, StundensatzRedirect } from "@/pages/legacy-redirect";
+
+// Lazy: alle übrigen Routen werden bei Bedarf nachgeladen (Code-Splitting)
+const Willkommen = lazy(() => import("@/pages/willkommen"));
+const Splash = lazy(() => import("@/pages/splash"));
+const Onboarding = lazy(() => import("@/pages/onboarding"));
+const Login = lazy(() => import("@/pages/login"));
+const Register = lazy(() => import("@/pages/register"));
+const PasswortVergessen = lazy(() => import("@/pages/passwort-vergessen"));
+const PasswortReset = lazy(() => import("@/pages/passwort-reset"));
+const ObjekteList = lazy(() => import("@/pages/objekte/index"));
+const ObjektDetail = lazy(() => import("@/pages/objekte/[id]"));
+const ObjektWizard = lazy(() => import("@/pages/objekte/wizard"));
+const AuswertungGlobal = lazy(() => import("@/pages/auswertung/index"));
+const AuswertungDetail = lazy(() => import("@/pages/auswertung/[id]"));
+const Vorlagen = lazy(() => import("@/pages/vorlagen"));
+const PrintView = lazy(() => import("@/pages/print/[id]"));
+const Einstellungen = lazy(() => import("@/pages/einstellungen"));
+const KalkulationWizard = lazy(() => import("@/pages/kalkulation-wizard"));
+const Konto = lazy(() => import("@/pages/konto"));
+const Upgrade = lazy(() => import("@/pages/upgrade"));
+const Mehr = lazy(() => import("@/pages/mehr"));
+const Impressum = lazy(() => import("@/pages/impressum"));
+const Datenschutz = lazy(() => import("@/pages/datenschutz"));
+const AGB = lazy(() => import("@/pages/agb"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
 import { ErrorBoundary } from "@/components/error-boundary";
 import { CookieNotice } from "@/components/cookie-notice";
 import { useAndroidBack } from "@/hooks/use-android-back";
 import { AppShell } from "@/components/layout/AppShell";
 
+function BrandLoader() {
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+      <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-6 shadow-lg">
+        <Sparkles className="w-8 h-8 text-primary-foreground" strokeWidth={1.5} />
+      </div>
+      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function SessionLoader() {
   const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-6 shadow-lg">
-          <Sparkles className="w-8 h-8 text-primary-foreground" strokeWidth={1.5} />
-        </div>
-        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-      </div>
-    );
-  }
-
+  if (isLoading) return <BrandLoader />;
   return null;
 }
+
+const publicRoutes = [
+  "/willkommen",
+  "/splash",
+  "/onboarding",
+  "/login",
+  "/register",
+  "/passwort-vergessen",
+  "/passwort-reset",
+  "/impressum",
+  "/datenschutz",
+  "/agb",
+];
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
@@ -68,7 +86,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isReady || isLoading) return;
 
-    const publicRoutes = ["/splash", "/onboarding", "/login", "/register", "/passwort-vergessen", "/passwort-reset", "/impressum", "/datenschutz", "/agb"];
     const isPublic = publicRoutes.some((r) => location === r || location.startsWith(r + "/"));
 
     if (isAuthenticated && (location === "/login" || location === "/register")) {
@@ -76,8 +93,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!hasSeenSplash && location !== "/splash") {
-      setLocation("/splash");
+    // Neue Besucher landen zuerst auf der Marketing-Startseite (Top of Funnel).
+    if (!hasSeenSplash && location !== "/willkommen") {
+      setLocation("/willkommen");
     } else if (hasSeenSplash && !hasOnboarded && !isAuthenticated && !isPublic) {
       setLocation("/onboarding");
     }
@@ -124,6 +142,7 @@ function AppRouter() {
   const routes = (
     <AnimatePresence mode="wait" initial={false}>
       <Switch location={location} key={location}>
+        <Route path="/willkommen" component={Willkommen} />
         <Route path="/splash" component={Splash} />
         <Route path="/onboarding" component={Onboarding} />
         <Route path="/login" component={Login} />
@@ -154,11 +173,13 @@ function AppRouter() {
     </AnimatePresence>
   );
 
+  const content = <Suspense fallback={<BrandLoader />}>{routes}</Suspense>;
+
   if (showShell) {
-    return <AppShell>{routes}</AppShell>;
+    return <AppShell>{content}</AppShell>;
   }
 
-  return routes;
+  return content;
 }
 
 function App() {

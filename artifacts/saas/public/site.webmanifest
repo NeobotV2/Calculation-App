@@ -1,0 +1,22 @@
+{
+  "name": "CleanCalc Pro – Gebäudereinigung Kalkulation",
+  "short_name": "CleanCalc Pro",
+  "description": "Objektkalkulation für die Gebäudereinigung nach BIV/RAL-Leistungswerten, Verrechnungssatz-Kalkulator und Angebote als PDF.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#0f766e",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

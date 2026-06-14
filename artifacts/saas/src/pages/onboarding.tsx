@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { useStore } from "@/store/use-store";
 import { Building2, User, Play, Sparkles, ArrowRight, SkipForward } from "lucide-react";
-import { trackOnboardingCompleted, trackOnboardingSkipped } from "@/services/analytics-service";
+import { trackOnboardingStarted, trackOnboardingCompleted, trackOnboardingSkipped } from "@/services/analytics-service";
 
 const ROLES = ["Inhaber / GF", "Vertrieb", "Objektleitung", "Kalkulation"];
 const TOTAL_STEPS = 5;
@@ -19,6 +19,10 @@ export default function Onboarding() {
   const [role, setRole] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [hourlyRate, setHourlyRate] = useState("22,50");
+
+  useEffect(() => {
+    trackOnboardingStarted();
+  }, []);
 
   const handleComplete = (loadDemo: boolean) => {
     trackOnboardingCompleted(loadDemo);

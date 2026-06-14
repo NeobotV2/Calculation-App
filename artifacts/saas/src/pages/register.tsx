@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, RefreshCw } from "lucide-react";
 import { hasDemoData, getDemoData, migrateDemoData, clearDemoData } from "@/services/migration-service";
+import { trackSignupCompleted } from "@/services/analytics-service";
 import { toast } from "sonner";
 
 export default function Register() {
@@ -41,6 +42,7 @@ export default function Register() {
 
     if (!isSupabaseReady) {
       setDemoUser({ name: name || "Neu", email: email || "neu@example.com" });
+      trackSignupCompleted();
       setLocation("/");
       return;
     }
@@ -58,6 +60,8 @@ export default function Register() {
       setError(result.error);
       return;
     }
+
+    trackSignupCompleted();
 
     if (result.needsConfirmation) {
       setNeedsConfirmation(true);

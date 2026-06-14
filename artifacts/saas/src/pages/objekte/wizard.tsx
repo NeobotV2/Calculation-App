@@ -9,6 +9,7 @@ import { UpgradeModal } from "@/components/upgrade-modal";
 import { canAddProject, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { type UpgradeTrigger } from "@/lib/billing-config";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
+import { trackFirstObjectCreated } from "@/services/analytics-service";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,12 +174,17 @@ export default function ObjektWizard() {
     }
 
     setIsSaving(true);
+    const isFirstObject = useStore.getState().projects.length === 0;
     try {
       const projectName = name.trim() || "Neues Objekt";
       const id = await actions.addProject(
         projectName,
         customer.trim() || undefined,
       );
+
+      if (isFirstObject) {
+        trackFirstObjectCreated(1);
+      }
 
       const updates: Record<string, unknown> = {};
       if (location_.trim()) updates.location = location_.trim();
