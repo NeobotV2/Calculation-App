@@ -12,16 +12,16 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 
 const CHART_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--chart-2, 173 58% 39%))",
-  "hsl(var(--chart-3, 197 37% 24%))",
-  "hsl(var(--chart-4, 43 74% 66%))",
-  "hsl(var(--chart-5, 27 87% 67%))",
-  "hsl(142 76% 36%)",
-  "hsl(262 83% 58%)",
-  "hsl(330 81% 60%)",
-  "hsl(200 98% 39%)",
-  "hsl(16 85% 55%)",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
 ];
 
 export default function AuswertungDetail() {
