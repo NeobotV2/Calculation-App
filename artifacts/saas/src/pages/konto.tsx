@@ -84,7 +84,7 @@ export default function Konto() {
             <AlertTriangle size={20} className="text-warning shrink-0 mt-0.5" />
             <div>
               <p className="font-medium text-sm text-foreground">Demo-Modus</p>
-              <p className="text-xs text-muted-foreground mt-1">Du bist nicht angemeldet. Deine Daten werden nur lokal gespeichert und gehen beim Löschen des Browsers verloren.</p>
+              <p className="text-xs text-muted-foreground mt-1">Sie sind nicht angemeldet. Ihre Daten werden nur lokal gespeichert und gehen beim Löschen des Browsers verloren.</p>
               <Button variant="outline" size="sm" className="mt-3 border-warning/30 text-foreground hover:bg-warning/10" onClick={() => setLocation("/login")}>Jetzt anmelden</Button>
             </div>
           </div>
@@ -109,7 +109,7 @@ export default function Konto() {
             <div className="flex-1">
               <p className="font-medium text-sm text-foreground">E-Mail nicht bestätigt</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Bitte bestätige deine E-Mail-Adresse ({authUser?.email}), um alle Funktionen nutzen zu können.
+                Bitte bestätigen Sie Ihre E-Mail-Adresse ({authUser?.email}), um alle Funktionen nutzen zu können.
               </p>
               <Button
                 variant="outline"
@@ -347,7 +347,7 @@ export default function Konto() {
         onClose={() => setShowLogout(false)}
         onConfirm={handleLogout}
         title="Abmelden?"
-        description="Möchtest du dich wirklich abmelden? Im Demo-Modus bleiben deine lokalen Daten erhalten."
+        description="Möchten Sie sich wirklich abmelden? Im Demo-Modus bleiben Ihre lokalen Daten erhalten."
         confirmLabel="Abmelden"
       />
 

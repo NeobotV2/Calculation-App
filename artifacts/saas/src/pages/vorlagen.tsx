@@ -97,7 +97,7 @@ export default function Vorlagen() {
               <BookOpen size={28} className="text-muted-foreground" strokeWidth={1.5} />
             </div>
             <h3 className="text-lg font-semibold mb-2">Keine Vorlagen</h3>
-            <p className="text-sm text-muted-foreground max-w-[260px]">Öffne ein Objekt und speichere es als Vorlage über das Menü.</p>
+            <p className="text-sm text-muted-foreground max-w-[260px]">Öffnen Sie ein Objekt und speichern Sie es als Vorlage über das Menü.</p>
           </div>
         ) : (
           templates.map((tpl) => (

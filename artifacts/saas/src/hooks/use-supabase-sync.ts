@@ -38,10 +38,10 @@ async function fetchAndApply(userId: string, userEmail: string, userMeta: Record
   if (failed.length > 0) {
     console.warn(`Supabase sync: ${failed.length}/${results.length} fetches failed`);
     if (failed.length === results.length) {
-      toast.error("Daten konnten nicht geladen werden. Bitte prüfe deine Internetverbindung.");
+      toast.error("Daten konnten nicht geladen werden. Bitte prüfen Sie Ihre Internetverbindung.");
       return;
     }
-    toast.error("Einige Daten konnten nicht geladen werden. Bitte versuche es erneut.");
+    toast.error("Einige Daten konnten nicht geladen werden. Bitte versuchen Sie es erneut.");
   }
 
   useStore.getState()._setAuthData({

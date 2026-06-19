@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
           <h1 className="text-2xl font-semibold tracking-tight mb-2 text-foreground">Etwas ist schiefgelaufen</h1>
           <p className="text-muted-foreground mb-6 max-w-xs text-sm">
-            Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.
+            Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.
           </p>
           {this.state.error && import.meta.env.DEV && (
             <div className="mb-6 p-3 bg-card border border-border/40 rounded-xl max-w-sm w-full">

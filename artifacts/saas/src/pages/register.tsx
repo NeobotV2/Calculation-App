@@ -32,12 +32,12 @@ export default function Register() {
     setError("");
 
     if (!name.trim()) {
-      setError("Bitte gib deinen Namen ein.");
+      setError("Bitte geben Sie Ihren Namen ein.");
       return;
     }
 
     if (!email.trim()) {
-      setError("Bitte gib deine E-Mail-Adresse ein.");
+      setError("Bitte geben Sie Ihre E-Mail-Adresse ein.");
       return;
     }
 

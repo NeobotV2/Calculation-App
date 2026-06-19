@@ -7,7 +7,7 @@ interface NetworkErrorProps {
 }
 
 export function NetworkError({
-  message = "Verbindung fehlgeschlagen. Bitte prüfe deine Internetverbindung und versuche es erneut.",
+  message = "Verbindung fehlgeschlagen. Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut.",
   onRetry,
 }: NetworkErrorProps) {
   return (

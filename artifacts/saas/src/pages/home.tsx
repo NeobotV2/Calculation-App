@@ -178,7 +178,7 @@ export default function Home() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Noch keine Objekte</h3>
                 <p className="text-sm text-muted-foreground mb-4 max-w-[260px] mx-auto">
-                  Erstelle dein erstes Objekt, um mit der Kalkulation zu beginnen.
+                  Erstellen Sie Ihr erstes Objekt, um mit der Kalkulation zu beginnen.
                 </p>
               </div>
             )}

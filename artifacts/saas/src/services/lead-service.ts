@@ -53,7 +53,7 @@ function storeLocally(lead: LeadInput): void {
 export async function submitLead(input: LeadInput): Promise<LeadResult> {
   const email = input.email.trim().toLowerCase();
   if (!isValidEmail(email)) {
-    return { ok: false, error: "Bitte gib eine gültige E-Mail-Adresse ein." };
+    return { ok: false, error: "Bitte geben Sie eine gültige E-Mail-Adresse ein." };
   }
 
   const lead = {
