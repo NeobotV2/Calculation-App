@@ -488,27 +488,70 @@ export const useStore = create<AppState>()(
         try {
           const data = JSON.parse(json);
           if (!data || typeof data !== "object") return false;
+
+          const isStr = (v: unknown): v is string => typeof v === "string";
+          const isFiniteNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+          const obj = (v: unknown): Record<string, unknown> => (v as Record<string, unknown>);
+          const VALID_FREQUENCIES = new Set([
+            "monthly", "biweekly", "1x_week", "2x_week", "3x_week",
+            "4x_week", "5x_week", "6x_week", "7x_week",
+          ]);
+
           const updates: Partial<AppState> = {};
-          if (data.companyName) updates.companyName = data.companyName;
-          if (data.companyStreet !== undefined) updates.companyStreet = data.companyStreet;
-          if (data.companyZip !== undefined) updates.companyZip = data.companyZip;
-          if (data.companyCity !== undefined) updates.companyCity = data.companyCity;
-          if (data.companyPhone !== undefined) updates.companyPhone = data.companyPhone;
-          if (data.companyEmail !== undefined) updates.companyEmail = data.companyEmail;
-          if (data.companyTaxNumber !== undefined) updates.companyTaxNumber = data.companyTaxNumber;
-          if (data.companyVatId !== undefined) updates.companyVatId = data.companyVatId;
-          if (data.companyManagingDirector !== undefined) updates.companyManagingDirector = data.companyManagingDirector;
-          if (data.hourlyRate) updates.hourlyRate = data.hourlyRate;
-          if (data.vatRate !== undefined) updates.vatRate = data.vatRate;
-          if (data.defaultFrequency) updates.defaultFrequency = data.defaultFrequency;
-          if (data.pdfHeader !== undefined) updates.pdfHeader = data.pdfHeader;
-          if (data.pdfFooter !== undefined) updates.pdfFooter = data.pdfFooter;
+
+          // String-Felder — nur übernehmen, wenn tatsächlich Strings.
+          if (isStr(data.companyName) && data.companyName.trim()) updates.companyName = data.companyName;
+          if (isStr(data.companyStreet)) updates.companyStreet = data.companyStreet;
+          if (isStr(data.companyZip)) updates.companyZip = data.companyZip;
+          if (isStr(data.companyCity)) updates.companyCity = data.companyCity;
+          if (isStr(data.companyPhone)) updates.companyPhone = data.companyPhone;
+          if (isStr(data.companyEmail)) updates.companyEmail = data.companyEmail;
+          if (isStr(data.companyTaxNumber)) updates.companyTaxNumber = data.companyTaxNumber;
+          if (isStr(data.companyVatId)) updates.companyVatId = data.companyVatId;
+          if (isStr(data.companyManagingDirector)) updates.companyManagingDirector = data.companyManagingDirector;
+          if (isStr(data.pdfHeader)) updates.pdfHeader = data.pdfHeader;
+          if (isStr(data.pdfFooter)) updates.pdfFooter = data.pdfFooter;
+
+          // Zahlen-Felder — nur endliche Zahlen im plausiblen Bereich.
+          if (isFiniteNum(data.hourlyRate) && data.hourlyRate > 0) updates.hourlyRate = data.hourlyRate;
+          if (isFiniteNum(data.vatRate) && data.vatRate >= 0) updates.vatRate = data.vatRate;
+          if (isFiniteNum(data.targetMargin)) updates.targetMargin = data.targetMargin;
+
+          if (isStr(data.defaultFrequency) && VALID_FREQUENCIES.has(data.defaultFrequency)) {
+            updates.defaultFrequency = data.defaultFrequency as FrequencyKey;
+          }
+
           if (Array.isArray(data.customRoomTypes)) updates.customRoomTypes = data.customRoomTypes;
-          if (data.hourlyRateConfig) updates.hourlyRateConfig = data.hourlyRateConfig;
-          if (Array.isArray(data.disabledWarnings)) updates.disabledWarnings = data.disabledWarnings;
-          if (typeof data.targetMargin === "number") updates.targetMargin = data.targetMargin;
-          if (Array.isArray(data.projects)) updates.projects = data.projects;
-          if (Array.isArray(data.templates)) updates.templates = data.templates;
+          if (Array.isArray(data.disabledWarnings)) {
+            updates.disabledWarnings = data.disabledWarnings.filter(isStr);
+          }
+
+          // Verrechnungssatz-Config nur übernehmen, wenn die Grundstruktur stimmt —
+          // ein unvollständiges Objekt würde calcHourlyRate sonst zum Absturz bringen.
+          const cfg = data.hourlyRateConfig;
+          if (
+            cfg && typeof cfg === "object" &&
+            isFiniteNum(obj(cfg).baseLohn) &&
+            obj(cfg).ausfallzeiten && typeof obj(cfg).ausfallzeiten === "object" &&
+            isFiniteNum(obj(obj(cfg).ausfallzeiten).weeklyHours) &&
+            Array.isArray(obj(cfg).overheads)
+          ) {
+            updates.hourlyRateConfig = cfg as AppState["hourlyRateConfig"];
+          }
+
+          // Projekte/Vorlagen — nur wohlgeformte Einträge importieren.
+          if (Array.isArray(data.projects)) {
+            updates.projects = data.projects.filter(
+              (p: unknown) => !!p && typeof p === "object" &&
+                isStr(obj(p).id) && isStr(obj(p).name) && Array.isArray(obj(p).rooms)
+            ) as AppState["projects"];
+          }
+          if (Array.isArray(data.templates)) {
+            updates.templates = data.templates.filter(
+              (t: unknown) => !!t && typeof t === "object" && isStr(obj(t).id)
+            ) as AppState["templates"];
+          }
+
           set(updates);
           return true;
         } catch {

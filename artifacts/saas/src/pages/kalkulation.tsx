@@ -1,14 +1,12 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { BUNDESLAENDER } from "@/data/bundeslaender";
 import {
   type HourlyRateConfig,
-  type EmploymentType,
   type CleaningType,
   type SchichtzuschlagConfig,
   calcHourlyRate,
@@ -19,157 +17,20 @@ import {
 import {
   ArrowLeft,
   Save,
-  ChevronDown,
-  Euro,
-  Shield,
-  CalendarOff,
-  Percent,
-  Calculator,
   RotateCcw,
-  Info,
-  X,
-  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn, formatEuro } from "@/lib/utils";
+import { BasislohnSection } from "./kalkulation/sections/BasislohnSection";
+import { SchichtzuschlaegeSection } from "./kalkulation/sections/SchichtzuschlaegeSection";
+import { SvSection } from "./kalkulation/sections/SvSection";
+import { AusfallzeitenSection } from "./kalkulation/sections/AusfallzeitenSection";
+import { GemeinkostenSection } from "./kalkulation/sections/GemeinkostenSection";
+import { GewinnmargeSection } from "./kalkulation/sections/GewinnmargeSection";
+import { ResultSummary } from "./kalkulation/sections/ResultSummary";
+import { BenchmarkCard } from "./kalkulation/sections/BenchmarkCard";
 
 const fmtEuro = formatEuro;
-
-function fmtPct(v: number) {
-  return v.toLocaleString("de-DE", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-}
-
-function NumberInput({
-  value,
-  onChange,
-  suffix,
-  className,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-  suffix?: string;
-  className?: string;
-}) {
-  const [raw, setRaw] = useState(value.toString().replace(".", ","));
-  const [focused, setFocused] = useState(false);
-
-  useEffect(() => {
-    if (!focused) {
-      setRaw(value.toString().replace(".", ","));
-    }
-  }, [value, focused]);
-
-  const handleBlur = () => {
-    setFocused(false);
-    const parsed = parseFloat(raw.replace(",", "."));
-    if (!isNaN(parsed) && parsed >= 0) {
-      onChange(parsed);
-    } else {
-      setRaw(value.toString().replace(".", ","));
-    }
-  };
-
-  return (
-    <div className="relative">
-      <Input
-        value={raw}
-        onChange={(e) => setRaw(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={handleBlur}
-        inputMode="decimal"
-        className={cn("bg-background border-border/50 h-11 pr-12", className)}
-      />
-      {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-          {suffix}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function InfoPopover({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative inline-block">
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
-        className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
-      >
-        {open ? <X size={12} className="text-primary" /> : <Info size={12} className="text-primary" />}
-      </button>
-      {open && (
-        <div className="absolute right-0 top-8 z-50 w-72 bg-card border border-border/50 rounded-xl p-3 shadow-lg">
-          <p className="text-xs text-muted-foreground leading-relaxed">{text}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Section({
-  title,
-  icon: Icon,
-  open,
-  onToggle,
-  badge,
-  tooltip,
-  children,
-}: {
-  title: string;
-  icon: React.ElementType;
-  open: boolean;
-  onToggle: () => void;
-  badge?: string;
-  tooltip?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-card border border-border/40 rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between p-5">
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={onToggle}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
-          className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-        >
-          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <Icon size={18} className="text-primary" />
-          </div>
-          <span className="text-sm font-semibold text-foreground">{title}</span>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {tooltip && <InfoPopover text={tooltip} />}
-          {badge && (
-            <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-              {badge}
-            </span>
-          )}
-          <ChevronDown
-            size={18}
-            onClick={onToggle}
-            className={cn(
-              "text-muted-foreground transition-transform duration-200 cursor-pointer",
-              open && "rotate-180"
-            )}
-          />
-        </div>
-      </div>
-      {open && <div className="px-5 pb-5 space-y-4 border-t border-border/20 pt-4">{children}</div>}
-    </div>
-  );
-}
-
-const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
-  minijob: "Minijob",
-  teilzeit: "Teilzeit",
-  vollzeit: "Vollzeit",
-};
 
 export default function Kalkulation() {
   const [, setLocation] = useLocation();
@@ -366,519 +227,60 @@ export default function Kalkulation() {
           </p>
         </div>
 
-        <Section
-          title="Basislohn"
-          icon={Euro}
+        <BasislohnSection
+          config={config}
           open={openSections.basislohn}
           onToggle={() => toggle("basislohn")}
-          badge={`${fmtEuro(config.baseLohn)} €/h`}
-          tooltip="Der tarifliche oder vereinbarte Bruttostundenlohn Ihrer Reinigungskräfte. Grundlage für alle weiteren Berechnungen."
-        >
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Beschäftigungsart
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["minijob", "teilzeit", "vollzeit"] as EmploymentType[]).map(
-                (type) => (
-                  <button
-                    key={type}
-                    onClick={() => updateConfig({ employmentType: type })}
-                    className={cn(
-                      "h-10 rounded-xl text-sm font-medium transition-all border",
-                      config.employmentType === type
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background border-border/50 text-muted-foreground hover:border-border"
-                    )}
-                  >
-                    {EMPLOYMENT_LABELS[type]}
-                  </button>
-                )
-              )}
-            </div>
-            {config.employmentType === "minijob" && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Minijob-Grenze 2026: max. 603 €/Monat
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Brutto-Stundenlohn (Tariflohn LG1 ab 01/2026)
-            </label>
-            <NumberInput
-              value={config.baseLohn}
-              onChange={(v) => updateConfig({ baseLohn: v })}
-              suffix="€/h"
-            />
-          </div>
-        </Section>
+          updateConfig={updateConfig}
+        />
 
-        <Section
-          title="Schichtzuschläge"
-          icon={Moon}
+        <SchichtzuschlaegeSection
+          config={config}
+          breakdown={breakdown}
           open={openSections.schicht}
           onToggle={() => toggle("schicht")}
-          badge={hasAnySchichtzuschlag ? `+${fmtEuro(breakdown.schichtzuschlag.totalZuschlag)} €/h` : "Aus"}
-        >
-          <p className="text-xs text-muted-foreground -mt-1">
-            Zuschläge für Nacht-, Sonntags- und Feiertagsarbeit gewichtet nach Stundenanteil
-          </p>
+          updateSchichtzuschlag={updateSchichtzuschlag}
+          hasAnySchichtzuschlag={hasAnySchichtzuschlag}
+        />
 
-          {(["nacht", "sonntag", "feiertag"] as const).map((key) => {
-            const labels = {
-              nacht: { title: "Nachtarbeit", defaultZuschlag: "25 %" },
-              sonntag: { title: "Sonntagsarbeit", defaultZuschlag: "50 %" },
-              feiertag: { title: "Feiertagsarbeit", defaultZuschlag: "100 %" },
-            };
-            const item = config.schichtzuschlaege[key];
-            const betragKey = key === "nacht" ? "nachtBetrag" : key === "sonntag" ? "sonntagBetrag" : "feiertagBetrag";
-            return (
-              <div key={key} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-foreground">
-                    {labels[key].title}
-                  </span>
-                  <button
-                    onClick={() => updateSchichtzuschlag(key, { enabled: !item.enabled })}
-                    className={cn(
-                      "relative w-11 h-6 rounded-full transition-colors",
-                      item.enabled ? "bg-primary" : "bg-muted"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm",
-                        item.enabled && "translate-x-5"
-                      )}
-                    />
-                  </button>
-                </div>
-                {item.enabled && (
-                  <div className="grid grid-cols-2 gap-3 pl-1">
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                        Zuschlagssatz
-                      </label>
-                      <NumberInput
-                        value={item.zuschlag}
-                        onChange={(v) => updateSchichtzuschlag(key, { zuschlag: v })}
-                        suffix="%"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                        Stundenanteil
-                      </label>
-                      <NumberInput
-                        value={item.anteil}
-                        onChange={(v) => updateSchichtzuschlag(key, { anteil: v })}
-                        suffix="%"
-                      />
-                    </div>
-                    <div className="col-span-2 flex items-center justify-between bg-background rounded-lg p-2 border border-border/30">
-                      <span className="text-xs text-muted-foreground">
-                        Gewichteter Zuschlag
-                      </span>
-                      <span className="text-xs font-medium text-primary">
-                        +{fmtEuro(breakdown.schichtzuschlag[betragKey])} €/h
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-
-          {hasAnySchichtzuschlag && (
-            <>
-              <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-                <span className="text-sm font-medium text-foreground">
-                  Schichtzuschläge gesamt
-                </span>
-                <span className="text-sm font-bold text-primary">
-                  +{fmtEuro(breakdown.schichtzuschlag.totalZuschlag)} €/h
-                </span>
-              </div>
-              <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-                <span className="text-sm font-medium text-foreground">
-                  Effektiver Stundenlohn
-                </span>
-                <span className="text-sm font-bold text-foreground">
-                  {fmtEuro(breakdown.schichtzuschlag.effektiverLohn)} €/h
-                </span>
-              </div>
-            </>
-          )}
-        </Section>
-
-        <Section
-          title="Sozialversicherung AG-Anteil"
-          icon={Shield}
+        <SvSection
+          config={config}
+          breakdown={breakdown}
           open={openSections.sv}
           onToggle={() => toggle("sv")}
-          badge={`${fmtPct(svTotalRate)} %`}
-          tooltip="Gesetzliche Abgaben des Arbeitgebers: Kranken-, Renten-, Pflege- und Unfallversicherung. Bei Minijobs gelten Pauschalsätze."
-        >
-          <p className="text-xs text-muted-foreground -mt-1">
-            {config.employmentType === "minijob"
-              ? "Pauschale Abgaben für Minijob"
-              : "Arbeitgeberanteile Teilzeit/Vollzeit"}
-          </p>
-          <div className="space-y-3">
-            {activeSvRates.map((item, idx) => (
-              <div key={`${config.employmentType}-${item.label}`} className="flex items-center gap-3">
-                <span className="flex-1 text-sm text-foreground truncate">
-                  {item.label}
-                </span>
-                <span className="text-xs text-muted-foreground w-16 text-right tabular-nums shrink-0">
-                  {fmtEuro(config.baseLohn * item.rate / 100)} €
-                </span>
-                <div className="w-24">
-                  <NumberInput
-                    value={item.rate}
-                    onChange={(v) => updateSvRate(idx, v)}
-                    suffix="%"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              SV-Beitrag pro Stunde
-            </span>
-            <span className="text-sm font-bold text-primary">
-              {fmtEuro(breakdown.svBetrag)} €
-            </span>
-          </div>
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              Lohnkosten / Stunde
-            </span>
-            <span className="text-sm font-bold text-foreground">
-              {fmtEuro(breakdown.lohnkostenProStunde)} €
-            </span>
-          </div>
-        </Section>
+          activeSvRates={activeSvRates}
+          svTotalRate={svTotalRate}
+          updateSvRate={updateSvRate}
+        />
 
-        <Section
-          title="Ausfallzeiten"
-          icon={CalendarOff}
+        <AusfallzeitenSection
+          config={config}
+          breakdown={breakdown}
           open={openSections.ausfall}
           onToggle={() => toggle("ausfall")}
-          badge={`${fmtPct(breakdown.produktivitaetsquote * 100)} % produktiv`}
-          tooltip="Produktive Zeit: Nicht jede bezahlte Stunde ist produktiv — Urlaub, Krankheit und Feiertage reduzieren die tatsächlich verfügbare Arbeitszeit. Der Ausfallzuschlag gleicht dies aus, damit Ihre kalkulierten Kosten die reale Leistung widerspiegeln."
-        >
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Wochenarbeitszeit
-            </label>
-            <NumberInput
-              value={config.ausfallzeiten.weeklyHours}
-              onChange={(v) => updateAusfall({ weeklyHours: v })}
-              suffix="h/Woche"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Bundesland (Feiertage)
-            </label>
-            <select
-              value={config.ausfallzeiten.bundeslandId}
-              onChange={(e) => updateAusfall({ bundeslandId: e.target.value })}
-              className="w-full h-11 rounded-xl border border-border/50 bg-background px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-            >
-              {BUNDESLAENDER.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} ({b.feiertage2026} Tage)
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Urlaubstage
-              </label>
-              <NumberInput
-                value={config.ausfallzeiten.urlaubTage}
-                onChange={(v) => updateAusfall({ urlaubTage: v })}
-                suffix="Tage"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Krankheitstage
-              </label>
-              <NumberInput
-                value={config.ausfallzeiten.krankheitTage}
-                onChange={(v) => updateAusfall({ krankheitTage: v })}
-                suffix="Tage"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Feiertage
-              </label>
-              <div className="h-11 rounded-xl border border-border/50 bg-background/50 px-4 flex items-center text-sm text-muted-foreground">
-                {bl?.feiertage2026 ?? 10} Tage
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-                Fortbildung
-              </label>
-              <NumberInput
-                value={config.ausfallzeiten.fortbildungTage}
-                onChange={(v) => updateAusfall({ fortbildungTage: v })}
-                suffix="Tage"
-              />
-            </div>
-          </div>
+          updateAusfall={updateAusfall}
+          bl={bl}
+        />
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                Jahresarbeitsstunden
-              </span>
-              <span className="text-foreground font-medium">
-                {breakdown.jahresArbeitsstunden.toLocaleString("de-DE")} h
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">
-                Ausfallstunden gesamt
-              </span>
-              <span className="text-foreground font-medium">
-                − {breakdown.totalAusfallStunden.toLocaleString("de-DE")} h
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Produktivstunden</span>
-              <span className="text-primary font-bold">
-                {breakdown.produktivStunden.toLocaleString("de-DE")} h
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              Ausfallzuschlag
-            </span>
-            <span className="text-sm font-bold text-primary">
-              × {fmtPct(breakdown.ausfallzuschlag)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              Lohnkosten inkl. Ausfall
-            </span>
-            <span className="text-sm font-bold text-foreground">
-              {fmtEuro(breakdown.lohnkostenMitAusfall)} €/h
-            </span>
-          </div>
-        </Section>
-
-        <Section
-          title="Gemeinkosten & Zuschläge"
-          icon={Percent}
+        <GemeinkostenSection
+          config={config}
+          breakdown={breakdown}
           open={openSections.overhead}
           onToggle={() => toggle("overhead")}
-          badge={`${fmtPct(breakdown.overheadTotalRate)} %`}
-          tooltip="Alle Kosten, die nicht direkt der Reinigung zugeordnet werden können: Verwaltung, Fahrzeuge, Material, Versicherungen."
-        >
-          <div className="space-y-3">
-            {config.overheads.map((item, idx) => (
-              <div key={item.id} className="flex items-center gap-3">
-                <span className="flex-1 text-sm text-foreground truncate">
-                  {item.label}
-                </span>
-                <div className="w-24">
-                  <NumberInput
-                    value={item.rate}
-                    onChange={(v) => updateOverhead(idx, v)}
-                    suffix="%"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              Gemeinkosten pro Stunde
-            </span>
-            <span className="text-sm font-bold text-primary">
-              {fmtEuro(breakdown.overheadBetrag)} €
-            </span>
-          </div>
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              Vollkosten / Stunde
-            </span>
-            <span className="text-sm font-bold text-foreground">
-              {fmtEuro(breakdown.vollkosten)} €
-            </span>
-          </div>
-        </Section>
+          updateOverhead={updateOverhead}
+        />
 
-        <Section
-          title="Gewinnmarge"
-          icon={Calculator}
+        <GewinnmargeSection
+          config={config}
+          breakdown={breakdown}
           open={openSections.gewinn}
           onToggle={() => toggle("gewinn")}
-          badge={`${fmtPct(config.gewinnmarge)} %`}
-          tooltip="Der Aufschlag auf die Vollkosten, der den tatsächlichen Unternehmensgewinn ausmacht. Branchenüblich: 8–15%."
-        >
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-              Gewinnaufschlag
-            </label>
-            <NumberInput
-              value={config.gewinnmarge}
-              onChange={(v) => updateConfig({ gewinnmarge: v })}
-              suffix="%"
-            />
-          </div>
-          <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-            <span className="text-sm font-medium text-foreground">
-              Gewinn pro Stunde
-            </span>
-            <span className="text-sm font-bold text-primary">
-              {fmtEuro(breakdown.gewinnBetrag)} €
-            </span>
-          </div>
-        </Section>
+          updateConfig={updateConfig}
+        />
 
-        <div className="bg-card border-2 border-primary/30 rounded-2xl p-5 space-y-4">
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">
-              Ergebnis
-            </p>
-            <p className="text-3xl font-bold text-primary">
-              {fmtEuro(breakdown.stundenverrechnungssatz)} €/h
-            </p>
-          </div>
+        <ResultSummary config={config} breakdown={breakdown} />
 
-          <div className="space-y-1.5 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Basislohn</span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.baseLohn)} €
-              </span>
-            </div>
-            {breakdown.schichtzuschlag.totalZuschlag > 0 && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  + Schichtzuschläge
-                </span>
-                <span className="text-foreground">
-                  {fmtEuro(breakdown.schichtzuschlag.totalZuschlag)} €
-                </span>
-              </div>
-            )}
-            {breakdown.schichtzuschlag.totalZuschlag > 0 && (
-              <div className="flex justify-between font-medium border-t border-border/30 pt-1.5">
-                <span className="text-foreground">= Effektiver Lohn</span>
-                <span className="text-foreground">
-                  {fmtEuro(breakdown.schichtzuschlag.effektiverLohn)} €
-                </span>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                + SV AG-Anteil ({fmtPct(breakdown.svTotalRate)} %)
-              </span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.svBetrag)} €
-              </span>
-            </div>
-            <div className="flex justify-between font-medium border-t border-border/30 pt-1.5">
-              <span className="text-foreground">= Lohnkosten</span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.lohnkostenProStunde)} €
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                × Ausfallzuschlag ({fmtPct(breakdown.ausfallzuschlag)})
-              </span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.lohnkostenMitAusfall)} €
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                + Gemeinkosten ({fmtPct(breakdown.overheadTotalRate)} %)
-              </span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.overheadBetrag)} €
-              </span>
-            </div>
-            <div className="flex justify-between font-medium border-t border-border/30 pt-1.5">
-              <span className="text-foreground">= Vollkosten</span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.vollkosten)} €
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                + Gewinn ({fmtPct(config.gewinnmarge)} %)
-              </span>
-              <span className="text-foreground">
-                {fmtEuro(breakdown.gewinnBetrag)} €
-              </span>
-            </div>
-            <div className="flex justify-between font-bold text-primary border-t border-primary/30 pt-1.5">
-              <span>= Verrechnungssatz</span>
-              <span>{fmtEuro(breakdown.stundenverrechnungssatz)} €/h</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border/40 rounded-2xl p-5">
-          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Branchen-Benchmark
-          </h4>
-          <div className="space-y-2.5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
-                <span className="text-sm text-foreground">Kritisch</span>
-              </div>
-              <span className="text-sm font-semibold text-destructive">
-                {fmtEuro(breakdown.vollkosten * 0.9)} €/h
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
-              Unter den Selbstkosten — Verlustzone
-            </p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-warning" />
-                <span className="text-sm text-foreground">Mindest</span>
-              </div>
-              <span className="text-sm font-semibold text-warning">
-                {fmtEuro(breakdown.vollkosten)} €/h
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
-              Vollkostendeckung, 0% Gewinn
-            </p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-success" />
-                <span className="text-sm text-foreground">Empfohlen</span>
-              </div>
-              <span className="text-sm font-semibold text-success">
-                {fmtEuro(breakdown.stundenverrechnungssatz)} €/h
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
-              Ihr kalkulierter Satz inkl. {fmtPct(config.gewinnmarge)}% Gewinn
-            </p>
-          </div>
-        </div>
+        <BenchmarkCard config={config} breakdown={breakdown} />
 
         <div className="space-y-2 pt-2">
           <Button onClick={handleSave} className="w-full h-12" disabled={!hasChanged}>

@@ -155,6 +155,15 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
   const overrideGate = canOverridePerformance();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   const surchargeSetters: Record<string, (v: string | undefined) => void> = {
     soilingLevel: setSoilingLevel,
     furnishingLevel: setFurnishingLevel,
@@ -176,8 +185,12 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
             onClick={onClose}
+            aria-hidden="true"
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="room-editor-title"
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 200 }}
             className="fixed bottom-0 left-0 right-0 bg-background rounded-t-3xl border-t border-border z-50 max-h-[92vh] overflow-y-auto md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-2xl md:w-full md:max-h-[85vh]"
@@ -186,20 +199,21 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
             <div className="sticky top-0 bg-background z-10 px-6 pt-4 pb-2 md:rounded-t-3xl">
               <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 md:hidden" />
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-2xl font-semibold tracking-tight">{editRoom ? "Raum bearbeiten" : "Neuer Raum"}</h2>
-                <button onClick={onClose} className="w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
-                  <X size={16} className="text-muted-foreground" />
+                <h2 id="room-editor-title" className="text-2xl font-semibold tracking-tight">{editRoom ? "Raum bearbeiten" : "Neuer Raum"}</h2>
+                <button onClick={onClose} aria-label="Schließen" className="w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
+                  <X size={16} className="text-muted-foreground" aria-hidden="true" />
                 </button>
               </div>
             </div>
 
             <div className="px-6 pb-6 space-y-5">
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Raumart</label>
+                <span className="text-sm font-medium text-foreground mb-2 block">Raumart</span>
 
                 <div className="relative mb-2">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
+                    aria-label="Raumart suchen"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder="Raumart suchen…"
@@ -245,29 +259,30 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
               </div>
 
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Bezeichnung (optional)</label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder={selectedType.name} className="bg-card h-12" />
+                <label htmlFor="room-name" className="text-sm font-medium text-foreground mb-2 block">Bezeichnung (optional)</label>
+                <Input id="room-name" value={name} onChange={e => setName(e.target.value)} placeholder={selectedType.name} className="bg-card h-12" />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Fläche (m²)</label>
-                <Input inputMode="decimal" value={area} onChange={e => setArea(e.target.value)} placeholder="0" className="text-xl font-semibold h-14 bg-card" />
+                <label htmlFor="room-area" className="text-sm font-medium text-foreground mb-2 block">Fläche (m²)</label>
+                <Input id="room-area" inputMode="decimal" value={area} onChange={e => setArea(e.target.value)} placeholder="0" className="text-xl font-semibold h-14 bg-card" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Länge (m)</label>
-                  <Input inputMode="decimal" value={length} onChange={e => setLength(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" />
+                  <label htmlFor="room-length" className="text-xs text-muted-foreground mb-1 block">Länge (m)</label>
+                  <Input id="room-length" inputMode="decimal" value={length} onChange={e => setLength(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Breite (m)</label>
-                  <Input inputMode="decimal" value={width} onChange={e => setWidth(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" />
+                  <label htmlFor="room-width" className="text-xs text-muted-foreground mb-1 block">Breite (m)</label>
+                  <Input id="room-width" inputMode="decimal" value={width} onChange={e => setWidth(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" />
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Häufigkeit</label>
+                <label htmlFor="room-frequency" className="text-sm font-medium text-foreground mb-2 block">Häufigkeit</label>
                 <select
+                  id="room-frequency"
                   value={freq}
                   onChange={e => setFreq(e.target.value as FrequencyKey)}
                   className="w-full h-12 rounded-xl border border-border/40 bg-card px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
@@ -279,15 +294,15 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
               </div>
 
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Leistungswert überschreiben (m²/h)</label>
+                <label htmlFor="room-custom-perf" className="text-sm font-medium text-foreground mb-2 block">Leistungswert überschreiben (m²/h)</label>
                 {overrideGate.allowed ? (
-                  <Input inputMode="decimal" value={customPerf} onChange={e => setCustomPerf(e.target.value)} placeholder={selectedType.performanceValue.toString()} className="bg-card h-12" />
+                  <Input id="room-custom-perf" inputMode="decimal" value={customPerf} onChange={e => setCustomPerf(e.target.value)} placeholder={selectedType.performanceValue.toString()} className="bg-card h-12" />
                 ) : (
                   <button
                     onClick={() => setUpgradeOpen(true)}
                     className="w-full h-12 rounded-xl border border-border/40 bg-card px-4 text-sm text-muted-foreground flex items-center gap-2 hover:bg-secondary transition-colors"
                   >
-                    <Lock size={14} /> Pro-Feature — tippen zum Upgraden
+                    <Lock size={14} aria-hidden="true" /> Pro-Feature — tippen zum Upgraden
                   </button>
                 )}
               </div>
@@ -298,7 +313,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                   className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-secondary transition-colors"
                 >
                   <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <SlidersHorizontal size={16} className="text-muted-foreground" />
+                    <SlidersHorizontal size={16} className="text-muted-foreground" aria-hidden="true" />
                     Zu-/Abschläge
                     {totalModifier !== 0 && (
                       <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${totalModifier > 0 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
@@ -306,14 +321,14 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                       </span>
                     )}
                   </span>
-                  <ChevronDown size={16} className={`text-muted-foreground transition-transform ${showSurcharges ? "rotate-180" : ""}`} />
+                  <ChevronDown size={16} className={`text-muted-foreground transition-transform ${showSurcharges ? "rotate-180" : ""}`} aria-hidden="true" />
                 </button>
 
                 {showSurcharges && (
                   <div className="px-4 py-4 space-y-4 bg-card/50 border-t border-border/20">
                     {SURCHARGE_DEFINITIONS.map(def => (
                       <div key={def.category}>
-                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">{def.label}</label>
+                        <span className="text-xs font-medium text-muted-foreground mb-1.5 block">{def.label}</span>
                         <div className="flex gap-1.5 flex-wrap">
                           {def.options.map(opt => {
                             const isSelected = surchargeValues[def.category] === opt.id;

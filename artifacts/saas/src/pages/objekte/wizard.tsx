@@ -233,9 +233,10 @@ export default function ObjektWizard() {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={handleCancel}
+            aria-label="Abbrechen"
             className="w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center"
           >
-            <X size={16} className="text-muted-foreground" />
+            <X size={16} className="text-muted-foreground" aria-hidden="true" />
           </button>
           <h2 className="text-base font-semibold">Neues Objekt</h2>
           <div className="w-9" />
@@ -259,19 +260,21 @@ export default function ObjektWizard() {
                   Basisdaten
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Erfasse die Grunddaten des Objekts.
+                  Erfassen Sie die Grunddaten des Objekts.
                 </p>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label htmlFor="wizard-name" className="text-sm font-medium mb-2 block">
                   <Building2
                     size={14}
                     className="inline mr-1.5 text-muted-foreground"
+                    aria-hidden="true"
                   />
                   Objektname
                 </label>
                 <Input
+                  id="wizard-name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="z.B. Bürogebäude Musterstraße"
@@ -281,14 +284,16 @@ export default function ObjektWizard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label htmlFor="wizard-customer" className="text-sm font-medium mb-2 block">
                   <User
                     size={14}
                     className="inline mr-1.5 text-muted-foreground"
+                    aria-hidden="true"
                   />
                   Kunde
                 </label>
                 <Input
+                  id="wizard-customer"
                   value={customer}
                   onChange={(e) => setCustomer(e.target.value)}
                   placeholder="z.B. Muster GmbH"
@@ -297,14 +302,16 @@ export default function ObjektWizard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label htmlFor="wizard-location" className="text-sm font-medium mb-2 block">
                   <MapPin
                     size={14}
                     className="inline mr-1.5 text-muted-foreground"
+                    aria-hidden="true"
                   />
                   Standort / Adresse
                 </label>
                 <Input
+                  id="wizard-location"
                   value={location_}
                   onChange={(e) => setLocation_(e.target.value)}
                   placeholder="z.B. Berlin, Musterstraße 1"
@@ -313,31 +320,35 @@ export default function ObjektWizard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label htmlFor="wizard-rate" className="text-sm font-medium mb-2 block">
                   Stundensatz (€/h)
                 </label>
                 <Input
+                  id="wizard-rate"
+                  aria-describedby="wizard-rate-hint"
                   value={rateInput}
                   onChange={(e) => setRateInput(e.target.value)}
                   inputMode="decimal"
                   placeholder={`Standard: ${hourlyRate.toString().replace(".", ",")} €/h`}
                   className="bg-card h-12"
                 />
-                <p className="text-xs text-muted-foreground mt-1 ml-1">
+                <p id="wizard-rate-hint" className="text-xs text-muted-foreground mt-1 ml-1">
                   Leer = globaler Standard (
                   {hourlyRate.toString().replace(".", ",")} €/h)
                 </p>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">
+                <label htmlFor="wizard-notes" className="text-sm font-medium mb-2 block">
                   <FileText
                     size={14}
                     className="inline mr-1.5 text-muted-foreground"
+                    aria-hidden="true"
                   />
                   Notizen
                 </label>
                 <Input
+                  id="wizard-notes"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Optionale Notizen zur Begehung"
@@ -361,7 +372,7 @@ export default function ObjektWizard() {
                   Räume & Erschwernisse
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Füge die Räume des Objekts hinzu.
+                  Fügen Sie die Räume des Objekts hinzu.
                 </p>
               </div>
 
@@ -433,18 +444,21 @@ export default function ObjektWizard() {
                               setEditingRoom(room);
                               setSheetOpen(true);
                             }}
+                            aria-label={`Raum „${room.name || room.typeName}" bearbeiten`}
                             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors"
                           >
                             <Edit3
                               size={14}
                               className="text-muted-foreground"
+                              aria-hidden="true"
                             />
                           </button>
                           <button
                             onClick={() => setDeleteRoomId(room.id)}
+                            aria-label={`Raum „${room.name || room.typeName}" entfernen`}
                             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-destructive/10 transition-colors"
                           >
-                            <Trash2 size={14} className="text-destructive" />
+                            <Trash2 size={14} className="text-destructive" aria-hidden="true" />
                           </button>
                         </div>
                       </div>
@@ -510,7 +524,7 @@ export default function ObjektWizard() {
                   Zusammenfassung
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Prüfe die Daten und speichere das Objekt.
+                  Prüfen Sie die Daten und speichern Sie das Objekt.
                 </p>
               </div>
 

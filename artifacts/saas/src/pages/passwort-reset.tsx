@@ -53,14 +53,14 @@ export default function PasswortReset() {
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full text-center">
           <div className="flex justify-center mb-8">
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-success" />
+              <CheckCircle2 className="w-8 h-8 text-success" aria-hidden="true" />
             </div>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight mb-3 text-foreground">
             Passwort geändert
           </h1>
           <p className="text-muted-foreground text-base">
-            Dein Passwort wurde erfolgreich geändert. Du wirst weitergeleitet...
+            Ihr Passwort wurde erfolgreich geändert. Sie werden weitergeleitet...
           </p>
         </div>
       </PageTransition>
@@ -72,7 +72,7 @@ export default function PasswortReset() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
         <div className="flex justify-center mb-10">
           <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} />
+            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} aria-hidden="true" />
           </div>
         </div>
 
@@ -80,33 +80,41 @@ export default function PasswortReset() {
           Neues Passwort
         </h1>
         <p className="text-muted-foreground text-base text-center mb-10">
-          Wähle ein neues Passwort für dein Konto.
+          Wählen Sie ein neues Passwort für Ihr Konto.
         </p>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
-            <p className="text-sm text-destructive">{error}</p>
+          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20" role="alert">
+            <p id="password-reset-error" className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
+            <label htmlFor="new-password" className="sr-only">Neues Passwort</label>
             <Input
+              id="new-password"
               type="password"
               placeholder="Neues Passwort (mind. 6 Zeichen)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-14 bg-card border-border/50 text-base"
               autoFocus
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "password-reset-error" : undefined}
             />
           </div>
           <div>
+            <label htmlFor="confirm-password" className="sr-only">Passwort bestätigen</label>
             <Input
+              id="confirm-password"
               type="password"
               placeholder="Passwort bestätigen"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="h-14 bg-card border-border/50 text-base"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "password-reset-error" : undefined}
             />
           </div>
 
@@ -118,7 +126,7 @@ export default function PasswortReset() {
               </span>
             ) : (
               <>
-                <Lock size={20} className="mr-2" /> Passwort ändern
+                <Lock size={20} className="mr-2" aria-hidden="true" /> Passwort ändern
               </>
             )}
           </Button>

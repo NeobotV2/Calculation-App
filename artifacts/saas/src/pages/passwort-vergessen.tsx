@@ -19,12 +19,12 @@ export default function PasswortVergessen() {
     setError("");
 
     if (!email.trim()) {
-      setError("Bitte gib deine E-Mail-Adresse ein.");
+      setError("Bitte geben Sie Ihre E-Mail-Adresse ein.");
       return;
     }
 
     if (!isSupabaseReady) {
-      setError("Backend nicht konfiguriert. Bitte kontaktiere den Support.");
+      setError("Backend nicht konfiguriert. Bitte kontaktieren Sie den Support.");
       return;
     }
 
@@ -45,17 +45,17 @@ export default function PasswortVergessen() {
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
           <div className="flex justify-center mb-8">
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-success" />
+              <CheckCircle2 className="w-8 h-8 text-success" aria-hidden="true" />
             </div>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-center mb-3 text-foreground">
             E-Mail gesendet
           </h1>
           <p className="text-muted-foreground text-base text-center mb-10">
-            Falls ein Konto mit <span className="font-medium text-foreground">{email}</span> existiert, haben wir dir einen Link zum Zurücksetzen deines Passworts gesendet.
+            Falls ein Konto mit <span className="font-medium text-foreground">{email}</span> existiert, haben wir Ihnen einen Link zum Zurücksetzen Ihres Passworts gesendet.
           </p>
           <Button variant="outline" className="w-full h-14 text-base" onClick={() => setLocation("/login")}>
-            <ArrowLeft size={18} className="mr-2" /> Zurück zum Login
+            <ArrowLeft size={18} className="mr-2" aria-hidden="true" /> Zurück zum Login
           </Button>
         </div>
       </PageTransition>
@@ -67,7 +67,7 @@ export default function PasswortVergessen() {
       <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
         <div className="flex justify-center mb-10">
           <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} />
+            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} aria-hidden="true" />
           </div>
         </div>
 
@@ -75,24 +75,28 @@ export default function PasswortVergessen() {
           Passwort vergessen?
         </h1>
         <p className="text-muted-foreground text-base text-center mb-10">
-          Gib deine E-Mail-Adresse ein und wir senden dir einen Link zum Zurücksetzen.
+          Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen.
         </p>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
-            <p className="text-sm text-destructive">{error}</p>
+          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20" role="alert">
+            <p id="reset-error" className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
+            <label htmlFor="reset-email" className="sr-only">E-Mail-Adresse</label>
             <Input
+              id="reset-email"
               type="email"
               placeholder="E-Mail Adresse"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-14 bg-card border-border/50 text-base"
               autoFocus
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "reset-error" : undefined}
             />
           </div>
 
@@ -104,7 +108,7 @@ export default function PasswortVergessen() {
               </span>
             ) : (
               <>
-                <Mail size={20} className="mr-2" /> Link senden
+                <Mail size={20} className="mr-2" aria-hidden="true" /> Link senden
               </>
             )}
           </Button>
@@ -113,7 +117,7 @@ export default function PasswortVergessen() {
         <div className="mt-10 text-center">
           <p className="text-muted-foreground text-base">
             <Link href="/login" className="text-primary font-medium hover:underline">
-              <ArrowLeft size={14} className="inline mr-1" />Zurück zum Login
+              <ArrowLeft size={14} className="inline mr-1" aria-hidden="true" />Zurück zum Login
             </Link>
           </p>
         </div>

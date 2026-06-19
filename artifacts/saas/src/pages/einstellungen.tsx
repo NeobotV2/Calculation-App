@@ -7,6 +7,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { isPaidPlan } from "@/lib/billing-config";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
@@ -131,7 +132,7 @@ export default function Einstellungen() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      toast.error("Bitte wähle eine Bilddatei aus.");
+      toast.error("Bitte wählen Sie eine Bilddatei aus.");
       return;
     }
     if (file.size > 500 * 1024) {
@@ -310,47 +311,39 @@ export default function Einstellungen() {
             <Building2 size={16} /> Firmenstammdaten
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Firmenname</label>
+            <FormField id="company-name" label="Firmenname">
               <Input value={company} onChange={(e) => setCompany(e.target.value)} className="bg-background border-border/50 h-12" />
-            </div>
+            </FormField>
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <MapPin size={14} /> Adresse
-              </label>
+              <span className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <MapPin size={14} aria-hidden="true" /> Adresse
+              </span>
               <div className="space-y-3">
-                <Input value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Straße und Hausnummer" className="bg-background border-border/50 h-12" />
+                <Input aria-label="Straße und Hausnummer" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Straße und Hausnummer" className="bg-background border-border/50 h-12" />
                 <div className="flex gap-3">
-                  <Input value={zip} onChange={(e) => setZip(e.target.value)} placeholder="PLZ" className="bg-background border-border/50 h-12 w-28" />
-                  <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ort" className="bg-background border-border/50 h-12 flex-1" />
+                  <Input aria-label="PLZ" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="PLZ" className="bg-background border-border/50 h-12 w-28" />
+                  <Input aria-label="Ort" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ort" className="bg-background border-border/50 h-12 flex-1" />
                 </div>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <Phone size={14} /> Telefon
-              </label>
+            <FormField id="company-phone" label="Telefon">
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="z.B. +49 123 456789" type="tel" className="bg-background border-border/50 h-12" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <Mail size={14} /> E-Mail
-              </label>
+            </FormField>
+            <FormField id="company-email" label="E-Mail">
               <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@firma.de" type="email" className="bg-background border-border/50 h-12" />
-            </div>
+            </FormField>
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <FileCheck size={14} /> Steuerliche Angaben
-              </label>
+              <span className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <FileCheck size={14} aria-hidden="true" /> Steuerliche Angaben
+              </span>
               <div className="space-y-3">
-                <Input value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} placeholder="Steuernummer" className="bg-background border-border/50 h-12" />
-                <Input value={vatId} onChange={(e) => setVatId(e.target.value)} placeholder="USt-IdNr. (z.B. DE123456789)" className="bg-background border-border/50 h-12" />
+                <Input aria-label="Steuernummer" value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} placeholder="Steuernummer" className="bg-background border-border/50 h-12" />
+                <Input aria-label="USt-IdNr." value={vatId} onChange={(e) => setVatId(e.target.value)} placeholder="USt-IdNr. (z.B. DE123456789)" className="bg-background border-border/50 h-12" />
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Geschäftsführer</label>
+            <FormField id="company-director" label="Geschäftsführer">
               <Input value={managingDirector} onChange={(e) => setManagingDirector(e.target.value)} placeholder="Vor- und Nachname" className="bg-background border-border/50 h-12" />
-            </div>
+            </FormField>
             <div className="pt-2">
               <Button onClick={handleSaveCompanyData} className="w-full" disabled={isSaving}>
                 <Save size={18} className="mr-2" /> Firmenstammdaten speichern
@@ -365,32 +358,35 @@ export default function Einstellungen() {
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">Standard-Verrechnungssatz (€/h)</label>
+              <label htmlFor="setting-rate" className="text-sm font-medium text-foreground mb-2 block">Standard-Verrechnungssatz (€/h)</label>
               <div className="flex gap-2">
-                <Input value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12 flex-1" />
+                <Input id="setting-rate" aria-describedby="setting-rate-hint" value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12 flex-1" />
                 <button
                   onClick={() => setLocation("/stundensatz")}
                   className="h-12 px-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-primary hover:bg-primary/15 transition-colors shrink-0"
                 >
-                  <Calculator size={16} />
+                  <Calculator size={16} aria-hidden="true" />
                   <span className="text-sm font-medium">Kalkulieren</span>
-                  <ChevronRight size={14} />
+                  <ChevronRight size={14} aria-hidden="true" />
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5 ml-1">
-                Nutze den Kalkulator für eine professionelle Verrechnungssatz-Berechnung.
+              <p id="setting-rate-hint" className="text-xs text-muted-foreground mt-1.5 ml-1">
+                Nutzen Sie den Kalkulator für eine professionelle Verrechnungssatz-Berechnung.
               </p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">MwSt.-Satz (%)</label>
+            <FormField
+              id="setting-vat"
+              label="MwSt.-Satz (%)"
+              hint="Wird auf dem PDF-Angebot ausgewiesen. 0 = keine MwSt."
+            >
               <Input value={vat} onChange={(e) => setVat(e.target.value)} inputMode="decimal" placeholder="0 = ohne MwSt." className="bg-background border-border/50 h-12" />
-              <p className="text-xs text-muted-foreground mt-1.5 ml-1">Wird auf dem PDF-Angebot ausgewiesen. 0 = keine MwSt.</p>
-            </div>
+            </FormField>
             <div>
-              <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <Clock size={14} /> Standard-Reinigungshäufigkeit
+              <label htmlFor="setting-frequency" className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
+                <Clock size={14} aria-hidden="true" /> Standard-Reinigungshäufigkeit
               </label>
               <select
+                id="setting-frequency"
                 value={freq}
                 onChange={(e) => setFreq(e.target.value as FrequencyKey)}
                 className="w-full h-12 rounded-xl border border-border/50 bg-background px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
@@ -426,11 +422,11 @@ export default function Einstellungen() {
                         <p className="text-xs text-muted-foreground">{rt.groupName} · {rt.performanceValue} m²/h</p>
                       </div>
                       <div className="flex gap-1">
-                        <button onClick={() => startEditRoomType(rt)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
-                          <Edit3 size={14} className="text-muted-foreground" />
+                        <button aria-label={`Raumart „${rt.name}" bearbeiten`} onClick={() => startEditRoomType(rt)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
+                          <Edit3 size={14} className="text-muted-foreground" aria-hidden="true" />
                         </button>
-                        <button onClick={() => setDeleteRoomTypeConfirm(rt.id)} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
-                          <Trash2 size={14} className="text-destructive" />
+                        <button aria-label={`Raumart „${rt.name}" löschen`} onClick={() => setDeleteRoomTypeConfirm(rt.id)} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
+                          <Trash2 size={14} className="text-destructive" aria-hidden="true" />
                         </button>
                       </div>
                     </div>
@@ -439,13 +435,13 @@ export default function Einstellungen() {
               )}
               {showAddRoom ? (
                 <div className="space-y-3 bg-background rounded-xl p-4 border border-border/30">
-                  <Input value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} placeholder="Raumart-Name" className="bg-card h-11" />
-                  <select value={newRoomGroup} onChange={(e) => setNewRoomGroup(e.target.value)} className="w-full h-11 rounded-xl border border-border/40 bg-card px-4 text-sm text-foreground focus:outline-none appearance-none">
+                  <Input aria-label="Raumart-Name" value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} placeholder="Raumart-Name" className="bg-card h-11" />
+                  <select aria-label="Raumgruppe" value={newRoomGroup} onChange={(e) => setNewRoomGroup(e.target.value)} className="w-full h-11 rounded-xl border border-border/40 bg-card px-4 text-sm text-foreground focus:outline-none appearance-none">
                     {DEFAULT_ROOM_GROUPS.map(g => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
-                  <Input value={newRoomPerf} onChange={(e) => setNewRoomPerf(e.target.value)} inputMode="decimal" placeholder="Leistungswert (m²/h)" className="bg-card h-11" />
+                  <Input aria-label="Leistungswert (m²/h)" value={newRoomPerf} onChange={(e) => setNewRoomPerf(e.target.value)} inputMode="decimal" placeholder="Leistungswert (m²/h)" className="bg-card h-11" />
                   <div className="flex gap-2">
                     <Button variant="outline" onClick={() => { setShowAddRoom(false); setEditingRoomType(null); setNewRoomName(""); setNewRoomPerf(""); }} className="flex-1">Abbrechen</Button>
                     <Button onClick={handleSaveRoomType} className="flex-1">{editingRoomType ? "Speichern" : "Hinzufügen"}</Button>
@@ -476,9 +472,11 @@ export default function Einstellungen() {
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Ziel-Marge (%)</label>
-              <p className="text-xs text-muted-foreground">Objekte mit einer Marge unter diesem Wert erhalten eine Warnung.</p>
+              <label htmlFor="setting-target-margin" className="text-sm font-medium text-foreground">Ziel-Marge (%)</label>
+              <p id="setting-target-margin-hint" className="text-xs text-muted-foreground">Objekte mit einer Marge unter diesem Wert erhalten eine Warnung.</p>
               <Input
+                id="setting-target-margin"
+                aria-describedby="setting-target-margin-hint"
                 type="number"
                 inputMode="decimal"
                 min={0}
@@ -539,30 +537,29 @@ export default function Einstellungen() {
                 Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier können Sie optionale Zusatzzeilen eintragen.
               </p>
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Firmenlogo</label>
+                <span className="text-sm font-medium text-foreground mb-2 block">Firmenlogo</span>
                 {companyLogo ? (
                   <div className="flex items-center gap-4">
-                    <img src={companyLogo} alt="Logo" className="h-14 w-auto object-contain rounded-lg border border-border/30 bg-white p-1" />
+                    <img src={companyLogo} alt="Firmenlogo" className="h-14 w-auto object-contain rounded-lg border border-border/30 bg-white p-1" />
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={!isPaidPlan(plan)}>
                         Ändern
                       </Button>
                       <Button variant="outline" size="sm" onClick={handleRemoveLogo} disabled={!isPaidPlan(plan)} className="text-destructive hover:bg-destructive/10">
-                        <X size={14} className="mr-1" /> Entfernen
+                        <X size={14} className="mr-1" aria-hidden="true" /> Entfernen
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <Button variant="outline" onClick={() => logoInputRef.current?.click()} className="w-full h-20 border-dashed flex flex-col items-center gap-1" disabled={!isPaidPlan(plan)}>
-                    <ImagePlus size={20} className="text-muted-foreground" />
+                    <ImagePlus size={20} className="text-muted-foreground" aria-hidden="true" />
                     <span className="text-xs text-muted-foreground">Logo hochladen (max. 500 KB)</span>
                   </Button>
                 )}
                 <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
                 <p className="text-xs text-muted-foreground mt-1.5 ml-1">Wird im PDF-Briefkopf neben dem Firmennamen angezeigt.</p>
               </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Kopfzeile (optional)</label>
+              <FormField id="pdf-header" label="Kopfzeile (optional)">
                 <Input
                   value={header}
                   onChange={(e) => setHeader(e.target.value)}
@@ -570,9 +567,8 @@ export default function Einstellungen() {
                   disabled={!isPaidPlan(plan)}
                   className="bg-background border-border/50 h-12"
                 />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Fußzeile (optional)</label>
+              </FormField>
+              <FormField id="pdf-footer" label="Fußzeile (optional)">
                 <Input
                   value={footer}
                   onChange={(e) => setFooter(e.target.value)}
@@ -580,7 +576,7 @@ export default function Einstellungen() {
                   disabled={!isPaidPlan(plan)}
                   className="bg-background border-border/50 h-12"
                 />
-              </div>
+              </FormField>
               <Button onClick={handleSavePDF} className="w-full" disabled={!isPaidPlan(plan) || isSaving}>
                 <Save size={18} className="mr-2" /> PDF-Einstellungen speichern
               </Button>
@@ -606,7 +602,7 @@ export default function Einstellungen() {
           <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
             <div className={`space-y-5 ${!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}`}>
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">Firmenlogo (für PDF)</label>
+                <span className="text-sm font-medium text-foreground mb-2 block">Firmenlogo (für PDF)</span>
                 <div className="w-full h-24 border-2 border-dashed border-border/50 rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-background">
                   Logo-Upload (demnächst verfügbar)
                 </div>
@@ -631,20 +627,22 @@ export default function Einstellungen() {
           </h2>
           <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground mb-3 block">Farbschema</label>
+              <span className="text-sm font-medium text-foreground mb-3 block">Farbschema</span>
               <div className="flex gap-3">
                 <button
+                  aria-pressed={theme === "light"}
                   onClick={() => setTheme("light")}
                   className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-colors ${theme === "light" ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-background text-muted-foreground hover:border-border"}`}
                 >
-                  <Sun size={18} />
+                  <Sun size={18} aria-hidden="true" />
                   <span className="text-sm font-medium">Hell</span>
                 </button>
                 <button
+                  aria-pressed={theme === "dark"}
                   onClick={() => setTheme("dark")}
                   className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-colors ${theme === "dark" ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-background text-muted-foreground hover:border-border"}`}
                 >
-                  <Moon size={18} />
+                  <Moon size={18} aria-hidden="true" />
                   <span className="text-sm font-medium">Dunkel</span>
                 </button>
               </div>
