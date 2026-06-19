@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation, Link } from "wouter";
 import { useStore, type Room } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
@@ -79,6 +79,17 @@ export default function ObjektDetail() {
 
   const effectiveRate = project.hourlyRate ?? hourlyRate;
   const totals = calcProjectTotals(project, effectiveRate);
+
+  useEffect(() => {
+    if (!showInfo && !showPdfPreview) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      if (showPdfPreview) setShowPdfPreview(false);
+      else if (showInfo) setShowInfo(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showInfo, showPdfPreview]);
 
   const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
@@ -464,15 +475,15 @@ export default function ObjektDetail() {
         const hasFooterData = companyTaxNumber || companyVatId || companyManagingDirector || pdfFooter;
         return (
           <>
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80]" onClick={() => setShowPdfPreview(false)} />
-            <div className="fixed inset-0 z-[80] flex flex-col">
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80]" onClick={() => setShowPdfPreview(false)} aria-hidden="true" />
+            <div role="dialog" aria-modal="true" aria-labelledby="pdf-preview-title" className="fixed inset-0 z-[80] flex flex-col">
               <div className="bg-background/95 border-b border-border/20 px-4 py-3 flex items-center justify-between safe-header">
-                <Button variant="ghost" size="icon" onClick={() => setShowPdfPreview(false)}>
-                  <X size={20} />
+                <Button variant="ghost" size="icon" onClick={() => setShowPdfPreview(false)} aria-label="Schließen">
+                  <X size={20} aria-hidden="true" />
                 </Button>
-                <h3 className="font-semibold text-sm">PDF-Vorschau</h3>
+                <h3 id="pdf-preview-title" className="font-semibold text-sm">PDF-Vorschau</h3>
                 <Button size="sm" className="gap-2" onClick={() => { setShowPdfPreview(false); setLocation(`/print/${project.id}`); }}>
-                  {isNative ? <Share2 size={14} /> : <Printer size={14} />}
+                  {isNative ? <Share2 size={14} aria-hidden="true" /> : <Printer size={14} aria-hidden="true" />}
                   {isNative ? "Teilen" : "Drucken"}
                 </Button>
               </div>

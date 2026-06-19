@@ -10,7 +10,7 @@ export async function signIn(email: string, password: string): Promise<{ error?:
     if (error) return { error: mapAuthError(error) };
     return {};
   } catch {
-    return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+    return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
   }
 }
 
@@ -29,7 +29,7 @@ export async function signUp(email: string, password: string, name: string): Pro
     if (data.user && !data.session) return { needsConfirmation: true };
     return {};
   } catch {
-    return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+    return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
   }
 }
 
@@ -47,7 +47,7 @@ export async function resetPassword(email: string): Promise<{ error?: string }> 
     if (error) return { error: mapAuthError(error) };
     return {};
   } catch {
-    return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+    return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
   }
 }
 
@@ -58,7 +58,7 @@ export async function updatePassword(newPassword: string): Promise<{ error?: str
     if (error) return { error: mapAuthError(error) };
     return {};
   } catch {
-    return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+    return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
   }
 }
 
@@ -73,7 +73,7 @@ export async function resendConfirmation(email: string): Promise<{ error?: strin
     if (error) return { error: mapAuthError(error) };
     return {};
   } catch {
-    return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+    return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
   }
 }
 
@@ -93,10 +93,10 @@ export async function getCurrentUser() {
 function mapAuthError(error: { message: string; status?: number }): string {
   const msg = error.message?.toLowerCase() || "";
   if (msg.includes("invalid login credentials") || msg.includes("invalid_credentials")) {
-    return "Ungültige Zugangsdaten. Bitte überprüfe E-Mail und Passwort.";
+    return "Ungültige Zugangsdaten. Bitte überprüfen Sie E-Mail und Passwort.";
   }
   if (msg.includes("email not confirmed")) {
-    return "Bitte bestätige zuerst deine E-Mail-Adresse.";
+    return "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.";
   }
   if (msg.includes("user already registered") || msg.includes("already been registered")) {
     return "Diese E-Mail-Adresse ist bereits registriert.";
@@ -105,16 +105,16 @@ function mapAuthError(error: { message: string; status?: number }): string {
     return "Das Passwort muss mindestens 6 Zeichen lang sein.";
   }
   if (msg.includes("rate limit") || msg.includes("too many requests")) {
-    return "Zu viele Anfragen. Bitte warte einen Moment.";
+    return "Zu viele Anfragen. Bitte warten Sie einen Moment.";
   }
   if (msg.includes("email") && msg.includes("invalid")) {
-    return "Bitte gib eine gültige E-Mail-Adresse ein.";
+    return "Bitte geben Sie eine gültige E-Mail-Adresse ein.";
   }
   if (msg.includes("network") || msg.includes("fetch")) {
-    return "Netzwerkfehler. Bitte prüfe deine Internetverbindung.";
+    return "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung.";
   }
   if (msg.includes("expired") || msg.includes("invalid token")) {
-    return "Der Link ist abgelaufen. Bitte fordere einen neuen an.";
+    return "Der Link ist abgelaufen. Bitte fordern Sie einen neuen an.";
   }
-  return "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
+  return "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
 }

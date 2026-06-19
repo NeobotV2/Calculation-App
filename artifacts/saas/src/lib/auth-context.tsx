@@ -27,10 +27,10 @@ const AuthContext = createContext<AuthContextType | null>(null);
 function mapAuthError(error: { message: string; status?: number }): string {
   const msg = error.message?.toLowerCase() || "";
   if (msg.includes("invalid login credentials") || msg.includes("invalid_credentials")) {
-    return "Ungültige Zugangsdaten. Bitte überprüfe E-Mail und Passwort.";
+    return "Ungültige Zugangsdaten. Bitte überprüfen Sie E-Mail und Passwort.";
   }
   if (msg.includes("email not confirmed")) {
-    return "Bitte bestätige zuerst deine E-Mail-Adresse.";
+    return "Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.";
   }
   if (msg.includes("user already registered") || msg.includes("already been registered")) {
     return "Diese E-Mail-Adresse ist bereits registriert.";
@@ -39,18 +39,18 @@ function mapAuthError(error: { message: string; status?: number }): string {
     return "Das Passwort muss mindestens 6 Zeichen lang sein.";
   }
   if (msg.includes("rate limit") || msg.includes("too many requests")) {
-    return "Zu viele Anfragen. Bitte warte einen Moment.";
+    return "Zu viele Anfragen. Bitte warten Sie einen Moment.";
   }
   if (msg.includes("email") && msg.includes("invalid")) {
-    return "Bitte gib eine gültige E-Mail-Adresse ein.";
+    return "Bitte geben Sie eine gültige E-Mail-Adresse ein.";
   }
   if (msg.includes("network") || msg.includes("fetch")) {
-    return "Netzwerkfehler. Bitte prüfe deine Internetverbindung.";
+    return "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung.";
   }
   if (msg.includes("expired") || msg.includes("invalid token")) {
-    return "Der Link ist abgelaufen. Bitte fordere einen neuen an.";
+    return "Der Link ist abgelaufen. Bitte fordern Sie einen neuen an.";
   }
-  return "Ein Fehler ist aufgetreten. Bitte versuche es erneut.";
+  return "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.";
 }
 
 export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
@@ -88,7 +88,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (event === "TOKEN_REFRESHED" && !session) {
-        toast.error("Sitzung abgelaufen. Bitte melde dich erneut an.");
+        toast.error("Sitzung abgelaufen. Bitte melden Sie sich erneut an.");
       }
 
       if (event === "SIGNED_OUT") {
@@ -121,7 +121,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       }
       return {};
     } catch {
-      return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+      return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
     }
   }, []);
 
@@ -132,7 +132,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       if (error) return { error: mapAuthError(error) };
       return {};
     } catch {
-      return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+      return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
     }
   }, []);
 
@@ -150,7 +150,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       if (error) return { error: mapAuthError(error) };
       return {};
     } catch {
-      return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+      return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
     }
   }, []);
 
@@ -161,7 +161,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       if (error) return { error: mapAuthError(error) };
       return {};
     } catch {
-      return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+      return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
     }
   }, []);
 
@@ -178,7 +178,7 @@ export function SupabaseAuthProvider({ children }: { children: ReactNode }) {
       if (error) return { error: mapAuthError(error) };
       return {};
     } catch {
-      return { error: "Netzwerkfehler. Bitte prüfe deine Internetverbindung." };
+      return { error: "Netzwerkfehler. Bitte prüfen Sie Ihre Internetverbindung." };
     }
   }, []);
 
