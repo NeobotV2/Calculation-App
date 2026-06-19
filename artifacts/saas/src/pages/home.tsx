@@ -149,7 +149,7 @@ export default function Home() {
                               </span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Clock size={12} />
+                              <Clock size={12} aria-hidden="true" />
                               <span>{relativeTime(p.updatedAt)}</span>
                               {p.customer && <><span>·</span><span>{p.customer}</span></>}
                             </div>
@@ -161,7 +161,7 @@ export default function Home() {
                                 {formatNumber(projectMargin, 1)}% Marge
                               </span>
                             </div>
-                            <ChevronRight size={16} className="text-muted-foreground" />
+                            <ChevronRight size={16} className="text-muted-foreground" aria-hidden="true" />
                           </div>
                         </div>
                       </Link>
@@ -174,7 +174,7 @@ export default function Home() {
             {activeProjects.length === 0 && (
               <div className="bg-card border border-border/30 rounded-2xl p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                  <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
+                  <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Noch keine Objekte</h3>
                 <p className="text-sm text-muted-foreground mb-4 max-w-[260px] mx-auto">
@@ -190,7 +190,7 @@ export default function Home() {
                 className="w-full md:w-auto h-14 text-base font-semibold"
                 onClick={() => setLocation("/objekte")}
               >
-                <Plus size={20} className="mr-2" /> Neues Objekt kalkulieren
+                <Plus size={20} className="mr-2" aria-hidden="true" /> Neues Objekt kalkulieren
               </Button>
             </section>
 
@@ -210,9 +210,9 @@ export default function Home() {
                           onClick={() => setLocation(`/objekte/${cw.projectId}`)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors ${i < Math.min(actionableWarnings.critical.length, 3) - 1 || actionableWarnings.warnings.length > 0 ? "border-b border-border/20" : ""}`}
                         >
-                          <AlertTriangle size={16} className="text-destructive shrink-0" />
+                          <AlertTriangle size={16} className="text-destructive shrink-0" aria-hidden="true" />
                           <span className="text-sm text-foreground flex-1 min-w-0 truncate">{cw.text}</span>
-                          <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                          <ChevronRight size={14} className="text-muted-foreground shrink-0" aria-hidden="true" />
                         </button>
                       ))}
                     </>
@@ -228,9 +228,9 @@ export default function Home() {
                           onClick={() => setLocation(`/objekte/${cw.projectId}`)}
                           className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-secondary/50 transition-colors ${i < Math.min(actionableWarnings.warnings.length, 3) - 1 ? "border-b border-border/20" : ""}`}
                         >
-                          <AlertTriangle size={16} className="text-warning shrink-0" />
+                          <AlertTriangle size={16} className="text-warning shrink-0" aria-hidden="true" />
                           <span className="text-sm text-foreground flex-1 min-w-0 truncate">{cw.text}</span>
-                          <ChevronRight size={14} className="text-muted-foreground shrink-0" />
+                          <ChevronRight size={14} className="text-muted-foreground shrink-0" aria-hidden="true" />
                         </button>
                       ))}
                     </>
@@ -240,7 +240,7 @@ export default function Home() {
             ) : activeProjects.length > 0 ? (
               <section>
                 <div className="flex items-center gap-3 bg-card border border-border/30 rounded-2xl px-4 py-3">
-                  <CheckCircle2 size={18} className="text-success shrink-0" />
+                  <CheckCircle2 size={18} className="text-success shrink-0" aria-hidden="true" />
                   <span className="text-sm text-foreground">Keine offenen Aufgaben</span>
                 </div>
               </section>
@@ -258,7 +258,7 @@ export default function Home() {
                   <Link key={a.label} href={a.href}>
                     <div className="rounded-2xl border border-border/30 bg-card hover:bg-secondary/50 flex flex-col items-center justify-center gap-2 p-4 transition-colors cursor-pointer h-full">
                       <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                        <a.icon size={18} className="text-muted-foreground" />
+                        <a.icon size={18} className="text-muted-foreground" aria-hidden="true" />
                       </div>
                       <span className="text-[11px] font-medium text-foreground text-center leading-tight">{a.label}</span>
                     </div>
@@ -279,7 +279,7 @@ export default function Home() {
                   className="rounded-2xl border border-border/30 bg-card hover:bg-secondary/50 flex flex-col items-center justify-center gap-2 p-4 transition-colors cursor-pointer"
                 >
                   <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                    <Download size={18} className="text-muted-foreground" />
+                    <Download size={18} className="text-muted-foreground" aria-hidden="true" />
                   </div>
                   <span className="text-[11px] font-medium text-foreground text-center leading-tight">Export</span>
                 </button>
@@ -311,7 +311,7 @@ export default function Home() {
                       <Link key={pw.projectId} href={`/objekte/${pw.projectId}`}>
                         <div className="bg-card border border-destructive/20 rounded-2xl p-4 flex items-center gap-3 hover:bg-secondary/50 transition-colors cursor-pointer">
                           <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                            <AlertTriangle size={16} className="text-destructive" />
+                            <AlertTriangle size={16} className="text-destructive" aria-hidden="true" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{pw.projectName}</p>
@@ -319,7 +319,7 @@ export default function Home() {
                               {pw.warnings.filter((w) => w.severity === "critical").map((w) => w.title).join(", ")}
                             </p>
                           </div>
-                          <ChevronRight size={16} className="text-muted-foreground shrink-0" />
+                          <ChevronRight size={16} className="text-muted-foreground shrink-0" aria-hidden="true" />
                         </div>
                       </Link>
                     ))}
