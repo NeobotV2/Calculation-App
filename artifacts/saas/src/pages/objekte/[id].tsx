@@ -10,6 +10,7 @@ import { canAddProject, canAddRoom, canUseTemplates } from "@/lib/feature-gates"
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StatTile } from "@/components/ui/stat-tile";
 import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, Copy, Archive, FileText, BookOpen, MoreHorizontal, X, AlertTriangle, ChevronDown, ChevronUp, Info, Eye, Printer, Share2 } from "lucide-react";
 import { sharePrintView } from "@/lib/native-share";
 import { isNative } from "@/lib/capacitor";
@@ -68,7 +69,7 @@ export default function ObjektDetail() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <X size={24} className="text-muted-foreground" />
+          <X size={24} className="text-muted-foreground" aria-hidden="true" />
         </div>
         <h3 className="text-lg font-semibold mb-2">Objekt nicht gefunden</h3>
         <Button variant="outline" onClick={() => setLocation("/objekte")} className="mt-4">Zurück</Button>
@@ -222,35 +223,35 @@ export default function ObjektDetail() {
   return (
     <PageTransition className="min-h-screen bg-background pb-32 md:pb-8">
       <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12 md:pt-6">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/objekte")} className="-ml-2">
-          <ArrowLeft size={20} />
+        <Button variant="ghost" size="icon" onClick={() => setLocation("/objekte")} className="-ml-2" aria-label="Zurück">
+          <ArrowLeft size={20} aria-hidden="true" />
         </Button>
         <div className="flex gap-2">
           <Link href={`/kalkulation/${project.id}`}>
-            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" />Kalkulation</Button>
+            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" aria-hidden="true" />Kalkulation</Button>
           </Link>
           <Link href={`/auswertung/${project.id}`}>
-            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" />Controlling</Button>
+            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" aria-hidden="true" />Controlling</Button>
           </Link>
-          <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="relative">
-            <MoreHorizontal size={18} />
+          <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="relative" aria-label="Weitere Aktionen" aria-haspopup="menu" aria-expanded={menuOpen}>
+            <MoreHorizontal size={18} aria-hidden="true" />
           </Button>
         </div>
       </div>
 
       {menuOpen && (
         <>
-          <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} />
-          <div className="absolute top-24 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
-            <button onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" /> Info bearbeiten</button>
-            <button onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" /> Duplizieren</button>
-            <button onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" /> Als Vorlage speichern</button>
-            <button onClick={() => {
+          <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+          <div role="menu" className="absolute top-24 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
+            <button role="menuitem" onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" aria-hidden="true" /> Info bearbeiten</button>
+            <button role="menuitem" onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" aria-hidden="true" /> Duplizieren</button>
+            <button role="menuitem" onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" aria-hidden="true" /> Als Vorlage speichern</button>
+            <button role="menuitem" onClick={() => {
               setShowPdfPreview(true); setMenuOpen(false);
-            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Eye size={16} className="text-muted-foreground" /> PDF-Vorschau</button>
-            <button onClick={handleOpenPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" /> Angebot als PDF</button>
-            <button onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" /> Archivieren</button>
-            <button onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} /> Löschen</button>
+            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Eye size={16} className="text-muted-foreground" aria-hidden="true" /> PDF-Vorschau</button>
+            <button role="menuitem" onClick={handleOpenPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" aria-hidden="true" /> Angebot als PDF</button>
+            <button role="menuitem" onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" aria-hidden="true" /> Archivieren</button>
+            <button role="menuitem" onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} aria-hidden="true" /> Löschen</button>
           </div>
         </>
       )}
@@ -259,8 +260,8 @@ export default function ObjektDetail() {
         <div className="mb-6">
           {isEditingName ? (
             <div className="flex gap-2 mb-2">
-              <Input autoFocus value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="text-xl font-semibold bg-card" onKeyDown={(e) => e.key === "Enter" && handleSaveName()} />
-              <Button size="icon" onClick={handleSaveName}><Check size={18} /></Button>
+              <Input autoFocus aria-label="Objektname" value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="text-xl font-semibold bg-card" onKeyDown={(e) => e.key === "Enter" && handleSaveName()} />
+              <Button size="icon" onClick={handleSaveName} aria-label="Namen speichern"><Check size={18} aria-hidden="true" /></Button>
             </div>
           ) : (
             <h1
@@ -268,7 +269,7 @@ export default function ObjektDetail() {
               onClick={() => { setNameInput(project.name); setIsEditingName(true); }}
             >
               {project.name}
-              <Edit3 size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Edit3 size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
             </h1>
           )}
           <p className="text-sm text-muted-foreground">
@@ -289,7 +290,7 @@ export default function ObjektDetail() {
               onClick={() => setWarningsExpanded(!warningsExpanded)}
               className="w-full flex items-center gap-3 p-4"
             >
-              <AlertTriangle size={18} className={
+              <AlertTriangle size={18} aria-hidden="true" className={
                 warnings.some((w) => w.severity === "critical")
                   ? "text-destructive"
                   : warnings.some((w) => w.severity === "warning")
@@ -299,7 +300,7 @@ export default function ObjektDetail() {
               <span className="font-medium text-sm text-foreground flex-1 text-left">
                 {warnings.length} Hinweis{warnings.length > 1 ? "e" : ""} zur Kalkulation
               </span>
-              {warningsExpanded ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+              {warningsExpanded ? <ChevronUp size={16} className="text-muted-foreground" aria-hidden="true" /> : <ChevronDown size={16} className="text-muted-foreground" aria-hidden="true" />}
             </button>
             {warningsExpanded && (
               <div className="px-4 pb-4 space-y-3">
@@ -312,7 +313,7 @@ export default function ObjektDetail() {
                           ? "bg-warning/20 text-warning"
                           : "bg-info/20 text-info"
                     }`}>
-                      {w.severity === "info" ? <Info size={12} /> : <AlertTriangle size={12} />}
+                      {w.severity === "info" ? <Info size={12} aria-hidden="true" /> : <AlertTriangle size={12} aria-hidden="true" />}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-foreground">{w.title}</p>
@@ -333,10 +334,13 @@ export default function ObjektDetail() {
             { label: "Fläche", value: `${formatNumber(totals.area, 0)} m²` },
             { label: "€/m²", value: formatCurrency(totals.pricePerSqm) },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-card border border-border/30 rounded-2xl p-4 shrink-0 w-32 md:w-auto md:flex-1 md:min-w-[140px] snap-start">
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">{kpi.label}</p>
-              <p className={`text-lg font-bold ${kpi.accent ? "text-primary" : "text-foreground"}`}>{kpi.value}</p>
-            </div>
+            <StatTile
+              key={kpi.label}
+              label={kpi.label}
+              value={kpi.value}
+              tone={kpi.accent ? "primary" : "default"}
+              className="shrink-0 w-32 md:w-auto md:flex-1 md:min-w-[140px] snap-start"
+            />
           ))}
         </div>
 
@@ -391,16 +395,18 @@ export default function ObjektDetail() {
                       <button
                         onClick={(e) => { e.stopPropagation(); handleMoveRoom(index, "up"); }}
                         disabled={index === 0}
+                        aria-label="Raum nach oben verschieben"
                         className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${index === 0 ? "opacity-20" : "hover:bg-muted"}`}
                       >
-                        <ChevronUp size={14} className="text-muted-foreground" />
+                        <ChevronUp size={14} className="text-muted-foreground" aria-hidden="true" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleMoveRoom(index, "down"); }}
                         disabled={index === project.rooms.length - 1}
+                        aria-label="Raum nach unten verschieben"
                         className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${index === project.rooms.length - 1 ? "opacity-20" : "hover:bg-muted"}`}
                       >
-                        <ChevronDown size={14} className="text-muted-foreground" />
+                        <ChevronDown size={14} className="text-muted-foreground" aria-hidden="true" />
                       </button>
                     </div>
                     <div className="flex-1 min-w-0 pr-3">
@@ -420,9 +426,10 @@ export default function ObjektDetail() {
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeleteRoomId(room.id); }}
+                      aria-label={`Raum „${room.name || room.typeName}" löschen`}
                       className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-full hover:bg-destructive/10 shrink-0"
                     >
-                      <Trash2 size={14} className="text-destructive" />
+                      <Trash2 size={14} className="text-destructive" aria-hidden="true" />
                     </button>
                   </div>
                 );
@@ -434,7 +441,7 @@ export default function ObjektDetail() {
 
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-6 md:static md:max-w-6xl md:mx-auto md:px-6 md:py-4 md:left-auto md:translate-x-0" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
         <Button onClick={openAddRoom} className="w-full md:w-auto shadow-xl shadow-black/20 md:shadow-none" size="lg">
-          <Plus size={20} className="mr-2" /> Raum hinzufügen
+          <Plus size={20} className="mr-2" aria-hidden="true" /> Raum hinzufügen
         </Button>
       </div>
 
@@ -576,27 +583,27 @@ export default function ObjektDetail() {
 
       {showInfo && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowInfo(false)} />
-          <div className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-3xl border-t border-border p-6 pb-safe md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-lg md:w-full">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowInfo(false)} aria-hidden="true" />
+          <div role="dialog" aria-modal="true" aria-labelledby="objekt-info-title" className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-3xl border-t border-border p-6 pb-safe md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-lg md:w-full">
             <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 md:hidden" />
-            <h2 className="text-2xl font-semibold tracking-tight mb-4">Objektinfo</h2>
+            <h2 id="objekt-info-title" className="text-2xl font-semibold tracking-tight mb-4">Objektinfo</h2>
             <div className="space-y-4">
               <div>
-                <label className="text-sm font-medium mb-1 block">Kunde</label>
-                <Input value={customerInput} onChange={(e) => setCustomerInput(e.target.value)} placeholder="z.B. Muster GmbH" className="bg-card h-11" />
+                <label htmlFor="objekt-customer" className="text-sm font-medium mb-1 block">Kunde</label>
+                <Input id="objekt-customer" value={customerInput} onChange={(e) => setCustomerInput(e.target.value)} placeholder="z.B. Muster GmbH" className="bg-card h-11" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Standort</label>
-                <Input value={locationInput} onChange={(e) => setLocationInput(e.target.value)} placeholder="z.B. Berlin, Musterstraße 1" className="bg-card h-11" />
+                <label htmlFor="objekt-location" className="text-sm font-medium mb-1 block">Standort</label>
+                <Input id="objekt-location" value={locationInput} onChange={(e) => setLocationInput(e.target.value)} placeholder="z.B. Berlin, Musterstraße 1" className="bg-card h-11" />
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Verrechnungssatz (€/h)</label>
-                <Input value={rateInput} onChange={(e) => setRateInput(e.target.value)} inputMode="decimal" placeholder={`Standard: ${hourlyRate.toString().replace(".", ",")} €/h`} className="bg-card h-11" />
-                <p className="text-xs text-muted-foreground mt-1 ml-1">Leer = globaler Standard ({hourlyRate.toString().replace(".", ",")} €/h)</p>
+                <label htmlFor="objekt-rate" className="text-sm font-medium mb-1 block">Verrechnungssatz (€/h)</label>
+                <Input id="objekt-rate" aria-describedby="objekt-rate-hint" value={rateInput} onChange={(e) => setRateInput(e.target.value)} inputMode="decimal" placeholder={`Standard: ${hourlyRate.toString().replace(".", ",")} €/h`} className="bg-card h-11" />
+                <p id="objekt-rate-hint" className="text-xs text-muted-foreground mt-1 ml-1">Leer = globaler Standard ({hourlyRate.toString().replace(".", ",")} €/h)</p>
               </div>
               <div>
-                <label className="text-sm font-medium mb-1 block">Notizen</label>
-                <Input value={notesInput} onChange={(e) => setNotesInput(e.target.value)} placeholder="Optionale Notizen" className="bg-card h-11" />
+                <label htmlFor="objekt-notes" className="text-sm font-medium mb-1 block">Notizen</label>
+                <Input id="objekt-notes" value={notesInput} onChange={(e) => setNotesInput(e.target.value)} placeholder="Optionale Notizen" className="bg-card h-11" />
               </div>
               <Button onClick={handleSaveInfo} className="w-full" size="lg">Speichern</Button>
             </div>

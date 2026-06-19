@@ -55,7 +55,7 @@ function StepIndicator({ current }: { current: WizardStep }) {
                       : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isCompleted ? <Check size={14} /> : step}
+                {isCompleted ? <Check size={14} aria-hidden="true" /> : step}
               </div>
               <span
                 className={`text-[10px] mt-1 font-medium ${
@@ -386,7 +386,7 @@ export default function ObjektWizard() {
                     variant="outline"
                     className="px-6"
                   >
-                    <Plus size={16} className="mr-2" />
+                    <Plus size={16} className="mr-2" aria-hidden="true" />
                     Ersten Raum hinzufügen
                   </Button>
                 </div>
@@ -471,7 +471,7 @@ export default function ObjektWizard() {
                     className="w-full mt-3"
                     size="lg"
                   >
-                    <Plus size={16} className="mr-2" />
+                    <Plus size={16} className="mr-2" aria-hidden="true" />
                     Weiteren Raum hinzufügen
                   </Button>
                 </div>
@@ -685,7 +685,7 @@ export default function ObjektWizard() {
               onClick={() => setStep((step - 1) as WizardStep)}
               className="h-12 px-4"
             >
-              <ArrowLeft size={16} className="mr-1" />
+              <ArrowLeft size={16} className="mr-1" aria-hidden="true" />
               Zurück
             </Button>
           )}
@@ -696,7 +696,7 @@ export default function ObjektWizard() {
               disabled={step === 1 ? !canProceedStep1 : !canProceedStep2}
             >
               Weiter
-              <ArrowRight size={16} className="ml-1" />
+              <ArrowRight size={16} className="ml-1" aria-hidden="true" />
             </Button>
           ) : (
             <Button
@@ -704,7 +704,7 @@ export default function ObjektWizard() {
               className="flex-1 h-12"
               disabled={isSaving}
             >
-              <Check size={16} className="mr-1" />
+              <Check size={16} className="mr-1" aria-hidden="true" />
               {isSaving ? "Wird gespeichert…" : "Objekt speichern"}
             </Button>
           )}
