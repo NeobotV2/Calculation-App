@@ -380,23 +380,23 @@ export default function ObjekteList() {
                 {menuOpen === p.id && (
                   <>
                     <div aria-hidden="true" className="fixed inset-0 z-20" onClick={() => setMenuOpen(null)} />
-                    <div className="absolute top-12 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[180px]">
-                      <button onClick={() => { setRenameId(p.id); setRenameName(p.name); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                    <div role="menu" className="absolute top-12 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[180px]">
+                      <button role="menuitem" onClick={() => { setRenameId(p.id); setRenameName(p.name); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                         <Edit3 size={16} className="text-muted-foreground" aria-hidden="true" /> Umbenennen
                       </button>
-                      <button onClick={() => handleDuplicate(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                      <button role="menuitem" onClick={() => handleDuplicate(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                         <Copy size={16} className="text-muted-foreground" aria-hidden="true" /> Duplizieren
                       </button>
                       {p.status !== "archived" ? (
-                        <button onClick={() => handleArchive(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                        <button role="menuitem" onClick={() => handleArchive(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                           <Archive size={16} className="text-muted-foreground" aria-hidden="true" /> Archivieren
                         </button>
                       ) : (
-                        <button onClick={() => handleRestore(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
+                        <button role="menuitem" onClick={() => handleRestore(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                           <ArchiveRestore size={16} className="text-muted-foreground" aria-hidden="true" /> Wiederherstellen
                         </button>
                       )}
-                      <button onClick={() => { setMenuOpen(null); setDeleteConfirm(p.id); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors">
+                      <button role="menuitem" onClick={() => { setMenuOpen(null); setDeleteConfirm(p.id); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors">
                         <Trash2 size={16} aria-hidden="true" /> Löschen
                       </button>
                     </div>

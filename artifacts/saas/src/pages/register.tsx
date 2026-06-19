@@ -178,7 +178,7 @@ export default function Register() {
         <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full text-center">
           <div className="flex justify-center mb-8">
             <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-success" />
+              <CheckCircle2 className="w-8 h-8 text-success" aria-hidden="true" />
             </div>
           </div>
           <h1 className="text-3xl font-semibold tracking-tight mb-3 text-foreground">

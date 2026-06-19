@@ -189,7 +189,7 @@ export default function Login() {
               </span>
             ) : (
               <>
-                Anmelden <ArrowRight size={20} className="ml-2" />
+                Anmelden <ArrowRight size={20} className="ml-2" aria-hidden="true" />
               </>
             )}
           </Button>
