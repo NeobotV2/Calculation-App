@@ -204,7 +204,7 @@ export default function Register() {
                 `Erneut senden (${resendCooldown}s)`
               ) : (
                 <>
-                  <RefreshCw size={18} className="mr-2" /> E-Mail erneut senden
+                  <RefreshCw size={18} className="mr-2" aria-hidden="true" /> E-Mail erneut senden
                 </>
               )}
             </Button>
