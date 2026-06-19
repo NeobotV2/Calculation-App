@@ -30,12 +30,12 @@ export function DesktopSidebar() {
           <Sparkles className="w-5 h-5 text-primary-foreground" strokeWidth={1.5} />
         </div>
         <div>
-          <h1 className="text-base font-semibold tracking-tight text-foreground">CleanCalc <span className="text-primary">Pro</span></h1>
+          <p className="text-base font-semibold tracking-tight text-foreground">CleanCalc <span className="text-primary">Pro</span></p>
           <p className="text-[11px] text-muted-foreground">Gebäudereinigung</p>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav aria-label="Hauptnavigation" className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -43,6 +43,7 @@ export function DesktopSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
                 active
@@ -50,7 +51,7 @@ export function DesktopSidebar() {
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
-              <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+              <Icon aria-hidden="true" size={20} strokeWidth={active ? 2.2 : 1.8} />
               {item.label}
             </Link>
           );

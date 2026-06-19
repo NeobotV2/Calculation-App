@@ -25,6 +25,7 @@ export function BottomNav() {
 
   return (
     <nav
+      aria-label="Hauptnavigation"
       className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/30 no-print md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
@@ -36,13 +37,14 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 flex flex-col items-center justify-center gap-1 h-full min-w-[44px] min-h-[44px] active:scale-95 transition-transform"
+              aria-current={active ? "page" : undefined}
+              className="flex-1 flex flex-col items-center justify-center gap-1 h-full min-w-[44px] min-h-[44px] active:scale-95 transition-transform rounded-lg"
             >
               <div className={cn(
                 "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
                 active ? "bg-primary/10" : ""
               )}>
-                <Icon size={20} strokeWidth={active ? 2.5 : 1.8} className={cn("transition-colors", active ? "text-primary" : "text-muted-foreground")} />
+                <Icon aria-hidden="true" size={20} strokeWidth={active ? 2.5 : 1.8} className={cn("transition-colors", active ? "text-primary" : "text-muted-foreground")} />
               </div>
               <span className={cn("text-[10px] font-medium transition-colors", active ? "text-primary" : "text-muted-foreground")}>
                 {item.label}

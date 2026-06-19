@@ -247,6 +247,7 @@ export default function ObjekteList() {
             <button
               key={f.key}
               onClick={() => setFilter(f.key)}
+              aria-pressed={filter === f.key}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${filter === f.key ? "bg-foreground text-background" : "bg-card border border-border/30 text-muted-foreground hover:text-foreground"}`}
             >
               {f.label}
@@ -264,7 +265,7 @@ export default function ObjekteList() {
             </button>
             {showSortMenu && (
               <>
-                <div className="fixed inset-0 z-20" onClick={() => setShowSortMenu(false)} />
+                <div aria-hidden="true" className="fixed inset-0 z-20" onClick={() => setShowSortMenu(false)} />
                 <div className="absolute top-8 left-0 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
                   {(Object.keys(sortLabels) as SortKey[]).map((key) => (
                     <button
@@ -302,7 +303,7 @@ export default function ObjekteList() {
             </div>
             <h3 className="text-lg font-medium mb-2">{search ? "Keine Treffer" : filter === "low_margin" ? "Keine schwach kalkulierten Objekte" : filter === "high_hours" ? "Keine Objekte mit hohem Stundenanteil" : "Noch keine Objekte"}</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">
-              {search ? "Versuche einen anderen Suchbegriff." : filter === "low_margin" ? "Alle Objekte liegen über der Ziel-Marge." : filter === "high_hours" ? `Kein Objekt hat mehr als ${HIGH_HOURS_THRESHOLD} Stunden/Monat.` : "Erstelle dein erstes Objekt, um loszulegen."}
+              {search ? "Versuchen Sie einen anderen Suchbegriff." : filter === "low_margin" ? "Alle Objekte liegen über der Ziel-Marge." : filter === "high_hours" ? `Kein Objekt hat mehr als ${HIGH_HOURS_THRESHOLD} Stunden/Monat.` : "Erstellen Sie Ihr erstes Objekt, um loszulegen."}
             </p>
           </div>
         ) : (
@@ -366,14 +367,17 @@ export default function ObjekteList() {
                 </Link>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p.id ? null : p.id); }}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-background/80 border border-border/30 flex items-center justify-center z-10"
+                  aria-label={`Optionen für ${p.name}`}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen === p.id}
+                  className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-background/80 border border-border/30 flex items-center justify-center z-10 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <MoreHorizontal size={14} className="text-muted-foreground" />
+                  <MoreHorizontal size={16} />
                 </button>
 
                 {menuOpen === p.id && (
                   <>
-                    <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(null)} />
+                    <div aria-hidden="true" className="fixed inset-0 z-20" onClick={() => setMenuOpen(null)} />
                     <div className="absolute top-12 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[180px]">
                       <button onClick={() => { setRenameId(p.id); setRenameName(p.name); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
                         <Edit3 size={16} className="text-muted-foreground" /> Umbenennen
@@ -422,10 +426,26 @@ export default function ObjekteList() {
 
       {renameId && (
         <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setRenameId(null)} />
-          <div className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[70] bg-card border border-border/40 rounded-3xl p-6 max-w-sm md:max-w-md mx-auto">
-            <h3 className="font-semibold text-lg mb-4">Objekt umbenennen</h3>
-            <Input value={renameName} onChange={(e) => setRenameName(e.target.value)} autoFocus className="bg-background h-12 mb-4" onKeyDown={(e) => { if (e.key === "Enter") handleRename(renameId, renameName); }} />
+          <div aria-hidden="true" className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70]" onClick={() => setRenameId(null)} />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rename-title"
+            className="fixed left-4 right-4 top-1/2 -translate-y-1/2 z-[70] bg-card border border-border/40 rounded-3xl p-6 max-w-sm md:max-w-md mx-auto"
+          >
+            <h3 id="rename-title" className="font-semibold text-lg mb-4">Objekt umbenennen</h3>
+            <label htmlFor="rename-input" className="sr-only">Objektname</label>
+            <Input
+              id="rename-input"
+              value={renameName}
+              onChange={(e) => setRenameName(e.target.value)}
+              autoFocus
+              className="bg-background h-12 mb-4"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRename(renameId, renameName);
+                if (e.key === "Escape") setRenameId(null);
+              }}
+            />
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setRenameId(null)} className="flex-1 h-12">Abbrechen</Button>
               <Button onClick={() => handleRename(renameId, renameName)} className="flex-1 h-12">Speichern</Button>

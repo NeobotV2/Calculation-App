@@ -303,6 +303,7 @@ export default function Willkommen() {
         )}
       </header>
 
+      <main id="main-content">
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section className="relative">
         <div className="absolute inset-0 -z-10 overflow-hidden">
@@ -665,6 +666,7 @@ export default function Willkommen() {
           </div>
         </Reveal>
       </section>
+      </main>
 
       {/* ── Footer ────────────────────────────────────────────────────── */}
       <footer className="border-t border-border/40">

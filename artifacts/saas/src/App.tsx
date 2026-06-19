@@ -4,7 +4,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { useStore } from "@/store/use-store";
 import { useAuth, SupabaseAuthProvider } from "@/lib/auth-context";
 import { useSupabaseSync } from "@/hooks/use-supabase-sync";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
 import { Sparkles } from "lucide-react";
 
@@ -185,17 +185,19 @@ function AppRouter() {
 function App() {
   return (
     <ErrorBoundary>
-      <SupabaseAuthProvider>
-        <WouterRouter hook={useHashLocation}>
-          <ThemeApplicator />
-          <DataSync />
-          <AuthGuard>
-            <AppRouter />
-          </AuthGuard>
-          <Toaster position="top-center" />
-          <CookieNotice />
-        </WouterRouter>
-      </SupabaseAuthProvider>
+      <MotionConfig reducedMotion="user">
+        <SupabaseAuthProvider>
+          <WouterRouter hook={useHashLocation}>
+            <ThemeApplicator />
+            <DataSync />
+            <AuthGuard>
+              <AppRouter />
+            </AuthGuard>
+            <Toaster position="top-center" />
+            <CookieNotice />
+          </WouterRouter>
+        </SupabaseAuthProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { CheckCircle2, RefreshCw } from "lucide-react";
 import { hasDemoData, getDemoData, migrateDemoData, clearDemoData } from "@/services/migration-service";
 import { trackSignupCompleted } from "@/services/analytics-service";
@@ -132,7 +133,7 @@ export default function Register() {
             Demo-Daten gefunden
           </h1>
           <p className="text-muted-foreground text-base text-center mb-8">
-            Du hast im Demo-Modus Daten erstellt. Möchtest du diese in dein neues Konto übernehmen?
+            Sie haben im Demo-Modus Daten erstellt. Möchten Sie diese in Ihr neues Konto übernehmen?
           </p>
           {migrationData && (
             <div className="bg-card border border-border/40 rounded-2xl p-4 mb-8">
@@ -184,8 +185,8 @@ export default function Register() {
             Registrierung erfolgreich!
           </h1>
           <p className="text-muted-foreground text-base mb-8">
-            Wir haben dir eine Bestätigungs-E-Mail an <span className="font-medium text-foreground">{email}</span> gesendet.
-            Bitte bestätige deine E-Mail-Adresse, um dich anzumelden.
+            Wir haben Ihnen eine Bestätigungs-E-Mail an <span className="font-medium text-foreground">{email}</span> gesendet.
+            Bitte bestätigen Sie Ihre E-Mail-Adresse, um sich anzumelden.
           </p>
           <div className="space-y-3">
             <Button
@@ -226,38 +227,44 @@ export default function Register() {
         </div>
 
         <h1 className="text-4xl font-semibold tracking-tight mb-3 text-foreground">Account erstellen</h1>
-        <p className="text-muted-foreground text-lg mb-10">Speichere deine Kalkulationen sicher in der Cloud.</p>
+        <p className="text-muted-foreground text-lg mb-10">Speichern Sie Ihre Kalkulationen sicher in der Cloud.</p>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
+          <div role="alert" className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
             <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-5">
-          <Input
-            placeholder="Dein Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="h-14 bg-card border-border/50 text-base"
-            autoComplete="name"
-          />
-          <Input
-            type="email"
-            placeholder="E-Mail Adresse"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="h-14 bg-card border-border/50 text-base"
-            autoComplete="email"
-          />
-          <Input
-            type="password"
-            placeholder="Passwort wählen (mind. 6 Zeichen)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="h-14 bg-card border-border/50 text-base"
-            autoComplete="new-password"
-          />
+        <form onSubmit={handleRegister} className="space-y-5" noValidate>
+          <FormField id="register-name" label="Name">
+            <Input
+              placeholder="Vor- und Nachname"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-14 bg-card border-border/50 text-base"
+              autoComplete="name"
+            />
+          </FormField>
+          <FormField id="register-email" label="E-Mail-Adresse">
+            <Input
+              type="email"
+              placeholder="name@firma.de"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="h-14 bg-card border-border/50 text-base"
+              autoComplete="email"
+            />
+          </FormField>
+          <FormField id="register-password" label="Passwort" hint="Mindestens 6 Zeichen">
+            <Input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-14 bg-card border-border/50 text-base"
+              autoComplete="new-password"
+            />
+          </FormField>
 
           <Button type="submit" className="w-full h-14 text-lg mt-6" disabled={isLoading}>
             {isLoading ? (

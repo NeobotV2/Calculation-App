@@ -21,6 +21,9 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { StatTile } from "@/components/ui/stat-tile";
 
 function relativeTime(dateStr: string): string {
   const now = Date.now();
@@ -109,10 +112,7 @@ export default function Home() {
   return (
     <PageTransition className="min-h-screen pb-24 md:pb-8 bg-background">
       {/* 1. Header */}
-      <div className="safe-header px-6 pt-14 md:pt-8 pb-4 max-w-6xl mx-auto">
-        <h1 className="text-4xl font-semibold tracking-tight text-foreground">Start</h1>
-        <p className="text-muted-foreground text-base mt-1">Firma: {companyName}</p>
-      </div>
+      <PageHeader title="Start" subtitle={`Firma: ${companyName}`} className="max-w-6xl mx-auto" />
 
       <div className="px-6 space-y-6 max-w-6xl mx-auto">
         {!hydrated ? (
@@ -126,10 +126,9 @@ export default function Home() {
             {/* 2. Weiterarbeiten */}
             {recentProjects.length > 0 && (
               <section>
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">Weiterarbeiten</h2>
-                  <Link href="/objekte" className="text-xs text-primary font-medium">Alle anzeigen</Link>
-                </div>
+                <SectionHeading action={<Link href="/objekte" className="text-xs text-primary font-medium">Alle anzeigen</Link>}>
+                  Weiterarbeiten
+                </SectionHeading>
                 <div className="space-y-2">
                   {recentProjects.map((p) => {
                     const t = calcProjectTotals(p, p.hourlyRate ?? hourlyRate);
@@ -198,9 +197,7 @@ export default function Home() {
             {/* 4. Offene Aufgaben & Plausibilitätsprüfungen */}
             {actionableWarnings.total > 0 ? (
               <section>
-                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Offene Aufgaben
-                </h2>
+                <SectionHeading>Offene Aufgaben</SectionHeading>
                 <div className="bg-card border border-border/30 rounded-2xl overflow-hidden">
                   {actionableWarnings.critical.length > 0 && (
                     <>
@@ -251,9 +248,7 @@ export default function Home() {
 
             {/* 5. Schnellzugriffe */}
             <section>
-              <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                Schnellzugriffe
-              </h2>
+              <SectionHeading>Schnellzugriffe</SectionHeading>
               <div className="grid grid-cols-4 gap-3 md:flex md:gap-3">
                 {[
                   { href: "/objekte", icon: Building2, label: "Alle Objekte" },
@@ -294,26 +289,12 @@ export default function Home() {
             {/* 6. Kompakte Steuerungskennzahlen */}
             {activeProjects.length > 0 && (
               <section>
-                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Steuerungskennzahlen
-                </h2>
+                <SectionHeading>Steuerungskennzahlen</SectionHeading>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-card border border-border/30 rounded-2xl p-4">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Monatsumsatz</p>
-                    <p className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(totalVolume)}</p>
-                  </div>
-                  <div className="bg-card border border-border/30 rounded-2xl p-4">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Ø Marge</p>
-                    <p className="text-lg font-bold tabular-nums text-foreground">{formatNumber(marginPercent, 1)} %</p>
-                  </div>
-                  <div className="bg-card border border-border/30 rounded-2xl p-4">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Verrechnungssatz</p>
-                    <p className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(hourlyRate)}/h</p>
-                  </div>
-                  <div className="bg-card border border-border/30 rounded-2xl p-4">
-                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Offene Angebote</p>
-                    <p className="text-lg font-bold tabular-nums text-foreground">{activeProjects.length}</p>
-                  </div>
+                  <StatTile label="Monatsumsatz" value={formatCurrency(totalVolume)} />
+                  <StatTile label="Ø Marge" value={`${formatNumber(marginPercent, 1)} %`} />
+                  <StatTile label="Verrechnungssatz" value={`${formatCurrency(hourlyRate)}/h`} />
+                  <StatTile label="Offene Angebote" value={activeProjects.length} />
                 </div>
               </section>
             )}
@@ -321,9 +302,7 @@ export default function Home() {
             {/* 7. Weitere Listen — kritische Objekte */}
             {warningCounts.critical > 0 && (
               <section>
-                <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Kritische Objekte
-                </h2>
+                <SectionHeading>Kritische Objekte</SectionHeading>
                 <div className="space-y-2">
                   {allWarnings
                     .filter((pw) => pw.warnings.some((w) => w.severity === "critical"))

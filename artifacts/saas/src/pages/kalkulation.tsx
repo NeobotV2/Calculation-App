@@ -31,14 +31,9 @@ import {
   Moon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatEuro } from "@/lib/utils";
 
-function fmtEuro(v: number) {
-  return v.toLocaleString("de-DE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
+const fmtEuro = formatEuro;
 
 function fmtPct(v: number) {
   return v.toLocaleString("de-DE", {

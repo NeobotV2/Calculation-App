@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { ArrowRight } from "lucide-react";
 import { hasDemoData, getDemoData, migrateDemoData } from "@/services/migration-service";
 import { toast } from "sonner";
@@ -26,7 +27,7 @@ export default function Login() {
     setError("");
 
     if (!email.trim()) {
-      setError("Bitte gib deine E-Mail-Adresse ein.");
+      setError("Bitte geben Sie Ihre E-Mail-Adresse ein.");
       return;
     }
 
@@ -37,7 +38,7 @@ export default function Login() {
     }
 
     if (!password) {
-      setError("Bitte gib dein Passwort ein.");
+      setError("Bitte geben Sie Ihr Passwort ein.");
       return;
     }
 
@@ -93,7 +94,7 @@ export default function Login() {
             Demo-Daten gefunden
           </h1>
           <p className="text-muted-foreground text-base text-center mb-8">
-            Du hast im Demo-Modus Daten erstellt. Möchtest du diese in dein Konto übernehmen?
+            Sie haben im Demo-Modus Daten erstellt. Möchten Sie diese in Ihr Konto übernehmen?
           </p>
           {migrationData && (
             <div className="bg-card border border-border/40 rounded-2xl p-4 mb-8">
@@ -142,35 +143,35 @@ export default function Login() {
         </div>
 
         <h1 className="text-4xl font-semibold tracking-tight text-center mb-3 text-foreground">Willkommen</h1>
-        <p className="text-muted-foreground text-lg text-center mb-10">Melde dich an, um fortzufahren.</p>
+        <p className="text-muted-foreground text-lg text-center mb-10">Melden Sie sich an, um fortzufahren.</p>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
+          <div role="alert" className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
             <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-5">
-          <div>
+        <form onSubmit={handleLogin} className="space-y-5" noValidate>
+          <FormField id="login-email" label="E-Mail-Adresse">
             <Input
               type="email"
-              placeholder="E-Mail Adresse"
+              placeholder="name@firma.de"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-14 bg-card border-border/50 text-base"
               autoComplete="email"
             />
-          </div>
-          <div>
+          </FormField>
+          <FormField id="login-password" label="Passwort">
             <Input
               type="password"
-              placeholder="Passwort"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-14 bg-card border-border/50 text-base"
               autoComplete="current-password"
             />
-          </div>
+          </FormField>
 
           {isSupabaseReady && (
             <div className="text-right">

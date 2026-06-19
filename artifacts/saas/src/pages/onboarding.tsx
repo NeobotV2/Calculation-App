@@ -26,10 +26,11 @@ export default function Onboarding() {
 
   const handleComplete = (loadDemo: boolean) => {
     trackOnboardingCompleted(loadDemo);
+    const parsedRate = parseFloat(hourlyRate.replace(",", "."));
     completeOnboarding({
       role: role || "Benutzer",
       companyName: companyName || "Meine Firma",
-      hourlyRate: parseFloat(hourlyRate.replace(",", ".")) || 22.50,
+      hourlyRate: Number.isNaN(parsedRate) || parsedRate <= 0 ? 22.50 : parsedRate,
       loadDemo
     });
     setLocation("/");
@@ -91,8 +92,8 @@ export default function Onboarding() {
           {step === 2 && (
             <PageTransition key="step2" className="flex-1 flex flex-col">
               <div className="flex-1">
-                <h2 className="text-3xl font-semibold tracking-tight mb-2">Wie ist deine Rolle?</h2>
-                <p className="text-muted-foreground text-lg mb-8">Das hilft uns, die App für dich anzupassen.</p>
+                <h2 className="text-3xl font-semibold tracking-tight mb-2">Wie ist Ihre Rolle?</h2>
+                <p className="text-muted-foreground text-lg mb-8">Das hilft uns, die App für Sie anzupassen.</p>
                 <div className="space-y-3">
                   {ROLES.map(r => (
                     <button
@@ -115,24 +116,26 @@ export default function Onboarding() {
             <PageTransition key="step3" className="flex-1 flex flex-col">
               <div className="flex-1">
                 <h2 className="text-3xl font-semibold tracking-tight mb-2">Firma & Verrechnungssatz</h2>
-                <p className="text-muted-foreground text-lg mb-8">Diese Angaben kannst du jederzeit ändern.</p>
+                <p className="text-muted-foreground text-lg mb-8">Diese Angaben können Sie jederzeit ändern.</p>
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground ml-1">Firmenname</label>
-                    <Input 
-                      value={companyName} 
-                      onChange={e => setCompanyName(e.target.value)} 
-                      placeholder="z.B. Glanz & Rein GmbH" 
+                    <label htmlFor="onboarding-company" className="text-sm text-muted-foreground ml-1">Firmenname</label>
+                    <Input
+                      id="onboarding-company"
+                      value={companyName}
+                      onChange={e => setCompanyName(e.target.value)}
+                      placeholder="z.B. Glanz & Rein GmbH"
                       autoFocus
                       className="text-lg h-14 bg-card border-border/50"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm text-muted-foreground ml-1">Verrechnungssatz (€/h)</label>
-                    <Input 
-                      value={hourlyRate} 
-                      onChange={e => setHourlyRate(e.target.value)} 
-                      placeholder="22,50" 
+                    <label htmlFor="onboarding-rate" className="text-sm text-muted-foreground ml-1">Verrechnungssatz (€/h)</label>
+                    <Input
+                      id="onboarding-rate"
+                      value={hourlyRate}
+                      onChange={e => setHourlyRate(e.target.value)}
+                      placeholder="22,50"
                       inputMode="decimal"
                       className="text-lg h-14 bg-card border-border/50"
                     />
