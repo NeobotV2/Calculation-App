@@ -28,6 +28,16 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
     onClose();
   };
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const triggerCopy = triggerReason ? UPGRADE_TRIGGER_COPY[triggerReason] : null;
   const displayReason = triggerCopy?.text || reason;
 
@@ -41,8 +51,12 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
             onClick={handleClose}
+            aria-hidden="true"
           />
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="upgrade-modal-title"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
@@ -52,20 +66,20 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
             <div className="p-6 pb-safe">
               <div className="flex justify-between items-start mb-6">
                 <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
-                  <Crown size={28} className="text-primary" />
+                  <Crown size={28} className="text-primary" aria-hidden="true" />
                 </div>
-                <button onClick={handleClose} className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center">
-                  <X size={18} className="text-muted-foreground" />
+                <button onClick={handleClose} aria-label="Schließen" className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center">
+                  <X size={18} className="text-muted-foreground" aria-hidden="true" />
                 </button>
               </div>
 
-              <h2 className="text-3xl font-semibold tracking-tight mb-2">
+              <h2 id="upgrade-modal-title" className="text-3xl font-semibold tracking-tight mb-2">
                 {triggerCopy?.headline || "Funktion im Pro-Plan verfügbar"}
               </h2>
 
               {displayReason && (
                 <div className="flex items-start gap-3 bg-card border border-border/40 rounded-2xl p-4 mb-6 mt-4">
-                  <Lock size={18} className="text-primary mt-0.5 shrink-0" />
+                  <Lock size={18} className="text-primary mt-0.5 shrink-0" aria-hidden="true" />
                   <p className="text-sm text-muted-foreground">{displayReason}</p>
                 </div>
               )}
@@ -91,18 +105,18 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
                         {typeof row.basic === "string" ? (
                           <span className="text-muted-foreground text-xs">{row.basic}</span>
                         ) : row.basic ? (
-                          <CheckCircle2 size={14} className="text-muted-foreground mx-auto" />
+                          <CheckCircle2 size={14} className="text-muted-foreground mx-auto" aria-hidden="true" />
                         ) : (
-                          <Minus size={14} className="text-muted-foreground/40 mx-auto" />
+                          <Minus size={14} className="text-muted-foreground/40 mx-auto" aria-hidden="true" />
                         )}
                       </span>
                       <span className="text-center">
                         {typeof row.pro === "string" ? (
                           <span className="text-primary text-xs font-medium">{row.pro}</span>
                         ) : row.pro ? (
-                          <CheckCircle2 size={14} className="text-primary mx-auto" />
+                          <CheckCircle2 size={14} className="text-primary mx-auto" aria-hidden="true" />
                         ) : (
-                          <Minus size={14} className="text-muted-foreground/40 mx-auto" />
+                          <Minus size={14} className="text-muted-foreground/40 mx-auto" aria-hidden="true" />
                         )}
                       </span>
                     </>

@@ -239,8 +239,8 @@ export default function ObjekteList() {
           <span className="text-sm text-muted-foreground">{activeProjectCount} aktiv</span>
         </div>
         <div className="relative mb-4 max-w-6xl mx-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-          <Input placeholder="Name, Kunde oder Standort suchen…" className="pl-11 bg-card border-border/40 h-11" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} aria-hidden="true" />
+          <Input aria-label="Objekte suchen" placeholder="Name, Kunde oder Standort suchen…" className="pl-11 bg-card border-border/40 h-11" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="flex gap-2 pb-3 overflow-x-auto no-scrollbar max-w-6xl mx-auto">
           {filterChips.map((f) => (
@@ -261,15 +261,17 @@ export default function ObjekteList() {
               className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               Sortierung: <span className="font-medium text-foreground">{sortLabels[sortBy]}</span>
-              <ChevronDown size={14} />
+              <ChevronDown size={14} aria-hidden="true" />
             </button>
             {showSortMenu && (
               <>
                 <div aria-hidden="true" className="fixed inset-0 z-20" onClick={() => setShowSortMenu(false)} />
-                <div className="absolute top-8 left-0 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
+                <div role="menu" className="absolute top-8 left-0 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
                   {(Object.keys(sortLabels) as SortKey[]).map((key) => (
                     <button
                       key={key}
+                      role="menuitemradio"
+                      aria-checked={sortBy === key}
                       onClick={() => { setSortBy(key); setShowSortMenu(false); }}
                       className={`w-full text-left px-4 py-2.5 text-sm hover:bg-secondary transition-colors ${sortBy === key ? "text-primary font-medium" : "text-foreground"}`}
                     >
@@ -299,7 +301,7 @@ export default function ObjekteList() {
         ) : filtered.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-12">
             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-              <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} />
+              <Building2 size={28} className="text-muted-foreground" strokeWidth={1.5} aria-hidden="true" />
             </div>
             <h3 className="text-lg font-medium mb-2">{search ? "Keine Treffer" : filter === "low_margin" ? "Keine schwach kalkulierten Objekte" : filter === "high_hours" ? "Keine Objekte mit hohem Stundenanteil" : "Noch keine Objekte"}</h3>
             <p className="text-sm text-muted-foreground max-w-[250px]">
@@ -320,7 +322,7 @@ export default function ObjekteList() {
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-base text-foreground truncate">{p.name}</h3>
                           {(hasCritical || hasWarning) && (
-                            <AlertTriangle size={14} className={`shrink-0 ${hasCritical ? "text-destructive" : "text-warning"}`} />
+                            <AlertTriangle size={14} aria-hidden="true" className={`shrink-0 ${hasCritical ? "text-destructive" : "text-warning"}`} />
                           )}
                           {p.status === "archived" && (
                             <span className="text-[10px] uppercase tracking-widest bg-muted px-2 py-0.5 rounded-full shrink-0">Archiviert</span>
@@ -345,11 +347,11 @@ export default function ObjekteList() {
 
                     <div className="grid grid-cols-4 gap-2 mt-3 pt-3 border-t border-border/20">
                       <div className="flex items-center gap-1.5">
-                        <Ruler size={12} className="text-muted-foreground shrink-0" />
+                        <Ruler size={12} className="text-muted-foreground shrink-0" aria-hidden="true" />
                         <span className="text-xs text-muted-foreground">{formatNumber(totals.area, 0)} m²</span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <Clock size={12} className="text-muted-foreground shrink-0" />
+                        <Clock size={12} className="text-muted-foreground shrink-0" aria-hidden="true" />
                         <span className="text-xs text-muted-foreground">{formatNumber(totals.hours, 1)} h</span>
                       </div>
                       <div className="col-span-2 text-right">
@@ -372,7 +374,7 @@ export default function ObjekteList() {
                   aria-expanded={menuOpen === p.id}
                   className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-background/80 border border-border/30 flex items-center justify-center z-10 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <MoreHorizontal size={16} />
+                  <MoreHorizontal size={16} aria-hidden="true" />
                 </button>
 
                 {menuOpen === p.id && (
@@ -380,22 +382,22 @@ export default function ObjekteList() {
                     <div aria-hidden="true" className="fixed inset-0 z-20" onClick={() => setMenuOpen(null)} />
                     <div className="absolute top-12 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[180px]">
                       <button onClick={() => { setRenameId(p.id); setRenameName(p.name); setMenuOpen(null); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
-                        <Edit3 size={16} className="text-muted-foreground" /> Umbenennen
+                        <Edit3 size={16} className="text-muted-foreground" aria-hidden="true" /> Umbenennen
                       </button>
                       <button onClick={() => handleDuplicate(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
-                        <Copy size={16} className="text-muted-foreground" /> Duplizieren
+                        <Copy size={16} className="text-muted-foreground" aria-hidden="true" /> Duplizieren
                       </button>
                       {p.status !== "archived" ? (
                         <button onClick={() => handleArchive(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
-                          <Archive size={16} className="text-muted-foreground" /> Archivieren
+                          <Archive size={16} className="text-muted-foreground" aria-hidden="true" /> Archivieren
                         </button>
                       ) : (
                         <button onClick={() => handleRestore(p.id)} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-foreground hover:bg-secondary transition-colors">
-                          <ArchiveRestore size={16} className="text-muted-foreground" /> Wiederherstellen
+                          <ArchiveRestore size={16} className="text-muted-foreground" aria-hidden="true" /> Wiederherstellen
                         </button>
                       )}
                       <button onClick={() => { setMenuOpen(null); setDeleteConfirm(p.id); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                        <Trash2 size={16} /> Löschen
+                        <Trash2 size={16} aria-hidden="true" /> Löschen
                       </button>
                     </div>
                   </>
@@ -412,11 +414,11 @@ export default function ObjekteList() {
           disabled={isWorking}
           className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border/30 shadow-lg shadow-black/20 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
-          <Zap size={14} />
+          <Zap size={14} aria-hidden="true" />
           Schnell erstellen
         </button>
         <Button onClick={handleCreate} className="h-14 px-6 rounded-full shadow-lg shadow-black/30 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2" disabled={isWorking}>
-          <Plus size={22} />
+          <Plus size={22} aria-hidden="true" />
           <span className="font-semibold">Neues Objekt</span>
         </Button>
       </div>
