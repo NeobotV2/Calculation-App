@@ -10,15 +10,18 @@ import { canAddProject, canAddRoom, canUseTemplates } from "@/lib/feature-gates"
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { StatTile } from "@/components/ui/stat-tile";
-import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, Copy, Archive, FileText, BookOpen, MoreHorizontal, X, AlertTriangle, ChevronDown, ChevronUp, Info, Eye, Printer, Share2 } from "lucide-react";
-import { sharePrintView } from "@/lib/native-share";
-import { isNative } from "@/lib/capacitor";
-import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
+import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, MoreHorizontal, X } from "lucide-react";
+import { calcProjectTotals } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
-import { getProjectWarnings, getWarningTypeKey, type Warning } from "@/lib/warnings";
+import { getProjectWarnings, getWarningTypeKey } from "@/lib/warnings";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { toast } from "sonner";
+import { KpiRow } from "./detail-parts/KpiRow";
+import { WarningsPanel } from "./detail-parts/WarningsPanel";
+import { RoomRow } from "./detail-parts/RoomRow";
+import { OptionsMenu } from "./detail-parts/OptionsMenu";
+import { InfoSheet } from "./detail-parts/InfoSheet";
+import { PdfPreviewOverlay } from "./detail-parts/PdfPreviewOverlay";
 
 export default function ObjektDetail() {
   const [, params] = useRoute("/objekte/:id");
@@ -251,20 +254,16 @@ export default function ObjektDetail() {
       </div>
 
       {menuOpen && (
-        <>
-          <div className="fixed inset-0 z-20" onClick={() => setMenuOpen(false)} aria-hidden="true" />
-          <div role="menu" className="absolute top-24 right-4 z-30 bg-card border border-border/40 rounded-xl shadow-xl shadow-black/20 overflow-hidden min-w-[200px]">
-            <button role="menuitem" onClick={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Edit3 size={16} className="text-muted-foreground" aria-hidden="true" /> Info bearbeiten</button>
-            <button role="menuitem" onClick={handleDuplicate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Copy size={16} className="text-muted-foreground" aria-hidden="true" /> Duplizieren</button>
-            <button role="menuitem" onClick={handleSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" aria-hidden="true" /> Als Vorlage speichern</button>
-            <button role="menuitem" onClick={() => {
-              setShowPdfPreview(true); setMenuOpen(false);
-            }} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Eye size={16} className="text-muted-foreground" aria-hidden="true" /> PDF-Vorschau</button>
-            <button role="menuitem" onClick={handleOpenPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" aria-hidden="true" /> Angebot als PDF</button>
-            <button role="menuitem" onClick={handleArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" aria-hidden="true" /> Archivieren</button>
-            <button role="menuitem" onClick={() => { setMenuOpen(false); setDeleteConfirm(true); }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} aria-hidden="true" /> Löschen</button>
-          </div>
-        </>
+        <OptionsMenu
+          onClose={() => setMenuOpen(false)}
+          onEditInfo={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }}
+          onDuplicate={handleDuplicate}
+          onSaveAsTemplate={handleSaveAsTemplate}
+          onPdfPreview={() => { setShowPdfPreview(true); setMenuOpen(false); }}
+          onOpenPDF={handleOpenPDF}
+          onArchive={handleArchive}
+          onDelete={() => { setMenuOpen(false); setDeleteConfirm(true); }}
+        />
       )}
 
       <div className="px-6 py-6 max-w-6xl mx-auto">
@@ -289,71 +288,13 @@ export default function ObjektDetail() {
           </p>
         </div>
 
-        {warnings.length > 0 && (
-          <div className={`rounded-2xl border mb-6 overflow-hidden ${
-            warnings.some((w) => w.severity === "critical")
-              ? "border-destructive/30 bg-destructive/5"
-              : warnings.some((w) => w.severity === "warning")
-                ? "border-warning/30 bg-warning/5"
-                : "border-info/30 bg-info/5"
-          }`}>
-            <button
-              onClick={() => setWarningsExpanded(!warningsExpanded)}
-              className="w-full flex items-center gap-3 p-4"
-            >
-              <AlertTriangle size={18} aria-hidden="true" className={
-                warnings.some((w) => w.severity === "critical")
-                  ? "text-destructive"
-                  : warnings.some((w) => w.severity === "warning")
-                    ? "text-warning"
-                    : "text-info"
-              } />
-              <span className="font-medium text-sm text-foreground flex-1 text-left">
-                {warnings.length} Hinweis{warnings.length > 1 ? "e" : ""} zur Kalkulation
-              </span>
-              {warningsExpanded ? <ChevronUp size={16} className="text-muted-foreground" aria-hidden="true" /> : <ChevronDown size={16} className="text-muted-foreground" aria-hidden="true" />}
-            </button>
-            {warningsExpanded && (
-              <div className="px-4 pb-4 space-y-3">
-                {warnings.map((w) => (
-                  <div key={w.id} className="flex gap-3">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                      w.severity === "critical"
-                        ? "bg-destructive/20 text-destructive"
-                        : w.severity === "warning"
-                          ? "bg-warning/20 text-warning"
-                          : "bg-info/20 text-info"
-                    }`}>
-                      {w.severity === "info" ? <Info size={12} aria-hidden="true" /> : <AlertTriangle size={12} aria-hidden="true" />}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground">{w.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{w.message}</p>
-                      <p className="text-xs text-primary mt-1">{w.action}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <WarningsPanel
+          warnings={warnings}
+          expanded={warningsExpanded}
+          onToggle={() => setWarningsExpanded(!warningsExpanded)}
+        />
 
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6 snap-x md:mx-0 md:px-0 md:flex-wrap">
-          {[
-            { label: "Monatspreis", value: formatCurrency(totals.cost), accent: true },
-            { label: "Stunden/Mo", value: `${formatNumber(totals.hours, 1)} h` },
-            { label: "Fläche", value: `${formatNumber(totals.area, 0)} m²` },
-            { label: "€/m²", value: formatCurrency(totals.pricePerSqm) },
-          ].map((kpi) => (
-            <StatTile
-              key={kpi.label}
-              label={kpi.label}
-              value={kpi.value}
-              tone={kpi.accent ? "primary" : "default"}
-              className="shrink-0 w-32 md:w-auto md:flex-1 md:min-w-[140px] snap-start"
-            />
-          ))}
-        </div>
+        <KpiRow totals={totals} />
 
         <div className="bg-card border border-border/20 rounded-2xl p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
@@ -394,57 +335,18 @@ export default function ObjektDetail() {
             </div>
           ) : (
             <div className="space-y-2">
-              {project.rooms.map((room, index) => {
-                const rc = calcRoom(room, effectiveRate);
-                return (
-                  <div
-                    key={room.id}
-                    className="glass-card p-4 flex items-center group cursor-pointer hover:bg-secondary transition-colors"
-                    onClick={() => { setEditingRoom(room); setSheetOpen(true); }}
-                  >
-                    <div className="flex flex-col gap-0.5 mr-2 shrink-0">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleMoveRoom(index, "up"); }}
-                        disabled={index === 0}
-                        aria-label="Raum nach oben verschieben"
-                        className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${index === 0 ? "opacity-20" : "hover:bg-muted"}`}
-                      >
-                        <ChevronUp size={14} className="text-muted-foreground" aria-hidden="true" />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleMoveRoom(index, "down"); }}
-                        disabled={index === project.rooms.length - 1}
-                        aria-label="Raum nach unten verschieben"
-                        className={`w-6 h-5 flex items-center justify-center rounded transition-colors ${index === project.rooms.length - 1 ? "opacity-20" : "hover:bg-muted"}`}
-                      >
-                        <ChevronDown size={14} className="text-muted-foreground" aria-hidden="true" />
-                      </button>
-                    </div>
-                    <div className="flex-1 min-w-0 pr-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm text-foreground truncate">{room.name || room.typeName}</h4>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide whitespace-nowrap">{room.groupName}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <span>{room.area} m²</span>
-                        <span className="w-0.5 h-0.5 rounded-full bg-border" />
-                        <span>{FREQUENCY_LABELS[room.frequency]}</span>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0 pr-2">
-                      <p className="font-bold text-foreground">{formatCurrency(rc.monthlyCost)}</p>
-                      <p className="text-xs text-primary font-medium">{formatNumber(rc.monthlyHours, 1)} h</p>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setDeleteRoomId(room.id); }}
-                      aria-label={`Raum „${room.name || room.typeName}" löschen`}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-full hover:bg-destructive/10 shrink-0"
-                    >
-                      <Trash2 size={14} className="text-destructive" aria-hidden="true" />
-                    </button>
-                  </div>
-                );
-              })}
+              {project.rooms.map((room, index) => (
+                <RoomRow
+                  key={room.id}
+                  room={room}
+                  index={index}
+                  total={project.rooms.length}
+                  effectiveRate={effectiveRate}
+                  onEdit={() => { setEditingRoom(room); setSheetOpen(true); }}
+                  onMove={handleMoveRoom}
+                  onDelete={() => setDeleteRoomId(room.id)}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -468,158 +370,43 @@ export default function ObjektDetail() {
       <ConfirmDialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={handleDeleteProject} title="Objekt löschen?" description="Alle Räume und Daten werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
       <ConfirmDialog open={!!deleteRoomId} onClose={() => setDeleteRoomId(null)} onConfirm={() => { if (deleteRoomId) handleDeleteRoom(deleteRoomId); }} title="Raum löschen?" description="Der Raum wird aus dem Objekt entfernt." confirmLabel="Löschen" destructive />
 
-      {showPdfPreview && (() => {
-        const vatAmount = vatRate > 0 ? totals.cost * (vatRate / 100) : 0;
-        const hasAddress = companyStreet || companyZip || companyCity;
-        const hasContact = companyPhone || companyEmail;
-        const hasFooterData = companyTaxNumber || companyVatId || companyManagingDirector || pdfFooter;
-        return (
-          <>
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80]" onClick={() => setShowPdfPreview(false)} aria-hidden="true" />
-            <div role="dialog" aria-modal="true" aria-labelledby="pdf-preview-title" className="fixed inset-0 z-[80] flex flex-col">
-              <div className="bg-background/95 border-b border-border/20 px-4 py-3 flex items-center justify-between safe-header">
-                <Button variant="ghost" size="icon" onClick={() => setShowPdfPreview(false)} aria-label="Schließen">
-                  <X size={20} aria-hidden="true" />
-                </Button>
-                <h3 id="pdf-preview-title" className="font-semibold text-sm">PDF-Vorschau</h3>
-                <Button size="sm" className="gap-2" onClick={() => { setShowPdfPreview(false); setLocation(`/print/${project.id}`); }}>
-                  {isNative ? <Share2 size={14} aria-hidden="true" /> : <Printer size={14} aria-hidden="true" />}
-                  {isNative ? "Teilen" : "Drucken"}
-                </Button>
-              </div>
-              <div className="flex-1 overflow-auto bg-white p-6">
-                <div className="max-w-2xl mx-auto text-black">
-                  {pdfHeader && <p className="text-sm text-gray-600 mb-4">{pdfHeader}</p>}
-                  <div className="mb-8 flex justify-between items-start">
-                    <div className="flex items-center gap-4">
-                      {companyLogo && <img src={companyLogo} alt="Logo" className="h-12 w-auto object-contain" />}
-                      <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-black">{companyName}</h1>
-                        {hasAddress && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            {companyStreet}{companyStreet && (companyZip || companyCity) ? ", " : ""}{companyZip} {companyCity}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    {hasContact && (
-                      <div className="text-right text-sm text-gray-500 mt-1">
-                        {companyPhone && <p>{companyPhone}</p>}
-                        {companyEmail && <p>{companyEmail}</p>}
-                      </div>
-                    )}
-                  </div>
-                  <div className="mb-2">
-                    <p className="text-gray-500 text-lg font-medium">Angebot</p>
-                  </div>
-                  <div className="mb-8 space-y-1">
-                    <h2 className="text-xl font-semibold text-black">{project.name}</h2>
-                    {project.customer && <p className="text-gray-600">Kunde: {project.customer}</p>}
-                    {project.location && <p className="text-gray-600">Standort: {project.location}</p>}
-                  </div>
-                  <table className="w-full text-sm mb-8">
-                    <thead>
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left py-2 font-semibold text-black">Raum</th>
-                        <th className="text-right py-2 font-semibold text-black">m²</th>
-                        <th className="text-right py-2 font-semibold text-black">Häufigkeit</th>
-                        <th className="text-right py-2 font-semibold text-black">h/Mo</th>
-                        <th className="text-right py-2 font-semibold text-black">€/Mo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {project.rooms.map((r) => {
-                        const rc = calcRoom(r, effectiveRate);
-                        return (
-                          <tr key={r.id} className="border-b border-gray-200">
-                            <td className="py-2 text-black">{r.name || r.typeName}</td>
-                            <td className="py-2 text-right tabular-nums text-black">{formatNumber(r.area, 1)}</td>
-                            <td className="py-2 text-right text-black">{FREQUENCY_LABELS[r.frequency]}</td>
-                            <td className="py-2 text-right tabular-nums text-black">{formatNumber(rc.monthlyHours, 1)}</td>
-                            <td className="py-2 text-right tabular-nums font-medium text-black">{formatCurrency(rc.monthlyCost)}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <div className="border-t-2 border-gray-300 pt-4 space-y-2">
-                    <div className="flex justify-between text-base text-black">
-                      <span>Gesamtfläche</span>
-                      <span className="font-medium">{formatNumber(totals.area, 0)} m²</span>
-                    </div>
-                    <div className="flex justify-between text-base text-black">
-                      <span>Stunden / Monat</span>
-                      <span className="font-medium">{formatNumber(totals.hours, 1)} h</span>
-                    </div>
-                    <div className="flex justify-between text-base font-semibold text-black">
-                      <span>Monatspreis (netto)</span>
-                      <span>{formatCurrency(totals.cost)}</span>
-                    </div>
-                    {vatRate > 0 && (
-                      <>
-                        <div className="flex justify-between text-base text-gray-500">
-                          <span>MwSt. ({vatRate}%)</span>
-                          <span>{formatCurrency(vatAmount)}</span>
-                        </div>
-                        <div className="flex justify-between text-base font-bold text-black">
-                          <span>Monatspreis (brutto)</span>
-                          <span>{formatCurrency(totals.cost + vatAmount)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 text-black">
-                      <span>Jahrespreis {vatRate > 0 ? "(brutto)" : "(netto)"}</span>
-                      <span>{formatCurrency((totals.cost + vatAmount) * 12)}</span>
-                    </div>
-                  </div>
-                  {hasFooterData && (
-                    <div className="mt-12 pt-4 border-t border-gray-200">
-                      <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
-                        {companyManagingDirector && <span>Geschäftsführer: {companyManagingDirector}</span>}
-                        {companyTaxNumber && <span>Steuernummer: {companyTaxNumber}</span>}
-                        {companyVatId && <span>USt-IdNr.: {companyVatId}</span>}
-                      </div>
-                      {pdfFooter && <p className="text-xs text-gray-500 mt-2">{pdfFooter}</p>}
-                    </div>
-                  )}
-                  <p className="mt-8 text-xs text-gray-400">
-                    Erstellt mit CleanCalc Pro · {new Date().toLocaleDateString("de-DE")}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </>
-        );
-      })()}
+      {showPdfPreview && (
+        <PdfPreviewOverlay
+          project={project}
+          totals={totals}
+          effectiveRate={effectiveRate}
+          vatRate={vatRate}
+          pdfHeader={pdfHeader}
+          pdfFooter={pdfFooter}
+          companyName={companyName}
+          companyLogo={companyLogo}
+          companyStreet={companyStreet}
+          companyZip={companyZip}
+          companyCity={companyCity}
+          companyPhone={companyPhone}
+          companyEmail={companyEmail}
+          companyTaxNumber={companyTaxNumber}
+          companyVatId={companyVatId}
+          companyManagingDirector={companyManagingDirector}
+          onClose={() => setShowPdfPreview(false)}
+          onPrint={() => { setShowPdfPreview(false); setLocation(`/print/${project.id}`); }}
+        />
+      )}
 
       {showInfo && (
-        <>
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={() => setShowInfo(false)} aria-hidden="true" />
-          <div role="dialog" aria-modal="true" aria-labelledby="objekt-info-title" className="fixed bottom-0 left-0 right-0 z-50 bg-background rounded-t-3xl border-t border-border p-6 pb-safe md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-lg md:w-full">
-            <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 md:hidden" />
-            <h2 id="objekt-info-title" className="text-2xl font-semibold tracking-tight mb-4">Objektinfo</h2>
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="objekt-customer" className="text-sm font-medium mb-1 block">Kunde</label>
-                <Input id="objekt-customer" value={customerInput} onChange={(e) => setCustomerInput(e.target.value)} placeholder="z.B. Muster GmbH" className="bg-card h-11" />
-              </div>
-              <div>
-                <label htmlFor="objekt-location" className="text-sm font-medium mb-1 block">Standort</label>
-                <Input id="objekt-location" value={locationInput} onChange={(e) => setLocationInput(e.target.value)} placeholder="z.B. Berlin, Musterstraße 1" className="bg-card h-11" />
-              </div>
-              <div>
-                <label htmlFor="objekt-rate" className="text-sm font-medium mb-1 block">Verrechnungssatz (€/h)</label>
-                <Input id="objekt-rate" aria-describedby="objekt-rate-hint" value={rateInput} onChange={(e) => setRateInput(e.target.value)} inputMode="decimal" placeholder={`Standard: ${hourlyRate.toString().replace(".", ",")} €/h`} className="bg-card h-11" />
-                <p id="objekt-rate-hint" className="text-xs text-muted-foreground mt-1 ml-1">Leer = globaler Standard ({hourlyRate.toString().replace(".", ",")} €/h)</p>
-              </div>
-              <div>
-                <label htmlFor="objekt-notes" className="text-sm font-medium mb-1 block">Notizen</label>
-                <Input id="objekt-notes" value={notesInput} onChange={(e) => setNotesInput(e.target.value)} placeholder="Optionale Notizen" className="bg-card h-11" />
-              </div>
-              <Button onClick={handleSaveInfo} className="w-full" size="lg">Speichern</Button>
-            </div>
-          </div>
-        </>
+        <InfoSheet
+          hourlyRate={hourlyRate}
+          customerInput={customerInput}
+          locationInput={locationInput}
+          rateInput={rateInput}
+          notesInput={notesInput}
+          onCustomerChange={setCustomerInput}
+          onLocationChange={setLocationInput}
+          onRateChange={setRateInput}
+          onNotesChange={setNotesInput}
+          onClose={() => setShowInfo(false)}
+          onSave={handleSaveInfo}
+        />
       )}
     </PageTransition>
   );

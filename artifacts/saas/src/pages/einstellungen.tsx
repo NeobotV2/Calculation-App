@@ -5,16 +5,17 @@ import { useStoreActions } from "@/hooks/use-store-actions";
 import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { FormField } from "@/components/ui/form-field";
-import { FREQUENCY_LABELS } from "@/lib/calc";
-import { isPaidPlan } from "@/lib/billing-config";
 import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { Building2, Save, FileText, Lock, Clock, Plus, Trash2, Download, Upload, RotateCcw, Layers, Edit3, Calculator, ChevronRight, MapPin, Phone, Mail, FileCheck, AlertTriangle, ImagePlus, X, Sun, Moon, Palette } from "lucide-react";
-import { WARNING_TYPES } from "@/lib/warnings";
 import { toast } from "sonner";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { CompanyDataSection } from "./einstellungen/CompanyDataSection";
+import { CalculationSection } from "./einstellungen/CalculationSection";
+import { RoomTypesSection } from "./einstellungen/RoomTypesSection";
+import { WarningsSection } from "./einstellungen/WarningsSection";
+import { PdfBrandingSection } from "./einstellungen/PdfBrandingSection";
+import { BrandingPlaceholderSection } from "./einstellungen/BrandingPlaceholderSection";
+import { AppearanceSection } from "./einstellungen/AppearanceSection";
+import { DataBackupSection } from "./einstellungen/DataBackupSection";
 
 export default function Einstellungen() {
   const [, setLocation] = useLocation();
@@ -306,369 +307,96 @@ export default function Einstellungen() {
       </div>
 
       <div className="p-6 space-y-8 max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-8 md:space-y-0">
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Building2 size={16} /> Firmenstammdaten
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
-            <FormField id="company-name" label="Firmenname">
-              <Input value={company} onChange={(e) => setCompany(e.target.value)} className="bg-background border-border/50 h-12" />
-            </FormField>
-            <div>
-              <span className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <MapPin size={14} aria-hidden="true" /> Adresse
-              </span>
-              <div className="space-y-3">
-                <Input aria-label="Straße und Hausnummer" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Straße und Hausnummer" className="bg-background border-border/50 h-12" />
-                <div className="flex gap-3">
-                  <Input aria-label="PLZ" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="PLZ" className="bg-background border-border/50 h-12 w-28" />
-                  <Input aria-label="Ort" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ort" className="bg-background border-border/50 h-12 flex-1" />
-                </div>
-              </div>
-            </div>
-            <FormField id="company-phone" label="Telefon">
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="z.B. +49 123 456789" type="tel" className="bg-background border-border/50 h-12" />
-            </FormField>
-            <FormField id="company-email" label="E-Mail">
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@firma.de" type="email" className="bg-background border-border/50 h-12" />
-            </FormField>
-            <div>
-              <span className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <FileCheck size={14} aria-hidden="true" /> Steuerliche Angaben
-              </span>
-              <div className="space-y-3">
-                <Input aria-label="Steuernummer" value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} placeholder="Steuernummer" className="bg-background border-border/50 h-12" />
-                <Input aria-label="USt-IdNr." value={vatId} onChange={(e) => setVatId(e.target.value)} placeholder="USt-IdNr. (z.B. DE123456789)" className="bg-background border-border/50 h-12" />
-              </div>
-            </div>
-            <FormField id="company-director" label="Geschäftsführer">
-              <Input value={managingDirector} onChange={(e) => setManagingDirector(e.target.value)} placeholder="Vor- und Nachname" className="bg-background border-border/50 h-12" />
-            </FormField>
-            <div className="pt-2">
-              <Button onClick={handleSaveCompanyData} className="w-full" disabled={isSaving}>
-                <Save size={18} className="mr-2" /> Firmenstammdaten speichern
-              </Button>
-            </div>
-          </div>
-        </section>
+        <CompanyDataSection
+          company={company}
+          setCompany={setCompany}
+          street={street}
+          setStreet={setStreet}
+          zip={zip}
+          setZip={setZip}
+          city={city}
+          setCity={setCity}
+          phone={phone}
+          setPhone={setPhone}
+          email={email}
+          setEmail={setEmail}
+          taxNumber={taxNumber}
+          setTaxNumber={setTaxNumber}
+          vatId={vatId}
+          setVatId={setVatId}
+          managingDirector={managingDirector}
+          setManagingDirector={setManagingDirector}
+          isSaving={isSaving}
+          onSave={handleSaveCompanyData}
+        />
 
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Calculator size={16} /> Kalkulation
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
-            <div>
-              <label htmlFor="setting-rate" className="text-sm font-medium text-foreground mb-2 block">Standard-Verrechnungssatz (€/h)</label>
-              <div className="flex gap-2">
-                <Input id="setting-rate" aria-describedby="setting-rate-hint" value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12 flex-1" />
-                <button
-                  onClick={() => setLocation("/stundensatz")}
-                  className="h-12 px-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-primary hover:bg-primary/15 transition-colors shrink-0"
-                >
-                  <Calculator size={16} aria-hidden="true" />
-                  <span className="text-sm font-medium">Kalkulieren</span>
-                  <ChevronRight size={14} aria-hidden="true" />
-                </button>
-              </div>
-              <p id="setting-rate-hint" className="text-xs text-muted-foreground mt-1.5 ml-1">
-                Nutzen Sie den Kalkulator für eine professionelle Verrechnungssatz-Berechnung.
-              </p>
-            </div>
-            <FormField
-              id="setting-vat"
-              label="MwSt.-Satz (%)"
-              hint="Wird auf dem PDF-Angebot ausgewiesen. 0 = keine MwSt."
-            >
-              <Input value={vat} onChange={(e) => setVat(e.target.value)} inputMode="decimal" placeholder="0 = ohne MwSt." className="bg-background border-border/50 h-12" />
-            </FormField>
-            <div>
-              <label htmlFor="setting-frequency" className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                <Clock size={14} aria-hidden="true" /> Standard-Reinigungshäufigkeit
-              </label>
-              <select
-                id="setting-frequency"
-                value={freq}
-                onChange={(e) => setFreq(e.target.value as FrequencyKey)}
-                className="w-full h-12 rounded-xl border border-border/50 bg-background px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-              >
-                {Object.entries(FREQUENCY_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-            <div className="pt-2">
-              <Button onClick={handleSave} className="w-full" disabled={isSaving}>
-                <Save size={18} className="mr-2" /> Änderungen speichern
-              </Button>
-            </div>
-          </div>
-        </section>
+        <CalculationSection
+          rate={rate}
+          setRate={setRate}
+          vat={vat}
+          setVat={setVat}
+          freq={freq}
+          setFreq={setFreq}
+          isSaving={isSaving}
+          onSave={handleSave}
+          onOpenRateCalculator={() => setLocation("/stundensatz")}
+        />
 
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Layers size={16} /> Raumarten
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
-            <div className={!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}>
-              {customRoomTypes.length === 0 && isPaidPlan(plan) && (
-                <p className="text-sm text-muted-foreground mb-4">Noch keine eigenen Raumarten definiert.</p>
-              )}
-              {customRoomTypes.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  {customRoomTypes.map((rt) => (
-                    <div key={rt.id} className="flex items-center justify-between bg-background rounded-xl px-4 py-3 border border-border/30">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{rt.name}</p>
-                        <p className="text-xs text-muted-foreground">{rt.groupName} · {rt.performanceValue} m²/h</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button aria-label={`Raumart „${rt.name}" bearbeiten`} onClick={() => startEditRoomType(rt)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
-                          <Edit3 size={14} className="text-muted-foreground" aria-hidden="true" />
-                        </button>
-                        <button aria-label={`Raumart „${rt.name}" löschen`} onClick={() => setDeleteRoomTypeConfirm(rt.id)} className="w-8 h-8 rounded-full hover:bg-destructive/10 flex items-center justify-center">
-                          <Trash2 size={14} className="text-destructive" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {showAddRoom ? (
-                <div className="space-y-3 bg-background rounded-xl p-4 border border-border/30">
-                  <Input aria-label="Raumart-Name" value={newRoomName} onChange={(e) => setNewRoomName(e.target.value)} placeholder="Raumart-Name" className="bg-card h-11" />
-                  <select aria-label="Raumgruppe" value={newRoomGroup} onChange={(e) => setNewRoomGroup(e.target.value)} className="w-full h-11 rounded-xl border border-border/40 bg-card px-4 text-sm text-foreground focus:outline-none appearance-none">
-                    {DEFAULT_ROOM_GROUPS.map(g => (
-                      <option key={g.id} value={g.id}>{g.name}</option>
-                    ))}
-                  </select>
-                  <Input aria-label="Leistungswert (m²/h)" value={newRoomPerf} onChange={(e) => setNewRoomPerf(e.target.value)} inputMode="decimal" placeholder="Leistungswert (m²/h)" className="bg-card h-11" />
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => { setShowAddRoom(false); setEditingRoomType(null); setNewRoomName(""); setNewRoomPerf(""); }} className="flex-1">Abbrechen</Button>
-                    <Button onClick={handleSaveRoomType} className="flex-1">{editingRoomType ? "Speichern" : "Hinzufügen"}</Button>
-                  </div>
-                </div>
-              ) : (
-                <Button variant="outline" onClick={() => setShowAddRoom(true)} className="w-full">
-                  <Plus size={16} className="mr-2" /> Raumart hinzufügen
-                </Button>
-              )}
-            </div>
-            {!isPaidPlan(plan) && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
-                <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
-                  <Lock size={20} className="text-foreground" />
-                </div>
-                <p className="font-semibold text-foreground mb-1">Erweiterte Raumarten im Pro-Plan</p>
-                <p className="text-xs text-muted-foreground mb-4">Legen Sie eigene Raumarten an, die zu Ihren Objekten passen.</p>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Pro-Plan ansehen</Button>
-              </div>
-            )}
-          </div>
-        </section>
+        <RoomTypesSection
+          plan={plan}
+          customRoomTypes={customRoomTypes}
+          showAddRoom={showAddRoom}
+          setShowAddRoom={setShowAddRoom}
+          editingRoomType={editingRoomType}
+          setEditingRoomType={setEditingRoomType}
+          newRoomName={newRoomName}
+          setNewRoomName={setNewRoomName}
+          newRoomGroup={newRoomGroup}
+          setNewRoomGroup={setNewRoomGroup}
+          newRoomPerf={newRoomPerf}
+          setNewRoomPerf={setNewRoomPerf}
+          onSaveRoomType={handleSaveRoomType}
+          onStartEditRoomType={startEditRoomType}
+          onRequestDeleteRoomType={setDeleteRoomTypeConfirm}
+          onUpgrade={() => setLocation("/upgrade")}
+        />
 
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <AlertTriangle size={16} /> Warnhinweise
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="setting-target-margin" className="text-sm font-medium text-foreground">Ziel-Marge (%)</label>
-              <p id="setting-target-margin-hint" className="text-xs text-muted-foreground">Objekte mit einer Marge unter diesem Wert erhalten eine Warnung.</p>
-              <Input
-                id="setting-target-margin"
-                aria-describedby="setting-target-margin-hint"
-                type="number"
-                inputMode="decimal"
-                min={0}
-                max={100}
-                step={0.5}
-                value={targetMarginLocal}
-                onChange={(e) => setTargetMarginLocal(e.target.value)}
-                onBlur={() => {
-                  const val = parseFloat(targetMarginLocal);
-                  if (!isNaN(val) && val >= 0 && val <= 100) {
-                    setTargetMarginAction(val);
-                  } else {
-                    setTargetMarginLocal(String(targetMarginStore));
-                  }
-                }}
-                className="bg-background h-11 w-32"
-              />
-            </div>
-            <div className="border-t border-border/30 pt-3">
-              <p className="text-xs text-muted-foreground mb-2">Einzelne Warnhinweise deaktivieren. Deaktivierte Warnungen werden nicht mehr angezeigt.</p>
-            </div>
-            {WARNING_TYPES.map((wt) => {
-              const isDisabled = disabledWarnings.includes(wt.key);
-              return (
-                <label key={wt.key} className="flex items-center justify-between py-2 cursor-pointer">
-                  <div className="flex items-center gap-3">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${wt.severity === "critical" ? "bg-destructive" : wt.severity === "warning" ? "bg-warning" : "bg-info"}`} />
-                    <span className="text-sm text-foreground">{wt.label}</span>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={!isDisabled}
-                    onClick={() => {
-                      if (isDisabled) {
-                        setDisabledWarnings(disabledWarnings.filter((k) => k !== wt.key));
-                      } else {
-                        setDisabledWarnings([...disabledWarnings, wt.key]);
-                      }
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${!isDisabled ? "bg-primary" : "bg-muted"}`}
-                  >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${!isDisabled ? "translate-x-6" : "translate-x-1"}`} />
-                  </button>
-                </label>
-              );
-            })}
-          </div>
-        </section>
+        <WarningsSection
+          targetMarginLocal={targetMarginLocal}
+          setTargetMarginLocal={setTargetMarginLocal}
+          targetMarginStore={targetMarginStore}
+          setTargetMarginAction={setTargetMarginAction}
+          disabledWarnings={disabledWarnings}
+          setDisabledWarnings={setDisabledWarnings}
+        />
 
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <FileText size={16} /> PDF & Branding
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
-            <div className={`space-y-5 ${!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}`}>
-              <p className="text-xs text-muted-foreground">
-                Firmenstammdaten werden automatisch im PDF-Briefkopf und -Fuß verwendet. Hier können Sie optionale Zusatzzeilen eintragen.
-              </p>
-              <div>
-                <span className="text-sm font-medium text-foreground mb-2 block">Firmenlogo</span>
-                {companyLogo ? (
-                  <div className="flex items-center gap-4">
-                    <img src={companyLogo} alt="Firmenlogo" className="h-14 w-auto object-contain rounded-lg border border-border/30 bg-white p-1" />
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={!isPaidPlan(plan)}>
-                        Ändern
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={handleRemoveLogo} disabled={!isPaidPlan(plan)} className="text-destructive hover:bg-destructive/10">
-                        <X size={14} className="mr-1" aria-hidden="true" /> Entfernen
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button variant="outline" onClick={() => logoInputRef.current?.click()} className="w-full h-20 border-dashed flex flex-col items-center gap-1" disabled={!isPaidPlan(plan)}>
-                    <ImagePlus size={20} className="text-muted-foreground" aria-hidden="true" />
-                    <span className="text-xs text-muted-foreground">Logo hochladen (max. 500 KB)</span>
-                  </Button>
-                )}
-                <input ref={logoInputRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                <p className="text-xs text-muted-foreground mt-1.5 ml-1">Wird im PDF-Briefkopf neben dem Firmennamen angezeigt.</p>
-              </div>
-              <FormField id="pdf-header" label="Kopfzeile (optional)">
-                <Input
-                  value={header}
-                  onChange={(e) => setHeader(e.target.value)}
-                  placeholder="z.B. Angebots-Nr., Datum, Adresse"
-                  disabled={!isPaidPlan(plan)}
-                  className="bg-background border-border/50 h-12"
-                />
-              </FormField>
-              <FormField id="pdf-footer" label="Fußzeile (optional)">
-                <Input
-                  value={footer}
-                  onChange={(e) => setFooter(e.target.value)}
-                  placeholder="Bankverbindung, HRB, etc."
-                  disabled={!isPaidPlan(plan)}
-                  className="bg-background border-border/50 h-12"
-                />
-              </FormField>
-              <Button onClick={handleSavePDF} className="w-full" disabled={!isPaidPlan(plan) || isSaving}>
-                <Save size={18} className="mr-2" /> PDF-Einstellungen speichern
-              </Button>
-            </div>
+        <PdfBrandingSection
+          plan={plan}
+          companyLogo={companyLogo}
+          logoInputRef={logoInputRef}
+          onLogoUpload={handleLogoUpload}
+          onRemoveLogo={handleRemoveLogo}
+          header={header}
+          setHeader={setHeader}
+          footer={footer}
+          setFooter={setFooter}
+          isSaving={isSaving}
+          onSave={handleSavePDF}
+          onUpgrade={() => setLocation("/upgrade")}
+        />
 
-            {!isPaidPlan(plan) && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
-                <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
-                  <Lock size={20} className="text-foreground" />
-                </div>
-                <p className="font-semibold text-foreground mb-1">PDF-Dokumente anpassen</p>
-                <p className="text-xs text-muted-foreground mb-4">Gestalten Sie Kopf- und Fußzeilen Ihrer Angebots-PDFs individuell.</p>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Pro-Plan ansehen</Button>
-              </div>
-            )}
-          </div>
-        </section>
+        <BrandingPlaceholderSection plan={plan} onUpgrade={() => setLocation("/upgrade")} />
 
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Building2 size={16} /> Branding
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 relative overflow-hidden">
-            <div className={`space-y-5 ${!isPaidPlan(plan) ? "opacity-30 select-none pointer-events-none" : ""}`}>
-              <div>
-                <span className="text-sm font-medium text-foreground mb-2 block">Firmenlogo (für PDF)</span>
-                <div className="w-full h-24 border-2 border-dashed border-border/50 rounded-xl flex items-center justify-center text-sm text-muted-foreground bg-background">
-                  Logo-Upload (demnächst verfügbar)
-                </div>
-              </div>
-            </div>
-            {!isPaidPlan(plan) && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
-                <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
-                  <Lock size={20} className="text-foreground" />
-                </div>
-                <p className="font-semibold text-foreground mb-1">Eigenes Firmenbranding</p>
-                <p className="text-xs text-muted-foreground mb-4">Ihr Logo und Ihre CI auf allen Dokumenten — für einen professionellen Auftritt.</p>
-                <Button variant="outline" size="sm" onClick={() => setLocation("/upgrade")}>Pro-Plan ansehen</Button>
-              </div>
-            )}
-          </div>
-        </section>
+        <AppearanceSection theme={theme} setTheme={setTheme} />
 
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Palette size={16} /> Darstellung
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-4">
-            <div>
-              <span className="text-sm font-medium text-foreground mb-3 block">Farbschema</span>
-              <div className="flex gap-3">
-                <button
-                  aria-pressed={theme === "light"}
-                  onClick={() => setTheme("light")}
-                  className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-colors ${theme === "light" ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-background text-muted-foreground hover:border-border"}`}
-                >
-                  <Sun size={18} aria-hidden="true" />
-                  <span className="text-sm font-medium">Hell</span>
-                </button>
-                <button
-                  aria-pressed={theme === "dark"}
-                  onClick={() => setTheme("dark")}
-                  className={`flex-1 flex items-center justify-center gap-2 h-12 rounded-xl border-2 transition-colors ${theme === "dark" ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-background text-muted-foreground hover:border-border"}`}
-                >
-                  <Moon size={18} aria-hidden="true" />
-                  <span className="text-sm font-medium">Dunkel</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-            <Download size={16} /> Daten & Sicherung
-          </h2>
-          <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">
-            <Button variant="outline" onClick={handleExport} className="w-full justify-start h-12 text-sm bg-background">
-              <Download size={16} className="mr-3 text-muted-foreground" /> Alle Daten exportieren (JSON)
-            </Button>
-            {!isAuthenticated && (
-              <Button variant="outline" onClick={handleImport} className="w-full justify-start h-12 text-sm bg-background">
-                <Upload size={16} className="mr-3 text-muted-foreground" /> Daten importieren (JSON)
-              </Button>
-            )}
-            <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={handleFileChange} className="hidden" />
-            <Button variant="outline" onClick={() => setShowResetDefaults(true)} className="w-full justify-start h-12 text-sm bg-background border-warning/30 text-warning hover:bg-warning/10">
-              <RotateCcw size={16} className="mr-3" /> Einstellungen zurücksetzen
-            </Button>
-          </div>
-        </section>
+        <DataBackupSection
+          isAuthenticated={isAuthenticated}
+          fileInputRef={fileInputRef}
+          onExport={handleExport}
+          onImport={handleImport}
+          onFileChange={handleFileChange}
+          onRequestReset={() => setShowResetDefaults(true)}
+        />
       </div>
 
       <ConfirmDialog
