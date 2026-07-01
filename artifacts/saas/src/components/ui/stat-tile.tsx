@@ -26,7 +26,7 @@ interface StatTileProps {
  */
 export function StatTile({ label, value, hint, tone = "default", className }: StatTileProps) {
   return (
-    <div className={cn("rounded-2xl border border-border/30 bg-card p-4", className)}>
+    <div className={cn("rounded-2xl border border-border/30 bg-card p-4 shadow-[var(--shadow-card)]", className)}>
       <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
       <p className={cn("text-lg font-bold tabular-nums", toneClass[tone])}>{value}</p>
       {hint != null && hint !== "" && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
