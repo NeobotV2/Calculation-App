@@ -16,6 +16,7 @@ import {
   ScrollText,
   ChevronRight,
   HelpCircle,
+  Landmark,
 } from "lucide-react";
 
 interface MehrItem {
@@ -49,6 +50,7 @@ export default function Mehr() {
     { label: "Einstellungen", icon: Settings, href: "/einstellungen", subtitle: "Firma, Kalkulation, PDF" },
     { label: "Profil & Konto", icon: User, href: "/konto", subtitle: "Anmeldung, Abo, Daten" },
     { label: "Vorlagen", icon: FileStack, href: "/vorlagen", subtitle: "Raumvorlagen verwalten" },
+    { label: "Ausschreibung kalkulieren", icon: Landmark, href: "/ausschreibung", subtitle: "LV importieren, Bieterspanne berechnen" },
     { label: "Datenexport", icon: Download, action: handleExport, subtitle: "Alle Daten als JSON sichern" },
   ];
 

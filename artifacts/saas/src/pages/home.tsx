@@ -9,6 +9,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
+  Landmark,
   Building2,
   ChevronRight,
   BarChart3,
@@ -184,13 +185,21 @@ export default function Home() {
             )}
 
             {/* 3. Hauptaktion */}
-            <section>
+            <section className="flex flex-col md:flex-row gap-3">
               <Button
                 size="lg"
                 className="w-full md:w-auto h-14 text-base font-semibold"
                 onClick={() => setLocation("/objekte")}
               >
                 <Plus size={20} className="mr-2" aria-hidden="true" /> Neues Objekt kalkulieren
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full md:w-auto h-14 text-base"
+                onClick={() => setLocation("/ausschreibung")}
+              >
+                <Landmark size={20} className="mr-2" aria-hidden="true" /> Ausschreibung kalkulieren
               </Button>
             </section>
 

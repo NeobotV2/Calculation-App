@@ -27,7 +27,9 @@ export type AnalyticsEvent =
   | "signup_started"
   | "signup_completed"
   | "activation_first_object"
-  | "activation_first_calculation";
+  | "activation_first_calculation"
+  | "tender_lv_imported"
+  | "tender_converted_to_object";
 
 export interface AnalyticsProperties {
   trigger_source?: UpgradeTrigger;
@@ -156,4 +158,14 @@ export function trackFirstObjectCreated(objectCount?: number) {
 
 export function trackFirstCalculationCompleted() {
   trackEvent("activation_first_calculation");
+}
+
+/* ── Ausschreibungs-Kalkulation ──────────────────────────────────── */
+
+export function trackTenderImported(roomCount: number) {
+  trackEvent("tender_lv_imported", { object_count: roomCount });
+}
+
+export function trackTenderConverted(roomCount: number) {
+  trackEvent("tender_converted_to_object", { object_count: roomCount });
 }
