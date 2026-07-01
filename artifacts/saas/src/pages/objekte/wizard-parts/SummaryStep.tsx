@@ -72,7 +72,7 @@ export function SummaryStep({
             </div>
           )}
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Stundensatz</span>
+            <span className="text-muted-foreground">Verrechnungssatz</span>
             <span className="font-medium text-foreground">
               {formatCurrency(effectiveRate)}/h
               {!parsedRate && (

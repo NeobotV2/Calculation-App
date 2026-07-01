@@ -162,6 +162,21 @@ export default function ObjektDetail() {
     setSheetOpen(true);
   };
 
+  const handleDuplicateRoom = async (room: Room) => {
+    const gate = canAddRoom(project.id);
+    if (!gate.allowed) {
+      showUpgradeGate(gate);
+      return;
+    }
+    try {
+      const { id: _id, ...roomData } = room;
+      await actions.addRoom(project.id, roomData);
+      toast.success("Raum dupliziert");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Fehler beim Duplizieren");
+    }
+  };
+
   const handleSaveAsTemplate = async () => {
     const gate = canUseTemplates();
     if (!gate.allowed) {
@@ -344,6 +359,7 @@ export default function ObjektDetail() {
                   effectiveRate={effectiveRate}
                   onEdit={() => { setEditingRoom(room); setSheetOpen(true); }}
                   onMove={handleMoveRoom}
+                  onDuplicate={() => handleDuplicateRoom(room)}
                   onDelete={() => setDeleteRoomId(room.id)}
                 />
               ))}

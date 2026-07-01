@@ -43,6 +43,8 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
       setName(editRoom.name);
       setTypeId(editRoom.typeId);
       setArea(editRoom.area.toString().replace(".", ","));
+      setLength("");
+      setWidth("");
       setFreq(editRoom.frequency);
       setCustomPerf(editRoom.customPerformance ? editRoom.customPerformance.toString() : "");
       setSoilingLevel(editRoom.soilingLevel);
@@ -268,29 +270,37 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                 <Input id="room-area" inputMode="decimal" value={area} onChange={e => setArea(e.target.value)} placeholder="0" className="text-xl font-semibold h-14 bg-card" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="room-length" className="text-xs text-muted-foreground mb-1 block">Länge (m)</label>
-                  <Input id="room-length" inputMode="decimal" value={length} onChange={e => setLength(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" />
+              <div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="room-length" className="text-xs text-muted-foreground mb-1 block">Länge (m)</label>
+                    <Input id="room-length" inputMode="decimal" value={length} onChange={e => setLength(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" aria-describedby="room-dims-hint" />
+                  </div>
+                  <div>
+                    <label htmlFor="room-width" className="text-xs text-muted-foreground mb-1 block">Breite (m)</label>
+                    <Input id="room-width" inputMode="decimal" value={width} onChange={e => setWidth(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" aria-describedby="room-dims-hint" />
+                  </div>
                 </div>
-                <div>
-                  <label htmlFor="room-width" className="text-xs text-muted-foreground mb-1 block">Breite (m)</label>
-                  <Input id="room-width" inputMode="decimal" value={width} onChange={e => setWidth(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" />
-                </div>
+                <p id="room-dims-hint" className="text-xs text-muted-foreground mt-1.5">
+                  Optional: Länge × Breite berechnet die Fläche automatisch.
+                </p>
               </div>
 
               <div>
                 <label htmlFor="room-frequency" className="text-sm font-medium text-foreground mb-2 block">Häufigkeit</label>
-                <select
-                  id="room-frequency"
-                  value={freq}
-                  onChange={e => setFreq(e.target.value as FrequencyKey)}
-                  className="w-full h-12 rounded-xl border border-border/40 bg-card px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-                >
-                  {Object.entries(FREQUENCY_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    id="room-frequency"
+                    value={freq}
+                    onChange={e => setFreq(e.target.value as FrequencyKey)}
+                    className="w-full h-12 rounded-xl border border-border/40 bg-card pl-4 pr-10 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                  >
+                    {Object.entries(FREQUENCY_LABELS).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
+                </div>
               </div>
 
               <div>
@@ -397,9 +407,24 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                 </div>
               )}
 
-              <Button onClick={handleSave} disabled={areaNum <= 0} className="w-full h-14 text-base" size="lg">
-                {editRoom ? "Änderungen speichern" : "Raum hinzufügen"}
-              </Button>
+              {/* Sticky-Footer: Hauptaktion bleibt beim Scrollen immer sichtbar. */}
+              <div className="sticky bottom-0 z-10 -mx-6 -mb-6 px-6 pt-3 pb-4 bg-background/95 backdrop-blur-sm border-t border-border/30">
+                {areaNum <= 0 && (
+                  <p id="room-save-hint" className="text-xs text-muted-foreground text-center mb-2">
+                    Geben Sie eine Fläche ein, um den Raum zu speichern.
+                  </p>
+                )}
+                <Button
+                  onClick={handleSave}
+                  disabled={areaNum <= 0}
+                  aria-describedby={areaNum <= 0 ? "room-save-hint" : undefined}
+                  className="w-full h-14 text-base"
+                  size="lg"
+                >
+                  {editRoom ? "Änderungen speichern" : "Raum hinzufügen"}
+                  {preview && <span className="font-normal opacity-90"> · {formatCurrency(preview.monthlyCost)}/Monat</span>}
+                </Button>
+              </div>
             </div>
           </motion.div>
         </>

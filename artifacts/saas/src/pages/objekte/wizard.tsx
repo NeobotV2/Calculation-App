@@ -110,6 +110,27 @@ export default function ObjektWizard() {
     setDeleteRoomId(null);
   };
 
+  const handleDuplicateRoom = (roomId: string) => {
+    if (!isPaidPlan(plan) && rooms.length >= getRoomLimit()) {
+      setUpgradeReason(`Im Basic-Plan sind maximal ${getRoomLimit()} Räume pro Objekt enthalten. Für vollständige Kalkulationen ohne Raumlimit wechseln Sie zum Pro-Plan.`);
+      setUpgradeTrigger("room_limit");
+      setUpgradeOpen(true);
+      return;
+    }
+    setRooms((prev) => {
+      const idx = prev.findIndex((r) => r.id === roomId);
+      if (idx === -1) return prev;
+      const copy: Room = {
+        ...prev[idx],
+        id: `wizard-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      };
+      const next = [...prev];
+      next.splice(idx + 1, 0, copy);
+      return next;
+    });
+    toast.success("Raum dupliziert");
+  };
+
   const handleSave = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
@@ -215,6 +236,7 @@ export default function ObjektWizard() {
               totals={totals}
               onAddRoom={openAddRoom}
               onEditRoom={handleEditRoom}
+              onDuplicateRoom={handleDuplicateRoom}
               onDeleteRoom={setDeleteRoomId}
             />
           )}

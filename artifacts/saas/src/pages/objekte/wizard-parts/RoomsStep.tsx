@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, Trash2, Edit3 } from "lucide-react";
+import { Plus, Trash2, Edit3, Copy } from "lucide-react";
 import { type Room } from "@/store/use-store";
 import { calcRoom, calcProjectTotals, FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
@@ -13,6 +13,7 @@ interface RoomsStepProps {
   totals: ProjectTotals;
   onAddRoom: () => void;
   onEditRoom: (room: Room) => void;
+  onDuplicateRoom: (roomId: string) => void;
   onDeleteRoom: (roomId: string) => void;
 }
 
@@ -22,6 +23,7 @@ export function RoomsStep({
   totals,
   onAddRoom,
   onEditRoom,
+  onDuplicateRoom,
   onDeleteRoom,
 }: RoomsStepProps) {
   return (
@@ -35,10 +37,10 @@ export function RoomsStep({
     >
       <div className="mb-5">
         <h3 className="text-2xl font-semibold tracking-tight mb-1">
-          Räume & Erschwernisse
+          Räume & Zu-/Abschläge
         </h3>
         <p className="text-sm text-muted-foreground">
-          Fügen Sie die Räume des Objekts hinzu.
+          Erfassen Sie das Leistungsverzeichnis — ähnliche Räume lassen sich duplizieren.
         </p>
       </div>
 
@@ -112,6 +114,13 @@ export function RoomsStep({
                       className="text-muted-foreground"
                       aria-hidden="true"
                     />
+                  </button>
+                  <button
+                    onClick={() => onDuplicateRoom(room.id)}
+                    aria-label={`Raum „${room.name || room.typeName}" duplizieren`}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary transition-colors"
+                  >
+                    <Copy size={14} className="text-muted-foreground" aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => onDeleteRoom(room.id)}

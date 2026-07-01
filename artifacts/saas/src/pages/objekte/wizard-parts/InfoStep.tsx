@@ -104,7 +104,7 @@ export function InfoStep({
 
       <div>
         <label htmlFor="wizard-rate" className="text-sm font-medium mb-2 block">
-          Stundensatz (€/h)
+          Verrechnungssatz (€/h)
         </label>
         <Input
           id="wizard-rate"

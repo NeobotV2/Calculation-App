@@ -1,4 +1,4 @@
-import { ChevronUp, ChevronDown, Trash2 } from "lucide-react";
+import { ChevronUp, ChevronDown, Trash2, Copy } from "lucide-react";
 import type { Room } from "@/store/use-store";
 import { calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber } from "@/lib/utils";
@@ -10,6 +10,7 @@ export function RoomRow({
   effectiveRate,
   onEdit,
   onMove,
+  onDuplicate,
   onDelete,
 }: {
   room: Room;
@@ -18,6 +19,7 @@ export function RoomRow({
   effectiveRate: number;
   onEdit: () => void;
   onMove: (index: number, direction: "up" | "down") => void;
+  onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const rc = calcRoom(room, effectiveRate);
@@ -59,13 +61,23 @@ export function RoomRow({
         <p className="font-bold text-foreground">{formatCurrency(rc.monthlyCost)}</p>
         <p className="text-xs text-primary font-medium">{formatNumber(rc.monthlyHours, 1)} h</p>
       </div>
-      <button
-        onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        aria-label={`Raum „${room.name || room.typeName}" löschen`}
-        className="opacity-0 group-hover:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-full hover:bg-destructive/10 shrink-0"
-      >
-        <Trash2 size={14} className="text-destructive" aria-hidden="true" />
-      </button>
+      {/* Aktionen bewusst immer sichtbar (dezent) — auf Touch-Geräten gibt es kein Hover. */}
+      <div className="flex gap-0.5 shrink-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+          aria-label={`Raum „${room.name || room.typeName}" duplizieren`}
+          className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-full hover:bg-secondary"
+        >
+          <Copy size={14} className="text-muted-foreground" aria-hidden="true" />
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          aria-label={`Raum „${room.name || room.typeName}" löschen`}
+          className="opacity-60 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity w-8 h-8 flex items-center justify-center rounded-full hover:bg-destructive/10"
+        >
+          <Trash2 size={14} className="text-destructive" aria-hidden="true" />
+        </button>
+      </div>
     </div>
   );
 }
