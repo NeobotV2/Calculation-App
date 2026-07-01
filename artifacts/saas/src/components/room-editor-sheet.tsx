@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,18 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null>(null);
+  const typeGridRef = useRef<HTMLDivElement>(null);
+
+  // Beim Bearbeiten die gewählte Raumart in der scrollbaren Liste sichtbar machen.
+  useEffect(() => {
+    if (!open || !editRoom) return;
+    const t = window.setTimeout(() => {
+      typeGridRef.current
+        ?.querySelector('[data-selected="true"]')
+        ?.scrollIntoView({ block: "nearest" });
+    }, 50);
+    return () => window.clearTimeout(t);
+  }, [open, editRoom]);
 
   useEffect(() => {
     if (editRoom) {
@@ -241,11 +253,13 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }:
                   ))}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mt-2">
+                <div ref={typeGridRef} className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mt-2">
                   {filteredRoomTypes.map(t => (
                     <button
                       key={t.id}
                       onClick={() => setTypeId(t.id)}
+                      data-selected={typeId === t.id || undefined}
+                      aria-pressed={typeId === t.id}
                       className={`p-3 rounded-xl border text-sm text-left transition-colors ${typeId === t.id ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-card hover:bg-secondary text-foreground"}`}
                     >
                       <div className="font-medium truncate">{t.name}</div>

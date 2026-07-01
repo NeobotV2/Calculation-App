@@ -6,7 +6,7 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { RoomEditorSheet } from "@/components/room-editor-sheet";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import { canAddProject, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
+import { canAddProject, canUseTemplates, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { type UpgradeTrigger } from "@/lib/billing-config";
 import { calcProjectTotals } from "@/lib/calc";
 import { trackFirstObjectCreated } from "@/services/analytics-service";
@@ -23,6 +23,7 @@ import { ActionBar } from "./wizard-parts/ActionBar";
 export default function ObjektWizard() {
   const [, setLocation] = useLocation();
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const templates = useStore((s) => s.templates);
   const actions = useStoreActions();
 
   const [step, setStep] = useState<WizardStep>(1);
@@ -131,6 +132,24 @@ export default function ObjektWizard() {
     toast.success("Raum dupliziert");
   };
 
+  const handleApplyTemplate = (templateId: string) => {
+    const gate = canUseTemplates();
+    if (!gate.allowed) {
+      setUpgradeReason(gate.reason || "");
+      setUpgradeTrigger(gate.trigger);
+      setUpgradeOpen(true);
+      return;
+    }
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    const copies: Room[] = tpl.rooms.map((r, i) => ({
+      ...r,
+      id: `wizard-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+    }));
+    setRooms((prev) => [...prev, ...copies]);
+    toast.success(`Vorlage „${tpl.name}" geladen (${copies.length} Räume)`);
+  };
+
   const handleSave = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
@@ -234,10 +253,12 @@ export default function ObjektWizard() {
               rooms={rooms}
               effectiveRate={effectiveRate}
               totals={totals}
+              templates={templates}
               onAddRoom={openAddRoom}
               onEditRoom={handleEditRoom}
               onDuplicateRoom={handleDuplicateRoom}
               onDeleteRoom={setDeleteRoomId}
+              onApplyTemplate={handleApplyTemplate}
             />
           )}
 
