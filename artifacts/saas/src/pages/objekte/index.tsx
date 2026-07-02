@@ -13,6 +13,7 @@ import { Building2, Search, Plus, MoreHorizontal, Copy, Archive, ArchiveRestore,
 import { calcProjectTotals } from "@/lib/calc";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { markupToRevenueMargin } from "@/lib/price-strategy";
 import { getProjectWarnings, getWarningTypeKey, type Warning } from "@/lib/warnings";
 import { formatCurrency, formatNumber, formatDate } from "@/lib/utils";
 import { toast } from "sonner";
@@ -80,7 +81,10 @@ export default function ObjekteList() {
   const hydrated = useHydrated();
 
   const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
-  const targetMargin = storeTargetMargin;
+  // Anzeige-/Filter-Schwelle in Umsatzmargen-Basis (storeTargetMargin ist ein
+  // Aufschlag auf Vollkosten); die Warnings-Engine konvertiert selbst und
+  // erhält weiterhin den Rohwert.
+  const targetMargin = markupToRevenueMargin(storeTargetMargin);
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
 
   const projectsWithTotals = useMemo(() => {

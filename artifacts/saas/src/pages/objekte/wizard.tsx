@@ -9,6 +9,8 @@ import { UpgradeModal } from "@/components/upgrade-modal";
 import { canAddProject, canUseTemplates, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { type UpgradeTrigger } from "@/lib/billing-config";
 import { calcProjectTotals } from "@/lib/calc";
+import { calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { calcPriceStrategy } from "@/lib/price-strategy";
 import { trackFirstObjectCreated } from "@/services/analytics-service";
 import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -71,6 +73,19 @@ export default function ObjektWizard() {
     () => calcProjectTotals(tempProject, effectiveRate),
     [tempProject, effectiveRate],
   );
+
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const targetMargin = useStore((s) => s.targetMargin);
+  const strategy = useMemo(() => {
+    const breakdown = calcHourlyRate(hourlyRateConfig);
+    return calcPriceStrategy({
+      monthlyHours: totals.hours,
+      area: totals.area,
+      effectiveRate,
+      vollkosten: breakdown.vollkosten,
+      targetMarkupPct: targetMargin,
+    });
+  }, [hourlyRateConfig, totals, effectiveRate, targetMargin]);
 
   const handleAddRoom = (room: Omit<Room, "id">) => {
     if (editingRoom) {
@@ -272,6 +287,7 @@ export default function ObjektWizard() {
               effectiveRate={effectiveRate}
               parsedRate={parsedRate}
               totals={totals}
+              strategy={strategy}
             />
           )}
         </AnimatePresence>

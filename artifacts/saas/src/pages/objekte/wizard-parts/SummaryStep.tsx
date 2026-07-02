@@ -1,9 +1,16 @@
 import { motion } from "framer-motion";
 import { type Room } from "@/store/use-store";
 import { calcRoom, calcProjectTotals, FREQUENCY_LABELS } from "@/lib/calc";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import type { PriceStrategy } from "@/lib/price-strategy";
+import { formatCurrency, formatNumber, cn } from "@/lib/utils";
 
 type ProjectTotals = ReturnType<typeof calcProjectTotals>;
+
+const STATUS_META = {
+  kritisch: { label: "Unwirtschaftlich", dot: "bg-destructive", text: "text-destructive", card: "border-destructive/30 bg-destructive/5" },
+  pruefen: { label: "Prüfen", dot: "bg-warning", text: "text-warning", card: "border-warning/30 bg-warning/5" },
+  gesund: { label: "Wirtschaftlich", dot: "bg-success", text: "text-success", card: "border-success/30 bg-success/5" },
+} as const;
 
 interface SummaryStepProps {
   name: string;
@@ -14,6 +21,7 @@ interface SummaryStepProps {
   effectiveRate: number;
   parsedRate: number | undefined;
   totals: ProjectTotals;
+  strategy: PriceStrategy;
 }
 
 export function SummaryStep({
@@ -25,7 +33,9 @@ export function SummaryStep({
   effectiveRate,
   parsedRate,
   totals,
+  strategy,
 }: SummaryStepProps) {
+  const status = STATUS_META[strategy.status];
   return (
     <motion.div
       key="step3"
@@ -133,6 +143,30 @@ export function SummaryStep({
           </div>
         )}
       </div>
+
+      {/* Wirtschaftlichkeits-Check vor dem Speichern (kompakt) */}
+      {rooms.length > 0 && (
+        <div className={cn("rounded-2xl border p-4 mb-4", status.card)}>
+          <div className="flex items-center justify-between gap-3 mb-1.5">
+            <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <span className={cn("w-2 h-2 rounded-full shrink-0", status.dot)} aria-hidden="true" />
+              Wirtschaftlichkeit: <span className={status.text}>{status.label}</span>
+            </span>
+            <span className="text-xs text-muted-foreground tabular-nums shrink-0">
+              Marge {formatNumber(strategy.marginPct, 1)} % · Ziel {formatNumber(strategy.targetMarginPct, 1)} %
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Mindestpreis (Vollkosten): {formatCurrency(strategy.minPriceMonthly)}/Monat
+            {strategy.status !== "kritisch" && (
+              <> · Spielraum {formatCurrency(strategy.negotiationRoomMonthly)}</>
+            )}
+            {strategy.status === "kritisch" && (
+              <span className="text-destructive font-medium"> — Der Satz liegt unter den Vollkosten ({formatCurrency(strategy.breakEvenRate)}/h).</span>
+            )}
+          </p>
+        </div>
+      )}
 
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
         <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-widest mb-3">

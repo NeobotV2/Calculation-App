@@ -4,6 +4,7 @@ import { useStore } from "@/store/use-store";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { calcProjectTotals } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
+import { markupToRevenueMargin } from "@/lib/price-strategy";
 import { getAllProjectWarnings, countWarningsBySeverity } from "@/lib/warnings";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,9 @@ export default function Home() {
 
   const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
   const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
-  const marginPercent = hourlyRateConfig.gewinnmarge;
+  // Gewinnmarge ist ein Aufschlag auf Vollkosten; Projekt-Margen unten sind
+  // Umsatzmargen — für Vergleich/Anzeige in dieselbe Basis konvertieren.
+  const marginPercent = markupToRevenueMargin(hourlyRateConfig.gewinnmarge);
 
   const allWarnings = useMemo(() => {
     return getAllProjectWarnings(projects, hourlyRate, hourlyRateConfig, isDefaultRate, disabledWarnings, targetMargin);
@@ -301,7 +304,7 @@ export default function Home() {
                 <SectionHeading>Steuerungskennzahlen</SectionHeading>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <StatTile label="Monatsumsatz" value={formatCurrency(totalVolume)} />
-                  <StatTile label="Ø Marge" value={`${formatNumber(marginPercent, 1)} %`} />
+                  <StatTile label="Ziel-Marge" value={`${formatNumber(marginPercent, 1)} %`} hint={`= ${formatNumber(hourlyRateConfig.gewinnmarge, 0)} % Aufschlag`} />
                   <StatTile label="Verrechnungssatz" value={`${formatCurrency(hourlyRate)}/h`} />
                   <StatTile label="Offene Angebote" value={activeProjects.length} />
                 </div>
