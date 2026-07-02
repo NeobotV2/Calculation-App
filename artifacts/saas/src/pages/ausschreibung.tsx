@@ -16,6 +16,9 @@ import { canAddProject } from "@/lib/feature-gates";
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import { parseLvFile } from "@/lib/lv-import";
 import { calcTenderScenarios, type ScenarioKey } from "@/lib/tender-calc";
+import { calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { calcPriceStrategy } from "@/lib/price-strategy";
+import { calcRiskScore } from "@/lib/risk-score";
 import { FREQUENCY_LABELS } from "@/lib/calc";
 import { formatCurrency, formatNumber, cn } from "@/lib/utils";
 import { trackTenderImported, trackTenderConverted } from "@/services/analytics-service";
@@ -29,7 +32,21 @@ import {
   AlertTriangle,
   ArrowRight,
   Info,
+  ChevronDown,
+  ShieldAlert,
 } from "lucide-react";
+
+const ECON_META = {
+  kritisch: { label: "Unwirtschaftlich", dot: "bg-destructive", text: "text-destructive" },
+  pruefen: { label: "Prüfen", dot: "bg-warning", text: "text-warning" },
+  gesund: { label: "Wirtschaftlich", dot: "bg-success", text: "text-success" },
+} as const;
+
+const RISK_BADGE = {
+  niedrig: "bg-success/10 text-success",
+  mittel: "bg-warning/10 text-warning",
+  hoch: "bg-destructive/10 text-destructive",
+} as const;
 
 /* ─────────────────────────────────────────────────────────────────────────
    Ausschreibungs-Kalkulation: LV-Datei (CSV/JSON) importieren und eine
@@ -61,6 +78,7 @@ export default function Ausschreibung() {
   const [rateSpread, setRateSpread] = useState("10");
   const [dragOver, setDragOver] = useState(false);
 
+  const [showRiskFactors, setShowRiskFactors] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | undefined>();
   const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
@@ -82,6 +100,40 @@ export default function Ausschreibung() {
       }),
     [rooms, baseRate, perfSpread, rateSpread],
   );
+
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const targetMargin = useStore((s) => s.targetMargin);
+
+  // Wirtschaftlichkeit & Risiko des Mittelwert-Szenarios — die „rote Linie"
+  // für die Vergabe: darunter sollte kein Gebot abgegeben werden.
+  const wirtschaft = useMemo(() => {
+    const breakdown = calcHourlyRate(hourlyRateConfig);
+    const mid = result.scenarios.mid;
+    const strategy = calcPriceStrategy({
+      monthlyHours: mid.hours,
+      area: result.area,
+      effectiveRate: baseRate,
+      vollkosten: breakdown.vollkosten,
+      targetMarkupPct: targetMargin,
+    });
+    const risk = calcRiskScore({
+      project: {
+        id: "tender",
+        name: tenderName || "Ausschreibung",
+        status: "active",
+        createdAt: "",
+        updatedAt: "",
+        rooms,
+      },
+      monthlyHours: mid.hours,
+      area: result.area,
+      monthlyCost: mid.cost,
+      marginPct: strategy.marginPct,
+      targetMarginPct: strategy.targetMarginPct,
+      usesDefaultRate: !rateInput.trim() && hourlyRate === 22.5,
+    });
+    return { strategy, risk };
+  }, [hourlyRateConfig, result, baseRate, targetMargin, rooms, tenderName, rateInput, hourlyRate]);
 
   const readFile = (file: File) => {
     const reader = new FileReader();
@@ -339,6 +391,63 @@ export default function Ausschreibung() {
                 umgekehrt. Der Mittelwert entspricht Ihrer regulären Kalkulation.
               </span>
             </p>
+          </section>
+        )}
+
+        {/* ── Wirtschaftlichkeit & Risiko (Mittelwert-Szenario) ───── */}
+        {rooms.length > 0 && (
+          <section>
+            <SectionHeading>Wirtschaftlichkeit & Risiko</SectionHeading>
+            <div className="surface-card p-4">
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", ECON_META[wirtschaft.strategy.status].dot)} aria-hidden="true" />
+                  <span className={ECON_META[wirtschaft.strategy.status].text}>
+                    {ECON_META[wirtschaft.strategy.status].label}
+                  </span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    (Marge {formatNumber(wirtschaft.strategy.marginPct, 1)} % · Ziel {formatNumber(wirtschaft.strategy.targetMarginPct, 1)} %)
+                  </span>
+                </span>
+                <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full shrink-0", RISK_BADGE[wirtschaft.risk.level])}>
+                  Risiko {wirtschaft.risk.score}/100
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Rote Linie für dieses Gebot: <span className="font-semibold text-destructive">{formatCurrency(wirtschaft.strategy.minPriceMonthly)}/Monat</span>
+                {" "}(Vollkosten, Break-even-Satz {formatCurrency(wirtschaft.strategy.breakEvenRate)}/h) ·
+                Personalbedarf ≈ {formatNumber(wirtschaft.risk.fte, 1)} VZÄ
+              </p>
+              {wirtschaft.risk.factors.length > 0 && (
+                <div className="border-t border-border/30 pt-2.5 mt-3">
+                  <button
+                    onClick={() => setShowRiskFactors((s) => !s)}
+                    aria-expanded={showRiskFactors}
+                    className="w-full flex items-center justify-between text-left py-0.5"
+                  >
+                    <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <ShieldAlert size={15} className="text-muted-foreground" aria-hidden="true" />
+                      Risikofaktoren ({wirtschaft.risk.factors.length})
+                    </span>
+                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", showRiskFactors && "rotate-180")} aria-hidden="true" />
+                  </button>
+                  {showRiskFactors && (
+                    <div className="mt-2 space-y-2">
+                      {wirtschaft.risk.factors.map((f) => (
+                        <div key={f.key} className="rounded-xl border border-border/30 bg-card p-3">
+                          <div className="flex items-center justify-between gap-3 mb-1">
+                            <p className="text-sm font-medium text-foreground">{f.title}</p>
+                            <span className="text-[11px] font-semibold text-muted-foreground shrink-0">+{f.points}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-1">{f.detail}</p>
+                          <p className="text-xs text-foreground">→ {f.recommendation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
         )}
 
