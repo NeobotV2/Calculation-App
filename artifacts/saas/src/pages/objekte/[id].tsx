@@ -17,7 +17,10 @@ import { getProjectWarnings, getWarningTypeKey } from "@/lib/warnings";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { toast } from "sonner";
 import { KpiRow } from "./detail-parts/KpiRow";
+import { WirtschaftlichkeitPanel } from "./detail-parts/WirtschaftlichkeitPanel";
 import { WarningsPanel } from "./detail-parts/WarningsPanel";
+import { calcPriceStrategy, calcSensitivity } from "@/lib/price-strategy";
+import { calcRiskScore } from "@/lib/risk-score";
 import { RoomRow } from "./detail-parts/RoomRow";
 import { OptionsMenu } from "./detail-parts/OptionsMenu";
 import { InfoSheet } from "./detail-parts/InfoSheet";
@@ -102,6 +105,31 @@ export default function ObjektDetail() {
     return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, targetMargin)
       .filter((w) => !disabled.has(getWarningTypeKey(w.id)));
   }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, disabledWarnings, targetMargin]);
+
+  const wirtschaft = useMemo(() => {
+    const strategyInput = {
+      monthlyHours: totals.hours,
+      area: totals.area,
+      effectiveRate,
+      vollkosten: breakdown.vollkosten,
+      targetMarkupPct: targetMargin,
+    };
+    const strategy = calcPriceStrategy(strategyInput);
+    return {
+      strategy,
+      sensitivity: calcSensitivity(strategyInput),
+      risk: calcRiskScore({
+        project,
+        monthlyHours: totals.hours,
+        area: totals.area,
+        monthlyCost: totals.cost,
+        marginPct: strategy.marginPct,
+        // Gleiche Basis wie marginPct: Umsatzmarge (konvertiert aus dem Aufschlag).
+        targetMarginPct: strategy.targetMarginPct,
+        usesDefaultRate: isDefaultRate && !project.hourlyRate,
+      }),
+    };
+  }, [project, totals, effectiveRate, breakdown, targetMargin, isDefaultRate]);
 
   const handleSaveName = async () => {
     if (nameInput.trim()) {
@@ -310,6 +338,17 @@ export default function ObjektDetail() {
         />
 
         <KpiRow totals={totals} />
+
+        {project.rooms.length > 0 && (
+          <div className="mb-6">
+            <WirtschaftlichkeitPanel
+              strategy={wirtschaft.strategy}
+              sensitivity={wirtschaft.sensitivity}
+              risk={wirtschaft.risk}
+              targetMarkupPct={targetMargin}
+            />
+          </div>
+        )}
 
         <div className="bg-card border border-border/20 rounded-2xl p-5 mb-6">
           <div className="flex items-center justify-between mb-3">

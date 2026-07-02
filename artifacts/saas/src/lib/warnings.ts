@@ -1,6 +1,7 @@
 import { type Project } from "@/store/use-store";
 import { calcProjectTotals, calcRoom } from "@/lib/calc";
 import { calcHourlyRate, type HourlyRateConfig, type HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
+import { markupToRevenueMargin } from "@/lib/price-strategy";
 
 export type WarningSeverity = "critical" | "warning" | "info";
 
@@ -51,7 +52,10 @@ export function getProjectWarnings(
 ): Warning[] {
   const warnings: Warning[] = [];
   const effectiveRate = project.hourlyRate ?? globalHourlyRate;
-  const marginTarget = targetMargin ?? hourlyRateConfig.gewinnmarge;
+  // targetMargin/gewinnmarge sind als AUFSCHLAG auf die Vollkosten definiert;
+  // marginPercent unten ist eine Marge AUF DEN UMSATZ. Für einen fairen
+  // Vergleich wird das Ziel in die Umsatzbasis konvertiert (10 % ⇒ 9,09 %).
+  const marginTarget = markupToRevenueMargin(targetMargin ?? hourlyRateConfig.gewinnmarge);
 
   if (project.rooms.length === 0) return warnings;
 
@@ -69,7 +73,7 @@ export function getProjectWarnings(
     ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
     : 0;
 
-  if (marginPercent >= 0 && marginPercent < marginTarget && effectiveRate >= breakdown.vollkosten) {
+  if (marginPercent >= 0 && marginPercent < marginTarget - 1e-9 && effectiveRate >= breakdown.vollkosten) {
     warnings.push({
       id: `${project.id}_low_margin`,
       severity: "warning",
