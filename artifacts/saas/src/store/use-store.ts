@@ -73,6 +73,16 @@ export interface CustomRoomType {
   performanceValue: number;
 }
 
+/**
+ * Nachkalkulation eines Objekts: tatsächlich geleistete Monatsstunden
+ * (inkl. aller Reinigungsintervalle) als Basis für den Plan/Ist-Vergleich.
+ */
+export interface Nachkalkulation {
+  actualMonthlyHours: number;
+  note?: string;
+  recordedAt: string;
+}
+
 interface AppState {
   hasSeenSplash: boolean;
   hasOnboarded: boolean;
@@ -104,6 +114,8 @@ interface AppState {
 
   projects: Project[];
   templates: Template[];
+  /** Nachkalkulationen je Projekt-ID (optionaler Slice, Default {}). */
+  nachkalkulationen: Record<string, Nachkalkulation>;
 
   setHasSeenSplash: () => void;
   completeOnboarding: (data: { role: string; companyName: string; hourlyRate: number; loadDemo: boolean }) => void;
@@ -122,6 +134,9 @@ interface AppState {
   duplicateProject: (id: string) => string;
   archiveProject: (id: string) => void;
   restoreProject: (id: string) => void;
+
+  setNachkalkulation: (projectId: string, data: { actualMonthlyHours: number; note?: string }) => void;
+  removeNachkalkulation: (projectId: string) => void;
 
   addRoom: (projectId: string, room: Omit<Room, "id">) => void;
   updateRoom: (projectId: string, roomId: string, room: Partial<Room>) => void;
@@ -230,6 +245,7 @@ export const useStore = create<AppState>()(
 
       projects: [],
       templates: [],
+      nachkalkulationen: {},
 
       setHasSeenSplash: () => set({ hasSeenSplash: true }),
 
@@ -254,6 +270,7 @@ export const useStore = create<AppState>()(
             user: null,
             projects: [],
             templates: [],
+            nachkalkulationen: {},
             customRoomTypes: [],
             hourlyRateConfig: getDefaultConfig(),
             plan: "free" as PlanId,
@@ -322,9 +339,32 @@ export const useStore = create<AppState>()(
         })),
 
       deleteProject: (id) =>
+        set((state) => {
+          // Zugehörige Nachkalkulation mit entfernen — kein verwaister Eintrag.
+          const { [id]: _removed, ...rest } = state.nachkalkulationen;
+          return {
+            projects: state.projects.filter((p) => p.id !== id),
+            nachkalkulationen: rest,
+          };
+        }),
+
+      setNachkalkulation: (projectId, data) =>
         set((state) => ({
-          projects: state.projects.filter((p) => p.id !== id),
+          nachkalkulationen: {
+            ...state.nachkalkulationen,
+            [projectId]: {
+              actualMonthlyHours: data.actualMonthlyHours,
+              note: data.note?.trim() || undefined,
+              recordedAt: new Date().toISOString(),
+            },
+          },
         })),
+
+      removeNachkalkulation: (projectId) =>
+        set((state) => {
+          const { [projectId]: _removed, ...rest } = state.nachkalkulationen;
+          return { nachkalkulationen: rest };
+        }),
 
       duplicateProject: (id) => {
         const original = get().projects.find((p) => p.id === id);
@@ -590,6 +630,7 @@ export const useStore = create<AppState>()(
           user: null,
           projects: [],
           templates: [],
+          nachkalkulationen: {},
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
           disabledWarnings: [],

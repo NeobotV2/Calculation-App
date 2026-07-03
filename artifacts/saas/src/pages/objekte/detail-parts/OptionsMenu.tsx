@@ -1,4 +1,4 @@
-import { Edit3, Copy, BookOpen, Eye, FileText, Archive, Trash2 } from "lucide-react";
+import { Edit3, Copy, BookOpen, Eye, FileText, FileSpreadsheet, Archive, Trash2 } from "lucide-react";
 
 export function OptionsMenu({
   onClose,
@@ -7,6 +7,7 @@ export function OptionsMenu({
   onSaveAsTemplate,
   onPdfPreview,
   onOpenPDF,
+  onInternalCalc,
   onArchive,
   onDelete,
 }: {
@@ -16,6 +17,7 @@ export function OptionsMenu({
   onSaveAsTemplate: () => void;
   onPdfPreview: () => void;
   onOpenPDF: () => void;
+  onInternalCalc: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }) {
@@ -28,6 +30,7 @@ export function OptionsMenu({
         <button role="menuitem" onClick={onSaveAsTemplate} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><BookOpen size={16} className="text-muted-foreground" aria-hidden="true" /> Als Vorlage speichern</button>
         <button role="menuitem" onClick={onPdfPreview} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Eye size={16} className="text-muted-foreground" aria-hidden="true" /> PDF-Vorschau</button>
         <button role="menuitem" onClick={onOpenPDF} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileText size={16} className="text-muted-foreground" aria-hidden="true" /> Angebot als PDF</button>
+        <button role="menuitem" onClick={onInternalCalc} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><FileSpreadsheet size={16} className="text-muted-foreground" aria-hidden="true" /> Interne Kalkulation</button>
         <button role="menuitem" onClick={onArchive} className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary"><Archive size={16} className="text-muted-foreground" aria-hidden="true" /> Archivieren</button>
         <button role="menuitem" onClick={onDelete} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-destructive hover:bg-destructive/10"><Trash2 size={16} aria-hidden="true" /> Löschen</button>
       </div>

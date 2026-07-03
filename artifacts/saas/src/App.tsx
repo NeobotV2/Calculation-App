@@ -28,6 +28,7 @@ const AuswertungDetail = lazy(() => import("@/pages/auswertung/[id]"));
 const Vorlagen = lazy(() => import("@/pages/vorlagen"));
 const Ausschreibung = lazy(() => import("@/pages/ausschreibung"));
 const PrintView = lazy(() => import("@/pages/print/[id]"));
+const InternPrintView = lazy(() => import("@/pages/print/intern-[id]"));
 const Einstellungen = lazy(() => import("@/pages/einstellungen"));
 const KalkulationWizard = lazy(() => import("@/pages/kalkulation-wizard"));
 const Konto = lazy(() => import("@/pages/konto"));
@@ -158,6 +159,7 @@ function AppRouter() {
         <Route path="/auswertung/:id" component={AuswertungDetail} />
         <Route path="/vorlagen" component={Vorlagen} />
         <Route path="/ausschreibung" component={Ausschreibung} />
+        <Route path="/print/:id/intern" component={InternPrintView} />
         <Route path="/print/:id" component={PrintView} />
         <Route path="/einstellungen" component={Einstellungen} />
         <Route path="/stundensatz" component={StundensatzRedirect} />

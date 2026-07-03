@@ -225,6 +225,11 @@ export default function ObjektDetail() {
     setMenuOpen(false);
   };
 
+  const handleOpenInternalCalc = () => {
+    setLocation(`/print/${project.id}/intern`);
+    setMenuOpen(false);
+  };
+
   const handleDuplicate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
@@ -304,6 +309,7 @@ export default function ObjektDetail() {
           onSaveAsTemplate={handleSaveAsTemplate}
           onPdfPreview={() => { setShowPdfPreview(true); setMenuOpen(false); }}
           onOpenPDF={handleOpenPDF}
+          onInternalCalc={handleOpenInternalCalc}
           onArchive={handleArchive}
           onDelete={() => { setMenuOpen(false); setDeleteConfirm(true); }}
         />

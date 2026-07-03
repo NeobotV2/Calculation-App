@@ -2,11 +2,17 @@ import { useRoute, useLocation } from "wouter";
 import { useStore } from "@/store/use-store";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { UpgradeModal } from "@/components/upgrade-modal";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { canUsePDF } from "@/lib/feature-gates";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, X, PieChart as PieChartIcon, BarChart3 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { ArrowLeft, Download, X, PieChart as PieChartIcon, BarChart3, ClipboardCheck } from "lucide-react";
 import { calcProjectTotals, calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { compareNachkalkulation } from "@/lib/nachkalkulation";
+import { formatCurrency, formatNumber, formatDate, cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from "recharts";
@@ -31,8 +37,17 @@ export default function AuswertungDetail() {
 
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
+  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const nachkalkulation = useStore((s) => (id ? s.nachkalkulationen[id] : undefined));
+  const setNachkalkulation = useStore((s) => s.setNachkalkulation);
+  const removeNachkalkulation = useStore((s) => s.removeNachkalkulation);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
+  const [nkHours, setNkHours] = useState("");
+  const [nkNote, setNkNote] = useState("");
+  const [nkEditing, setNkEditing] = useState(false);
+  const [nkRemoveConfirm, setNkRemoveConfirm] = useState(false);
+  const vollkosten = useMemo(() => calcHourlyRate(hourlyRateConfig).vollkosten, [hourlyRateConfig]);
 
   if (!project) {
     return (
@@ -49,6 +64,51 @@ export default function AuswertungDetail() {
 
   const effectiveRate = project.hourlyRate ?? hourlyRate;
   const totals = calcProjectTotals(project, effectiveRate);
+
+  // Echte Kostenbasis statt Pauschalannahmen: Vollkosten aus dem
+  // Verrechnungssatz-Kalkulator, Gewinnbeitrag = Preis − Vollkosten.
+  const vollkostenMonthly = totals.hours * vollkosten;
+  const gewinnbeitrag = totals.cost - vollkostenMonthly;
+  const realeMargePct = totals.cost > 0 ? (gewinnbeitrag / totals.cost) * 100 : 0;
+
+  const nkResult = nachkalkulation
+    ? compareNachkalkulation({
+        plannedHours: totals.hours,
+        actualHours: nachkalkulation.actualMonthlyHours,
+        monthlyPrice: totals.cost,
+        vollkosten,
+        area: totals.area,
+      })
+    : null;
+
+  const nkVerdictMeta = nkResult
+    ? nkResult.verdict === "besser"
+      ? { label: "Besser als geplant", tone: "text-success" }
+      : nkResult.verdict === "im_plan"
+        ? { label: "Im Plan", tone: "text-success" }
+        : nkResult.actualMarginPct < 0
+          ? { label: "Kritisch — Verlust", tone: "text-destructive" }
+          : { label: "Schlechter als geplant", tone: "text-warning" }
+    : null;
+
+  const handleNkSave = () => {
+    const parsed = parseFloat(nkHours.replace(",", "."));
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      toast.error("Bitte geben Sie die tatsächlichen Monatsstunden ein (z. B. 42,5).");
+      return;
+    }
+    setNachkalkulation(project.id, { actualMonthlyHours: parsed, note: nkNote });
+    setNkEditing(false);
+    setNkHours("");
+    setNkNote("");
+    toast.success("Nachkalkulation gespeichert");
+  };
+
+  const startNkEditing = () => {
+    setNkHours(nachkalkulation ? String(nachkalkulation.actualMonthlyHours).replace(".", ",") : "");
+    setNkNote(nachkalkulation?.note ?? "");
+    setNkEditing(true);
+  };
 
   const groupMap = new Map<string, { hours: number; cost: number }>();
   project.rooms.forEach((r) => {
@@ -273,18 +333,107 @@ export default function AuswertungDetail() {
             <h3 className="font-semibold mb-4 text-lg tracking-tight">Profi-Controlling</h3>
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-border/20">
-                <span className="text-sm text-muted-foreground">Materialkosten (3%)</span>
-                <span className="font-medium text-sm">{formatCurrency(totals.cost * 0.03)}</span>
+                <span className="text-sm text-muted-foreground">Vollkosten (Lohn, SV, Ausfall, Gemeinkosten)</span>
+                <span className="font-medium text-sm">{formatCurrency(vollkostenMonthly)}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-border/20">
-                <span className="text-sm text-muted-foreground">Lohnkosten</span>
-                <span className="font-medium text-sm">{formatCurrency(totals.cost * 0.7)}</span>
+                <span className="text-sm text-muted-foreground">Vollkostensatz</span>
+                <span className="font-medium text-sm">{formatCurrency(vollkosten)}/h</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-primary font-semibold text-sm">Deckungsbeitrag</span>
-                <span className="font-bold text-primary">{formatCurrency(totals.cost * 0.27)}</span>
+                <span className="text-primary font-semibold text-sm">Gewinnbeitrag ({formatNumber(realeMargePct, 1)} % v. Umsatz)</span>
+                <span className={cn("font-bold", gewinnbeitrag < 0 ? "text-destructive" : "text-primary")}>{formatCurrency(gewinnbeitrag)}</span>
               </div>
             </div>
+            <p className="text-[11px] text-muted-foreground mt-3">
+              Basis: Ihr Verrechnungssatz-Kalkulator (Vollkosten ohne Gewinnmarge).
+            </p>
+          </div>
+        </div>
+
+        {/* ── Nachkalkulation: Plan vs. Ist ─────────────────────────── */}
+        <div className="rounded-3xl overflow-hidden border border-border/30 bg-card">
+          <div className="p-6">
+            <h3 className="font-semibold mb-1 text-lg tracking-tight flex items-center gap-2">
+              <ClipboardCheck size={18} className="text-muted-foreground" aria-hidden="true" />
+              Nachkalkulation
+            </h3>
+
+            {!nachkalkulation && !nkEditing && (
+              <>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Erfassen Sie die tatsächlichen Monatsstunden, um Plan und Realität zu
+                  vergleichen — die Grundlage für bessere zukünftige Kalkulationen.
+                </p>
+                <Button variant="outline" onClick={startNkEditing}>
+                  Ist-Stunden erfassen
+                </Button>
+              </>
+            )}
+
+            {nkEditing && (
+              <div className="space-y-4 mt-3">
+                <FormField id="nk-hours" label="Ist-Stunden pro Monat" required hint={`Plan: ${formatNumber(totals.hours, 1)} h/Monat`}>
+                  <Input
+                    inputMode="decimal"
+                    value={nkHours}
+                    onChange={(e) => setNkHours(e.target.value)}
+                    placeholder="z. B. 42,5"
+                    className="bg-background h-12"
+                  />
+                </FormField>
+                <FormField id="nk-note" label="Notiz (optional)">
+                  <Input
+                    value={nkNote}
+                    onChange={(e) => setNkNote(e.target.value)}
+                    placeholder="z. B. Mehraufwand durch Umbau im EG"
+                    className="bg-background h-12"
+                  />
+                </FormField>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={() => setNkEditing(false)}>Abbrechen</Button>
+                  <Button className="flex-1" onClick={handleNkSave}>Speichern</Button>
+                </div>
+              </div>
+            )}
+
+            {nachkalkulation && nkResult && nkVerdictMeta && !nkEditing && (
+              <div className="mt-3">
+                <p className={cn("text-sm font-semibold mb-4", nkVerdictMeta.tone)}>{nkVerdictMeta.label}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Stunden Plan → Ist</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">
+                      {formatNumber(totals.hours, 1)} → {formatNumber(nachkalkulation.actualMonthlyHours, 1)} h
+                    </p>
+                    <p className={cn("text-[11px] font-medium", nkResult.hoursDeviationPct > 5 ? "text-warning" : nkResult.hoursDeviationPct < -2 ? "text-success" : "text-muted-foreground")}>
+                      {nkResult.hoursDeviationPct > 0 ? "+" : ""}{formatNumber(nkResult.hoursDeviationPct, 1)} % Abweichung
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Marge Plan → Ist</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">
+                      {formatNumber(nkResult.plannedMarginPct, 1)} → <span className={nkResult.actualMarginPct < 0 ? "text-destructive" : nkResult.actualMarginPct < nkResult.plannedMarginPct ? "text-warning" : "text-success"}>{formatNumber(nkResult.actualMarginPct, 1)} %</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">bei festem Monatspreis</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Ist-Kosten/Monat</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{formatCurrency(nkResult.actualCostMonthly)}</p>
+                    <p className="text-[11px] text-muted-foreground">zu Vollkosten</p>
+                  </div>
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Erfasst am</p>
+                    <p className="text-lg font-bold tabular-nums text-foreground">{formatDate(nachkalkulation.recordedAt)}</p>
+                    {nachkalkulation.note && <p className="text-[11px] text-muted-foreground truncate" title={nachkalkulation.note}>{nachkalkulation.note}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="flex-1" onClick={startNkEditing}>Aktualisieren</Button>
+                  <Button variant="outline" className="flex-1 text-destructive hover:bg-destructive/10" onClick={() => setNkRemoveConfirm(true)}>Entfernen</Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -294,6 +443,15 @@ export default function AuswertungDetail() {
       </div>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason="pdf_export" />
+      <ConfirmDialog
+        open={nkRemoveConfirm}
+        onClose={() => setNkRemoveConfirm(false)}
+        onConfirm={() => { removeNachkalkulation(project.id); setNkRemoveConfirm(false); toast.success("Nachkalkulation entfernt"); }}
+        title="Nachkalkulation entfernen?"
+        description="Die erfassten Ist-Stunden werden gelöscht."
+        confirmLabel="Entfernen"
+        destructive
+      />
     </PageTransition>
   );
 }
