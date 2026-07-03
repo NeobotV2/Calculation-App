@@ -42,7 +42,17 @@ export interface RiskInput {
   targetMarginPct: number;
   /** Es wird der unveränderte Standard-Verrechnungssatz genutzt. */
   usesDefaultRate: boolean;
+  /**
+   * Ist-Stunden aus der Nachkalkulation (falls erfasst) — Evidenz aus dem
+   * laufenden Betrieb schlägt Heuristik: deutliche Mehrstunden erhöhen das
+   * Risiko dieser Kalkulation unmittelbar.
+   */
+  actualMonthlyHours?: number;
 }
+
+/** Ab +5 % Ist-Mehrstunden: Hinweis; ab +10 %: deutliches Risiko. */
+export const NACHKALK_LIGHT_OVERRUN = 0.05;
+export const NACHKALK_HEAVY_OVERRUN = 0.10;
 
 export function calcRiskScore(input: RiskInput): RiskResult {
   const factors: RiskFactor[] = [];
@@ -117,6 +127,21 @@ export function calcRiskScore(input: RiskInput): RiskResult {
     add("lv_incomplete", 8, "Leistungsverzeichnis unvollständig",
       `${incompleteRooms} Raum/Räume ohne Fläche.`,
       "Flächen vervollständigen, bevor das Angebot versendet wird.");
+  }
+
+  // 8. Nachkalkulation: Ist-Stunden über Plan (Evidenz aus dem Betrieb)
+  const actual = input.actualMonthlyHours;
+  if (actual !== undefined && Number.isFinite(actual) && actual > 0 && monthlyHours > 0) {
+    const overrun = (actual - monthlyHours) / monthlyHours;
+    if (overrun > NACHKALK_HEAVY_OVERRUN) {
+      add("nachkalk_overrun", 15, "Nachkalkulation: deutliche Mehrstunden",
+        `Ist ${actual.toFixed(1)} h statt geplanter ${monthlyHours.toFixed(1)} h (+${(overrun * 100).toFixed(0)} %).`,
+        "Leistungswerte dieses Objekts korrigieren — die reale Marge liegt unter Plan.");
+    } else if (overrun > NACHKALK_LIGHT_OVERRUN) {
+      add("nachkalk_drift", 8, "Nachkalkulation: Mehrstunden",
+        `Ist ${actual.toFixed(1)} h statt geplanter ${monthlyHours.toFixed(1)} h (+${(overrun * 100).toFixed(0)} %).`,
+        "Entwicklung beobachten; bei Verstetigung Leistungswerte anpassen.");
+    }
   }
 
   const score = Math.min(100, factors.reduce((s, f) => s + f.points, 0));

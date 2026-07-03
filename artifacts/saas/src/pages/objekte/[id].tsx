@@ -34,6 +34,7 @@ export default function ObjektDetail() {
   const project = useStore((s) => s.projects.find((p) => p.id === id));
   const hourlyRate = useStore((s) => s.hourlyRate);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
+  const nachkalkulation = useStore((s) => (id ? s.nachkalkulationen[id] : undefined));
   const disabledWarnings = useStore((s) => s.disabledWarnings);
   const targetMargin = useStore((s) => s.targetMargin);
   const plan = useStore((s) => s.plan);
@@ -127,9 +128,11 @@ export default function ObjektDetail() {
         // Gleiche Basis wie marginPct: Umsatzmarge (konvertiert aus dem Aufschlag).
         targetMarginPct: strategy.targetMarginPct,
         usesDefaultRate: isDefaultRate && !project.hourlyRate,
+        // Evidenz aus dem Betrieb: erfasste Ist-Stunden der Nachkalkulation.
+        actualMonthlyHours: nachkalkulation?.actualMonthlyHours,
       }),
     };
-  }, [project, totals, effectiveRate, breakdown, targetMargin, isDefaultRate]);
+  }, [project, totals, effectiveRate, breakdown, targetMargin, isDefaultRate, nachkalkulation]);
 
   const handleSaveName = async () => {
     if (nameInput.trim()) {

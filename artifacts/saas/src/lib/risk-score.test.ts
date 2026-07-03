@@ -77,6 +77,23 @@ describe("calcRiskScore", () => {
     expect(r.factors.some((f) => f.key === "staffing_multi")).toBe(true);
   });
 
+  it("feeds Nachkalkulation actuals back as an evidence-based factor", () => {
+    // +12,5 % Mehrstunden → deutliches Risiko
+    const heavy = calcRiskScore(baseInput({ monthlyHours: 40, actualMonthlyHours: 45 }));
+    expect(heavy.factors.some((f) => f.key === "nachkalk_overrun")).toBe(true);
+
+    // +7,5 % → Hinweis-Stufe
+    const light = calcRiskScore(baseInput({ monthlyHours: 40, actualMonthlyHours: 43 }));
+    expect(light.factors.some((f) => f.key === "nachkalk_drift")).toBe(true);
+    expect(light.factors.some((f) => f.key === "nachkalk_overrun")).toBe(false);
+
+    // Im Plan (+2,5 %) oder besser → kein Faktor
+    const ok = calcRiskScore(baseInput({ monthlyHours: 40, actualMonthlyHours: 41 }));
+    expect(ok.factors.some((f) => f.key.startsWith("nachkalk"))).toBe(false);
+    const none = calcRiskScore(baseInput({ monthlyHours: 40 }));
+    expect(none.factors.some((f) => f.key.startsWith("nachkalk"))).toBe(false);
+  });
+
   it("accumulates to high risk and caps at 100", () => {
     const p = project({
       ruestzeit: 0,
