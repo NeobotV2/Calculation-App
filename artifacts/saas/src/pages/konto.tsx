@@ -1,17 +1,85 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Link, useLocation } from "wouter";
+import { toast } from "sonner";
+import {
+  CircleCheck,
+  Crown,
+  ExternalLink,
+  KeyRound,
+  LogOut,
+  Mail,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  UserRound,
+  UserX,
+} from "lucide-react";
 import { useStore } from "@/store/use-store";
 import { useAuth } from "@/lib/auth-context";
-import { PageTransition } from "@/components/layout/PageTransition";
-import { ConfirmDialog } from "@/components/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { User, LogOut, ShieldAlert, Crown, CheckCircle2, AlertTriangle, FileText, Shield, ScrollText, ChevronRight, Mail, RefreshCw, Key, Trash2, Sparkles, ExternalLink } from "lucide-react";
-import { toast } from "sonner";
 import { getObjectLimit, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { getPlanMeta, isFoundingPlan } from "@/lib/billing-config";
 import { isNative } from "@/lib/capacitor";
 import { trackUpgradeCtaClicked } from "@/services/analytics-service";
+import { cn } from "@/lib/utils";
+import { PageTransition } from "@/components/layout/PageTransition";
+import { PageShell } from "@/components/layout/PageShell";
+import { Section } from "@/components/layout/Section";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Callout } from "@/components/ui/callout";
+import { ListRow } from "@/components/ui/list-row";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const DELETE_CONFIRM_WORD = "LÖSCHEN";
+const SUPPORT_EMAIL = "support@cleancalc.de";
+
+function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const fill = pct >= 100 ? "bg-destructive" : pct >= 66 ? "bg-warning" : "bg-primary";
+  return (
+    <div className="space-y-2">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="font-medium text-foreground">{label}</span>
+        <span className="tabular-nums text-muted-foreground">
+          {used} / {limit}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-label={label}
+        aria-valuemin={0}
+        aria-valuemax={limit}
+        aria-valuenow={Math.min(used, limit)}
+        className="h-2 w-full overflow-hidden rounded-full bg-muted"
+      >
+        <div className={cn("h-full rounded-full transition-[width] motion-reduce:transition-none", fill)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function Feature({ children }: { children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-2 text-sm text-foreground">
+      <CircleCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+      <span>{children}</span>
+    </li>
+  );
+}
 
 export default function Konto() {
   const [, setLocation] = useLocation();
@@ -25,354 +93,360 @@ export default function Konto() {
   const isDemo = useStore((s) => s.isDemo);
   const { signOut, isAuthenticated, user: authUser, resendConfirmation } = useAuth();
 
-  const [showReset, setShowReset] = useState(false);
-  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetWord, setResetWord] = useState("");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownTimer = useRef<number | null>(null);
+  const resetFieldId = useId();
 
+  useEffect(
+    () => () => {
+      if (cooldownTimer.current !== null) window.clearInterval(cooldownTimer.current);
+    },
+    [],
+  );
+
+  const paid = isPaidPlan(plan);
+  const planMeta = getPlanMeta(plan);
   const emailConfirmed = authUser?.email_confirmed_at != null;
-
-  const activeProjects = projects.filter(p => p.status !== "archived").length;
+  const activeProjects = projects.filter((p) => p.status !== "archived").length;
+  const largestProjectRooms = projects.reduce((max, p) => Math.max(max, p.rooms.length), 0);
   const objectLimit = getObjectLimit();
   const roomLimit = getRoomLimit();
-  const projectPercent = isPaidPlan(plan) ? 0 : Math.min(100, Math.round((activeProjects / objectLimit) * 100));
-  const largestProjectRooms = projects.reduce((max, p) => Math.max(max, p.rooms.length), 0);
-  const roomsPercent = isPaidPlan(plan) ? 0 : Math.min(100, Math.round((largestProjectRooms / roomLimit) * 100));
-  const planMeta = getPlanMeta(plan);
+  const displayName = user?.name || companyName;
+  const initial = (displayName || "?").trim().charAt(0).toUpperCase() || "?";
+  const resetConfirmed = resetWord.trim() === DELETE_CONFIRM_WORD;
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    if (isAuthenticated) {
-      await signOut();
+    try {
+      if (isAuthenticated) await signOut();
+      clearSession();
+      toast.success("Sie wurden abgemeldet.");
+      setLocation("/login");
+    } finally {
+      setIsLoggingOut(false);
     }
-    clearSession();
-    setIsLoggingOut(false);
-    toast.success("Abgemeldet");
-    setLocation("/login");
   };
 
   const handleReset = () => {
     resetAll();
-    toast.success("Alle Daten gelöscht");
+    setShowReset(false);
+    toast.success("Alle Daten wurden gelöscht.");
     setLocation("/splash");
   };
 
   const handlePasswordChange = () => {
-    if (isAuthenticated) {
-      setLocation("/passwort-vergessen");
-    } else {
-      toast.info("Passwort-Änderung ist nur mit einem registrierten Account möglich.");
-    }
+    if (isAuthenticated) setLocation("/passwort-vergessen");
+    else toast.info("Ein Passwort lässt sich nur mit einem registrierten Account ändern.");
   };
 
-  const handleDeleteAccount = () => {
-    toast.info("Account-Löschung wird in einer zukünftigen Version verfügbar sein. Kontaktiere uns per E-Mail.");
-    setShowDeleteAccount(false);
+  const handleResend = async () => {
+    if (!authUser?.email || isResending || resendCooldown > 0) return;
+    setIsResending(true);
+    const result = await resendConfirmation(authUser.email);
+    setIsResending(false);
+    if (result.error) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Bestätigungs-E-Mail gesendet.");
+    setResendCooldown(60);
+    if (cooldownTimer.current !== null) window.clearInterval(cooldownTimer.current);
+    cooldownTimer.current = window.setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          if (cooldownTimer.current !== null) window.clearInterval(cooldownTimer.current);
+          cooldownTimer.current = null;
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const openSubscriptionManagement = () => {
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    window.open(
+      isIos ? "https://apps.apple.com/account/subscriptions" : "https://play.google.com/store/account/subscriptions",
+      "_blank",
+      "noopener,noreferrer",
+    );
   };
 
   return (
-    <PageTransition className="min-h-screen pb-28 md:pb-8 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2 max-w-5xl mx-auto">Profil & Plan</h1>
-      </div>
-
-      <div className="p-6 space-y-6 max-w-5xl mx-auto">
+    <PageTransition>
+      <PageShell width="narrow" header={<PageHeader title="Profil & Konto" width="narrow" />}>
         {isDemo && !isAuthenticated && (
-          <div className="bg-warning/10 border border-warning/30 rounded-2xl p-4 flex items-start gap-3">
-            <AlertTriangle size={20} className="text-warning shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-sm text-foreground">Demo-Modus</p>
-              <p className="text-xs text-muted-foreground mt-1">Sie sind nicht angemeldet. Ihre Daten werden nur lokal gespeichert und gehen beim Löschen des Browsers verloren.</p>
-              <Button variant="outline" size="sm" className="mt-3 border-warning/30 text-foreground hover:bg-warning/10" onClick={() => setLocation("/login")}>Jetzt anmelden</Button>
-            </div>
-          </div>
+          <Callout
+            tone="warning"
+            title="Demo-Modus"
+            action={
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/login">Jetzt anmelden</Link>
+              </Button>
+            }
+          >
+            Sie sind nicht angemeldet. Ihre Daten werden nur lokal auf diesem Gerät gespeichert und gehen verloren, wenn
+            Sie die Browserdaten löschen.
+          </Callout>
         )}
 
-        <div className="bg-card border border-border/40 rounded-3xl p-6 flex items-center gap-6">
-          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center text-3xl font-semibold text-foreground border border-border/50 shrink-0">
-            {user?.name?.charAt(0) || companyName.charAt(0)}
-          </div>
-          <div className="min-w-0">
-            <h2 className="font-semibold text-2xl text-foreground mb-1 truncate">{user?.name || companyName}</h2>
-            <p className="text-muted-foreground text-sm mb-3">{user?.email || "demo@cleancalc.pro"}</p>
-            <div className="inline-flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-md text-xs font-medium text-foreground">
-              <User size={14} /> {user?.role || "Inhaber"}
+        {/* Profil */}
+        <Card as="section" aria-label="Profil">
+          <div className="flex items-center gap-4">
+            <div
+              aria-hidden="true"
+              className="flex size-14 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-h2 text-foreground"
+            >
+              {initial}
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="truncate text-h3 text-foreground">{displayName}</p>
+              <p className="truncate text-sm text-muted-foreground">{user?.email || authUser?.email || "Kein Account"}</p>
+              <Badge tone="neutral" size="sm">
+                <UserRound aria-hidden="true" />
+                {user?.role || "Inhaber"}
+              </Badge>
             </div>
           </div>
-        </div>
+        </Card>
 
         {isAuthenticated && !emailConfirmed && (
-          <div className="bg-warning/10 border border-warning/30 rounded-2xl p-4 flex items-start gap-3">
-            <Mail size={20} className="text-warning shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="font-medium text-sm text-foreground">E-Mail nicht bestätigt</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Bitte bestätigen Sie Ihre E-Mail-Adresse ({authUser?.email}), um alle Funktionen nutzen zu können.
-              </p>
+          <Callout
+            tone="warning"
+            icon={Mail}
+            title="E-Mail-Adresse nicht bestätigt"
+            action={
               <Button
-                variant="outline"
+                type="button"
                 size="sm"
-                className="mt-3 border-warning/30 text-foreground hover:bg-warning/10"
-                disabled={isResendingVerification || resendCooldown > 0}
-                onClick={async () => {
-                  if (!authUser?.email) return;
-                  setIsResendingVerification(true);
-                  const result = await resendConfirmation(authUser.email);
-                  setIsResendingVerification(false);
-                  if (result.error) {
-                    toast.error(result.error);
-                  } else {
-                    toast.success("Bestätigungs-E-Mail gesendet!");
-                    setResendCooldown(60);
-                    const interval = setInterval(() => {
-                      setResendCooldown((prev) => {
-                        if (prev <= 1) { clearInterval(interval); return 0; }
-                        return prev - 1;
-                      });
-                    }, 1000);
-                  }
-                }}
+                variant="secondary"
+                loading={isResending}
+                disabled={resendCooldown > 0}
+                onClick={() => void handleResend()}
               >
-                {isResendingVerification ? (
-                  <span className="flex items-center gap-2">
-                    <RefreshCw size={14} className="animate-spin" /> Wird gesendet...
-                  </span>
-                ) : resendCooldown > 0 ? (
-                  `Erneut senden (${resendCooldown}s)`
-                ) : (
-                  <>
-                    <RefreshCw size={14} className="mr-1" /> E-Mail erneut senden
-                  </>
-                )}
+                {!isResending && <RefreshCw aria-hidden="true" />}
+                {resendCooldown > 0 ? `Erneut senden (${resendCooldown} s)` : "E-Mail erneut senden"}
               </Button>
-            </div>
-          </div>
+            }
+          >
+            Bitte bestätigen Sie Ihre E-Mail-Adresse ({authUser?.email}), um alle Funktionen nutzen zu können.
+          </Callout>
         )}
-
         {isAuthenticated && emailConfirmed && (
-          <div className="flex items-center gap-2 px-1">
-            <CheckCircle2 size={16} className="text-success" />
-            <span className="text-xs text-muted-foreground">E-Mail bestätigt</span>
-          </div>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CircleCheck aria-hidden="true" className="size-4 text-success" />
+            E-Mail-Adresse bestätigt
+          </p>
         )}
 
-        {!isPaidPlan(plan) && (
-          <div className="bg-card border border-border/40 rounded-3xl p-6">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-4">Nutzung</p>
-            <div>
-              <div className="flex justify-between items-baseline mb-2">
-                <span className="text-sm font-medium text-foreground">Aktive Objekte</span>
-                <span className="text-sm text-muted-foreground">{activeProjects} / {objectLimit}</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${projectPercent >= 100 ? "bg-destructive" : projectPercent >= 66 ? "bg-warning" : "bg-primary"}`}
-                  style={{ width: `${projectPercent}%` }}
-                />
-              </div>
-              {projectPercent >= 100 && (
-                <p className="text-xs text-destructive mt-2">Objektlimit erreicht — mit dem Pro-Plan kalkulieren Sie unbegrenzt viele Objekte parallel.</p>
-              )}
-            </div>
-            <div className="mt-5 pt-5 border-t border-border/20">
-              <div className="flex justify-between items-baseline mb-2">
-                <span className="text-sm font-medium text-foreground">Räume (größtes Objekt)</span>
-                <span className="text-sm text-muted-foreground">{largestProjectRooms} / {roomLimit}</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${roomsPercent >= 100 ? "bg-destructive" : roomsPercent >= 66 ? "bg-warning" : "bg-primary"}`}
-                  style={{ width: `${roomsPercent}%` }}
-                />
-              </div>
-              {roomsPercent >= 100 && (
-                <p className="text-xs text-destructive mt-2">Raumlimit erreicht — im Pro-Plan gibt es keine Beschränkung bei der Raumanzahl.</p>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Plan */}
+        <Section title="Plan">
+          <Card tone={paid ? "brand" : "default"}>
+            <CardHeader
+              title={
+                <span className="inline-flex items-center gap-2">
+                  {paid ? planMeta.label : "Basic"}
+                  {paid && <Crown aria-hidden="true" className="size-4 text-primary" />}
+                  {isFoundingPlan(plan) && <Sparkles aria-hidden="true" className="size-4 text-primary" />}
+                </span>
+              }
+              description="Ihr aktueller Plan"
+              action={
+                <Badge tone={paid ? "brand" : "neutral"} size="sm">
+                  Aktueller Plan
+                </Badge>
+              }
+            />
+            <ul className="space-y-2">
+              <Feature>
+                {paid
+                  ? "Unbegrenzt Objekte und Räume"
+                  : `${objectLimit} kostenlose${objectLimit === 1 ? "s" : ""} Objekt${objectLimit === 1 ? "" : "e"}`}
+              </Feature>
+              <Feature>{paid ? "Druckfertige PDF-Angebote" : "Angebotsvorschau"}</Feature>
+              <Feature>{paid ? "Vorlagen, Branding und eigene Leistungswerte" : "Standard-Leistungswerte"}</Feature>
+            </ul>
 
-        <div className={`rounded-3xl p-1 border ${isPaidPlan(plan) ? "border-primary/50 bg-primary/5" : "border-border/40 bg-card"}`}>
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-2">Ihr Plan</p>
-                <h3 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                  {planMeta.label}
-                  {isPaidPlan(plan) && <Crown size={24} className="text-primary" />}
-                  {isFoundingPlan(plan) && <Sparkles size={18} className="text-primary" />}
-                </h3>
-              </div>
-            </div>
-
-            <div className="space-y-4 mb-8">
-              <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Unbegrenzt Objekte & Räume" : `${objectLimit} kostenlose${objectLimit === 1 ? "s" : ""} Objekt${objectLimit > 1 ? "e" : ""}`}</span>
-              </div>
-              <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Druckfertige PDF-Angebote" : "Angebotsvorschau"}</span>
-              </div>
-              <div className="flex items-center gap-3 text-base text-foreground">
-                <CheckCircle2 size={20} className="text-primary" /> <span>{isPaidPlan(plan) ? "Vorlagen, Branding & individuelle Leistungswerte" : "Standard-Leistungswerte"}</span>
-              </div>
-            </div>
-
-            {!isPaidPlan(plan) && (
-              <Button onClick={() => { trackUpgradeCtaClicked("konto"); setLocation("/upgrade"); }} className="w-full h-14 text-lg">Pro-Plan ansehen</Button>
-            )}
-          </div>
-        </div>
-
-        {isPaidPlan(plan) && (
-          <div className="bg-card border border-border/40 rounded-3xl p-6">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-4">Abonnement</p>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Plan</span>
-                <span className="text-sm font-medium text-foreground">{planMeta.label}</span>
-              </div>
-              {isFoundingPlan(plan) && (
-                <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-xl px-3 py-2">
-                  <Sparkles size={14} className="text-primary" />
-                  <span className="text-xs text-foreground">Founding Member — Ihr Sondertarif bleibt dauerhaft erhalten.</span>
-                </div>
-              )}
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <span className="text-sm font-medium text-success">Aktiv</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Nächste Verlängerung</span>
-                <span className="text-sm text-muted-foreground">—</span>
-              </div>
-              <div className="pt-3 border-t border-border/20 space-y-2">
-                {isNative ? (
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-11 text-sm bg-background"
-                    onClick={() => {
-                      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                      const url = isIos
-                        ? "https://apps.apple.com/account/subscriptions"
-                        : "https://play.google.com/store/account/subscriptions";
-                      window.open(url, "_blank");
-                    }}
-                  >
-                    <span className="flex items-center gap-2">
-                      Abo verwalten
-                    </span>
-                    <ExternalLink size={14} className="text-muted-foreground" />
-                  </Button>
-                ) : (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Abonnements werden über den App Store / Google Play verwaltet.
+            {!paid && (
+              <div className="mt-5 space-y-4 border-t border-border pt-5">
+                <UsageBar label="Aktive Objekte" used={activeProjects} limit={objectLimit} />
+                <UsageBar label="Räume (größtes Objekt)" used={largestProjectRooms} limit={roomLimit} />
+                {(activeProjects >= objectLimit || largestProjectRooms >= roomLimit) && (
+                  <p className="text-sm text-muted-foreground">
+                    Limit erreicht – mit dem Pro-Plan kalkulieren Sie unbegrenzt viele Objekte und Räume.
                   </p>
                 )}
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        <div className="space-y-1">
-          <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-3 ml-1">Konto-Verwaltung</h3>
-          <button
-            onClick={handlePasswordChange}
-            className="w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors rounded-b-none"
-          >
-            <span className="flex items-center gap-3">
-              <Key size={16} className="text-muted-foreground" />
-              Passwort ändern
-            </span>
-            <ChevronRight size={14} className="text-muted-foreground" />
-          </button>
-          <button
-            onClick={() => setShowDeleteAccount(true)}
-            className="w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition-colors rounded-t-none border-t-0"
-          >
-            <span className="flex items-center gap-3">
-              <Trash2 size={16} />
-              Account löschen
-            </span>
-            <ChevronRight size={14} className="text-muted-foreground" />
-          </button>
-        </div>
+            {paid ? (
+              <dl className="mt-5 space-y-2 border-t border-border pt-5 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Status</dt>
+                  <dd className="flex items-center gap-1 font-medium text-success">
+                    <CircleCheck aria-hidden="true" className="size-4" />
+                    Aktiv
+                  </dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-muted-foreground">Nächste Verlängerung</dt>
+                  <dd className="text-muted-foreground">–</dd>
+                </div>
+                {isFoundingPlan(plan) && (
+                  <p className="pt-2 text-sm text-muted-foreground">
+                    Founding Member – Ihr Sondertarif bleibt dauerhaft erhalten.
+                  </p>
+                )}
+              </dl>
+            ) : null}
 
-        <div className="space-y-1">
-          <h3 className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold mb-3 ml-1">Rechtliches</h3>
-          {[
-            { href: "/impressum", icon: FileText, label: "Impressum" },
-            { href: "/datenschutz", icon: Shield, label: "Datenschutzerklärung" },
-            { href: "/agb", icon: ScrollText, label: "AGB" },
-          ].map((item, i, arr) => (
-            <button
-              key={item.href}
-              onClick={() => setLocation(item.href)}
-              className={`w-full flex items-center justify-between h-12 px-4 bg-card border border-border/40 text-sm text-foreground hover:bg-secondary transition-colors ${i === 0 ? "rounded-xl rounded-b-none" : i === arr.length - 1 ? "rounded-xl rounded-t-none border-t-0" : "rounded-none border-t-0"}`}
-            >
-              <span className="flex items-center gap-3">
-                <item.icon size={16} className="text-muted-foreground" />
-                {item.label}
-              </span>
-              <ChevronRight size={14} className="text-muted-foreground" />
-            </button>
-          ))}
-        </div>
+            <CardFooter>
+              {paid ? (
+                isNative ? (
+                  <Button type="button" variant="secondary" onClick={openSubscriptionManagement}>
+                    Abo verwalten
+                    <ExternalLink aria-hidden="true" />
+                  </Button>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Abonnements werden über den App Store bzw. Google Play verwaltet.</p>
+                )
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    trackUpgradeCtaClicked("konto");
+                    setLocation("/upgrade");
+                  }}
+                >
+                  <Crown aria-hidden="true" />
+                  Pro-Plan ansehen
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        </Section>
 
-        <div className="space-y-3 pt-4">
-          {(isLoggedIn || isAuthenticated) && (
+        {/* Konto-Verwaltung */}
+        <Section title="Konto">
+          <Card padding="none">
+            <ul className="divide-y divide-border">
+              <ListRow
+                as="li"
+                leading={<KeyRound aria-hidden="true" className="size-4 text-muted-foreground" />}
+                title="Passwort ändern"
+                onClick={handlePasswordChange}
+              />
+              <ListRow
+                as="li"
+                leading={<UserX aria-hidden="true" className="size-4 text-muted-foreground" />}
+                title="Account löschen"
+                meta="Über den Support"
+                onClick={() => setShowDeleteAccount(true)}
+              />
+              {(isLoggedIn || isAuthenticated) && (
+                <ListRow
+                  as="li"
+                  leading={<LogOut aria-hidden="true" className="size-4 text-muted-foreground" />}
+                  title={isLoggingOut ? "Wird abgemeldet…" : "Abmelden"}
+                  onClick={() => setShowLogout(true)}
+                  disabled={isLoggingOut}
+                />
+              )}
+            </ul>
+          </Card>
+        </Section>
+
+        {/* Gefahrenbereich */}
+        <Section title="Gefahrenbereich">
+          <Card tone="critical" as="div">
+            <CardHeader
+              title="Alle Daten löschen"
+              description="Löscht sämtliche Objekte, Vorlagen, Entwürfe und Einstellungen auf diesem Gerät unwiderruflich. Die App wird zurückgesetzt."
+            />
             <Button
-              variant="outline"
-              className="w-full justify-start h-14 text-base bg-card"
-              onClick={() => setShowLogout(true)}
-              disabled={isLoggingOut}
+              type="button"
+              variant="secondary"
+              className="text-destructive"
+              onClick={() => {
+                setResetWord("");
+                setShowReset(true);
+              }}
             >
-              <LogOut size={20} className="text-muted-foreground mr-3" />
-              {isLoggingOut ? "Wird abgemeldet..." : "Abmelden"}
+              <Trash2 aria-hidden="true" />
+              Alle Daten löschen…
             </Button>
-          )}
-          <Button
-            variant="outline"
-            className="w-full justify-start h-14 text-base border-destructive/30 text-destructive hover:bg-destructive/10 bg-card"
-            onClick={() => setShowReset(true)}
-          >
-            <ShieldAlert size={20} className="mr-3" /> Alle Daten löschen
-          </Button>
-        </div>
-      </div>
+          </Card>
+        </Section>
+
+        <AppFooter />
+      </PageShell>
 
       <ConfirmDialog
         open={showLogout}
         onClose={() => setShowLogout(false)}
-        onConfirm={handleLogout}
+        onConfirm={() => void handleLogout()}
         title="Abmelden?"
         description="Möchten Sie sich wirklich abmelden? Im Demo-Modus bleiben Ihre lokalen Daten erhalten."
         confirmLabel="Abmelden"
       />
 
       <ConfirmDialog
-        open={showReset}
-        onClose={() => setShowReset(false)}
-        onConfirm={handleReset}
-        title="Alle Daten löschen?"
-        description="ACHTUNG: Dies löscht sämtliche Objekte, Vorlagen und Einstellungen unwiderruflich. Die App wird zurückgesetzt."
-        confirmLabel="Alles löschen"
-        destructive
-      />
-
-      <ConfirmDialog
         open={showDeleteAccount}
         onClose={() => setShowDeleteAccount(false)}
-        onConfirm={handleDeleteAccount}
+        onConfirm={() => {
+          window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Account löschen")}`;
+        }}
         title="Account löschen?"
-        description="Die Account-Löschung wird in einer zukünftigen Version direkt in der App möglich sein. Aktuell kontaktiere uns bitte per E-Mail."
-        confirmLabel="Verstanden"
+        description={`Die Account-Löschung ist in der App noch nicht möglich. Kontaktieren Sie uns per E-Mail an ${SUPPORT_EMAIL} – wir löschen Ihren Account und alle Cloud-Daten.`}
+        confirmLabel="E-Mail schreiben"
+        cancelLabel="Schließen"
       />
 
-      <div className="max-w-5xl mx-auto">
-        <AppFooter />
-      </div>
+      <AlertDialog
+        open={showReset}
+        onOpenChange={(open) => {
+          if (!open) setShowReset(false);
+        }}
+      >
+        <AlertDialogContent>
+          <form
+            className="contents"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (resetConfirmed) handleReset();
+            }}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle>Alle Daten löschen?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Sämtliche Objekte, Vorlagen und Einstellungen werden unwiderruflich gelöscht. Geben Sie zur Bestätigung{" "}
+                <strong className="font-semibold text-foreground">{DELETE_CONFIRM_WORD}</strong> ein.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <FormField id={resetFieldId} label={`Zur Bestätigung „${DELETE_CONFIRM_WORD}“ eingeben`}>
+              <Input
+                value={resetWord}
+                onChange={(e) => setResetWord(e.target.value)}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+              />
+            </FormField>
+            <AlertDialogFooter>
+              <AlertDialogCancel type="button">Abbrechen</AlertDialogCancel>
+              <Button type="submit" variant="destructive" disabled={!resetConfirmed}>
+                Alles löschen
+              </Button>
+            </AlertDialogFooter>
+          </form>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageTransition>
   );
 }

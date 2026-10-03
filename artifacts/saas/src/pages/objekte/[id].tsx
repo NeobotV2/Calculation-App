@@ -1,477 +1,557 @@
-import { useState, useMemo, useEffect } from "react";
-import { useRoute, useLocation, Link } from "wouter";
-import { useStore, type Room } from "@/store/use-store";
-import { useStoreActions } from "@/hooks/use-store-actions";
-import { PageTransition } from "@/components/layout/PageTransition";
-import { RoomEditorSheet } from "@/components/room-editor-sheet";
-import { UpgradeModal } from "@/components/upgrade-modal";
-import { ConfirmDialog } from "@/components/confirm-dialog";
-import { canAddProject, canAddRoom, canUseTemplates } from "@/lib/feature-gates";
-import type { UpgradeTrigger } from "@/lib/billing-config";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, Edit3, Check, Trash2, Plus, BarChart3, MoreHorizontal, X } from "lucide-react";
-import { calcProjectTotals } from "@/lib/calc";
-import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
-import { getProjectWarnings, getWarningTypeKey } from "@/lib/warnings";
-import { formatCurrency, formatNumber } from "@/lib/utils";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useRoute } from "wouter";
+import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
-import { KpiRow } from "./detail-parts/KpiRow";
-import { WirtschaftlichkeitPanel } from "./detail-parts/WirtschaftlichkeitPanel";
-import { WarningsPanel } from "./detail-parts/WarningsPanel";
-import { calcPriceStrategy, calcSensitivity } from "@/lib/price-strategy";
-import { calcRiskScore } from "@/lib/risk-score";
-import { RoomRow } from "./detail-parts/RoomRow";
-import { OptionsMenu } from "./detail-parts/OptionsMenu";
-import { InfoSheet } from "./detail-parts/InfoSheet";
-import { PdfPreviewOverlay } from "./detail-parts/PdfPreviewOverlay";
+import { FileText, LayoutDashboard, Pencil, Plus, RotateCcw, type LucideIcon } from "lucide-react";
+import { useStore } from "@/store/use-store";
+import { useStoreActions } from "@/hooks/use-store-actions";
+import { useInitialLoading, useSyncStatus } from "@/hooks/use-sync-status";
+import { PageTransition } from "@/components/layout/PageTransition";
+import { PageShell } from "@/components/layout/PageShell";
+import { StickyActionBar } from "@/components/layout/StickyActionBar";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DetailSkeleton } from "@/components/list-skeleton";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { Button } from "@/components/ui/button";
+import { MODULE_META, type ServiceModule } from "@/components/ui/module-badge";
+import { StateView } from "@/components/ui/state-view";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { RoomsEditorHandle } from "@/components/calc/RoomsEditor";
+import { OfferPreviewDialog } from "@/components/offer/OfferPreviewDialog";
+import { useOfferAction } from "@/components/offer/use-offer-action";
+import { createDefaultWinterdienst } from "@/data/winterdienst";
+import { createDefaultHms } from "@/data/hausmeisterservice";
+import { canAddProject, canUseTemplates, type GateResult } from "@/lib/feature-gates";
+import type { UpgradeTrigger } from "@/lib/billing-config";
+import { getNextStep, getObjectStatus } from "@/lib/offer-readiness";
+import type { HmsConfig, WinterdienstConfig } from "@/lib/service-modules/types";
+import { AddServiceMenu } from "./detail-parts/AddServiceMenu";
+import { ArchivedBanner } from "./detail-parts/ArchivedBanner";
+import { CleaningTab } from "./detail-parts/CleaningTab";
+import { EconomicsCockpit } from "./detail-parts/EconomicsCockpit";
+import { HmsEditorSheet, HmsTab } from "./detail-parts/HmsTab";
+import { InfoSheet, type InfoSheetValues } from "./detail-parts/InfoSheet";
+import { KpiStrip } from "./detail-parts/KpiStrip";
+import { NachkalkulationSheet, useNachkalkulationSummary } from "./detail-parts/NachkalkulationSheet";
+import { ObjectHeader } from "./detail-parts/ObjectHeader";
+import { OverviewTab } from "./detail-parts/OverviewTab";
+import { WinterdienstEditorSheet, WinterdienstTab } from "./detail-parts/WinterdienstTab";
+import {
+  WORKSPACE_TAB_LABELS,
+  WORKSPACE_TAB_SHORT_LABELS,
+  isCleaningTabVisible,
+  isWorkspaceTab,
+  resolveTab,
+  tabHasWarnings,
+  tabHref,
+  visibleTabs,
+  type WorkspaceTab,
+} from "./detail-parts/workspace-tabs";
 
+const TAB_ICON: Record<WorkspaceTab, LucideIcon> = {
+  uebersicht: LayoutDashboard,
+  reinigung: MODULE_META.unterhalt.icon,
+  winterdienst: MODULE_META.winterdienst.icon,
+  hms: MODULE_META.hms.icon,
+};
+
+type ModuleEditorState =
+  | { module: "winterdienst"; initial: WinterdienstConfig; isNew: boolean; key: number }
+  | { module: "hms"; initial: HmsConfig; isNew: boolean; key: number };
+
+const errorMessage = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
+
+/**
+ * Objekt-Arbeitsbereich `/objekte/:id/:tab?` (§8): Kopf, Kennzahlen,
+ * Wirtschaftlichkeits-Cockpit und je Leistungsmodul ein Tab. Kleine Änderungen
+ * werden sofort gespeichert; der Flow dient dem Hinzufügen und Gesamtprüfen.
+ */
 export default function ObjektDetail() {
-  const [, params] = useRoute("/objekte/:id");
-  const [, setLocation] = useLocation();
+  // ── Alle Hooks vor jedem early return ──
+  const [, params] = useRoute("/objekte/:id/:tab?");
+  const [, navigate] = useLocation();
   const id = params?.id;
+  const tabParam = params?.tab;
 
-  const project = useStore((s) => s.projects.find((p) => p.id === id));
-  const hourlyRate = useStore((s) => s.hourlyRate);
-  const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
-  const nachkalkulation = useStore((s) => (id ? s.nachkalkulationen[id] : undefined));
-  const disabledWarnings = useStore((s) => s.disabledWarnings);
-  const targetMargin = useStore((s) => s.targetMargin);
-  const plan = useStore((s) => s.plan);
-  const reorderRooms = useStore((s) => s.reorderRooms);
-  const companyName = useStore((s) => s.companyName);
-  const companyStreet = useStore((s) => s.companyStreet);
-  const companyZip = useStore((s) => s.companyZip);
-  const companyCity = useStore((s) => s.companyCity);
-  const companyPhone = useStore((s) => s.companyPhone);
-  const companyEmail = useStore((s) => s.companyEmail);
-  const companyTaxNumber = useStore((s) => s.companyTaxNumber);
-  const companyVatId = useStore((s) => s.companyVatId);
-  const companyManagingDirector = useStore((s) => s.companyManagingDirector);
-  const vatRate = useStore((s) => s.vatRate);
-  const pdfHeader = useStore((s) => s.pdfHeader);
-  const pdfFooter = useStore((s) => s.pdfFooter);
-  const companyLogo = useStore((s) => s.companyLogo);
+  const project = useStore((s) => (id ? s.projects.find((p) => p.id === id) : undefined));
+  const globalRate = useStore((s) => s.hourlyRate);
+  const { status: syncStatus, hasLoadedOnce, reload } = useSyncStatus();
+  const initialLoading = useInitialLoading();
   const actions = useStoreActions();
 
-  const [isEditingName, setIsEditingName] = useState(false);
-  const [warningsExpanded, setWarningsExpanded] = useState(false);
-  const [nameInput, setNameInput] = useState("");
-  const [customerInput, setCustomerInput] = useState("");
-  const [locationInput, setLocationInput] = useState("");
-  const [notesInput, setNotesInput] = useState("");
-  const [rateInput, setRateInput] = useState("");
-  const [showInfo, setShowInfo] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [editingRoom, setEditingRoom] = useState<Room | undefined>();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [upgradeReason, setUpgradeReason] = useState("");
-  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
-  const [deleteConfirm, setDeleteConfirm] = useState(false);
-  const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
-  const [showPdfPreview, setShowPdfPreview] = useState(false);
+  const offer = useOfferAction(project);
+  const econ = offer.economics;
+  const readiness = offer.readiness;
+  const nachkalkulation = useNachkalkulationSummary(project);
 
-  if (!project) {
+  const objectStatus = useMemo(
+    () => (project && readiness ? getObjectStatus(project, readiness) : null),
+    [project, readiness],
+  );
+  const nextStep = useMemo(
+    () => (project && readiness ? getNextStep(project, readiness, { hasNachkalkulation: nachkalkulation.hasAny }) : null),
+    [project, readiness, nachkalkulation.hasAny],
+  );
+
+  const [forceCleaningFor, setForceCleaningFor] = useState<string | null>(null);
+  const forceCleaning = !!id && forceCleaningFor === id;
+  const tab: WorkspaceTab = project ? resolveTab(tabParam, project, { forceCleaning }) : "uebersicht";
+
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [nachkalkOpen, setNachkalkOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletedId, setDeletedId] = useState<string | null>(null);
+  const [upgrade, setUpgrade] = useState<{ open: boolean; reason?: string; trigger?: UpgradeTrigger }>({ open: false });
+  const [editor, setEditor] = useState<ModuleEditorState | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const roomsEditorRef = useRef<RoomsEditorHandle>(null);
+
+  const goTab = useCallback(
+    (next: WorkspaceTab) => {
+      if (id) navigate(tabHref(id, next), { replace: true });
+    },
+    [id, navigate],
+  );
+
+  // Unbekannter oder ausgeblendeter Tab in der URL ⇒ kanonische Adresse.
+  useEffect(() => {
+    if (!id || !project) return;
+    if (tabParam !== undefined && tabParam !== tab) navigate(tabHref(id, tab), { replace: true });
+  }, [id, project, tabParam, tab, navigate]);
+
+  // Overlays gehören zum Objekt: beim Objektwechsel schließen.
+  useEffect(() => {
+    setInfoOpen(false);
+    setPreviewOpen(false);
+    setNachkalkOpen(false);
+    setDeleteOpen(false);
+    setEditorOpen(false);
+  }, [id]);
+
+  const showUpgrade = useCallback((gate: GateResult) => {
+    setUpgrade({ open: true, reason: gate.reason, trigger: gate.trigger });
+  }, []);
+
+  // ── Laden / nicht gefunden ──
+  if (!project || !econ) {
+    if (deletedId !== null && deletedId === id) return null;
+    if (!hasLoadedOnce) {
+      return (
+        <PageTransition>
+          <PageShell width="wide" className="pt-safe">
+            {syncStatus === "error" ? (
+              <StateView
+                kind="error"
+                titleAs="h1"
+                title="Objekt konnte nicht geladen werden"
+                description="Bitte prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+                action={{ label: "Erneut versuchen", icon: RotateCcw, onClick: reload }}
+                secondaryAction={{ label: "Zur Objektliste", href: "/objekte" }}
+              />
+            ) : initialLoading ? (
+              <DetailSkeleton />
+            ) : (
+              <div className="min-h-64" aria-busy="true" />
+            )}
+          </PageShell>
+        </PageTransition>
+      );
+    }
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-          <X size={24} className="text-muted-foreground" aria-hidden="true" />
-        </div>
-        <h3 className="text-lg font-semibold mb-2">Objekt nicht gefunden</h3>
-        <Button variant="outline" onClick={() => setLocation("/objekte")} className="mt-4">Zurück</Button>
-      </div>
+      <PageTransition>
+        <PageShell width="wide" className="pt-safe">
+          <StateView
+            kind="not-found"
+            titleAs="h1"
+            title="Objekt nicht gefunden"
+            description="Das Objekt wurde möglicherweise gelöscht oder ist nicht mehr verfügbar."
+            action={{ label: "Zur Objektliste", href: "/objekte" }}
+          />
+        </PageShell>
+      </PageTransition>
     );
   }
 
-  const effectiveRate = project.hourlyRate ?? hourlyRate;
-  const totals = calcProjectTotals(project, effectiveRate);
+  const projectId = project.id;
+  const archived = project.status === "archived";
+  const tabs = visibleTabs(project, { forceCleaning });
+  const refreshing = syncStatus === "loading" && hasLoadedOnce;
 
-  useEffect(() => {
-    if (!showInfo && !showPdfPreview) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
-      if (showPdfPreview) setShowPdfPreview(false);
-      else if (showInfo) setShowInfo(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showInfo, showPdfPreview]);
+  /* ── Objekt-Aktionen ── */
 
-  const breakdown = useMemo(() => calcHourlyRate(hourlyRateConfig), [hourlyRateConfig]);
-  const isDefaultRate = hourlyRate === 22.50 && JSON.stringify(hourlyRateConfig) === JSON.stringify(getDefaultConfig());
-  const warnings = useMemo(() => {
-    if (!project) return [];
-    const disabled = new Set(disabledWarnings);
-    return getProjectWarnings(project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, targetMargin)
-      .filter((w) => !disabled.has(getWarningTypeKey(w.id)));
-  }, [project, hourlyRate, hourlyRateConfig, breakdown, isDefaultRate, disabledWarnings, targetMargin]);
-
-  const wirtschaft = useMemo(() => {
-    const strategyInput = {
-      monthlyHours: totals.hours,
-      area: totals.area,
-      effectiveRate,
-      vollkosten: breakdown.vollkosten,
-      targetMarkupPct: targetMargin,
-    };
-    const strategy = calcPriceStrategy(strategyInput);
-    return {
-      strategy,
-      sensitivity: calcSensitivity(strategyInput),
-      risk: calcRiskScore({
-        project,
-        monthlyHours: totals.hours,
-        area: totals.area,
-        monthlyCost: totals.cost,
-        marginPct: strategy.marginPct,
-        // Gleiche Basis wie marginPct: Umsatzmarge (konvertiert aus dem Aufschlag).
-        targetMarginPct: strategy.targetMarginPct,
-        usesDefaultRate: isDefaultRate && !project.hourlyRate,
-        // Evidenz aus dem Betrieb: erfasste Ist-Stunden der Nachkalkulation.
-        actualMonthlyHours: nachkalkulation?.actualMonthlyHours,
-      }),
-    };
-  }, [project, totals, effectiveRate, breakdown, targetMargin, isDefaultRate, nachkalkulation]);
-
-  const handleSaveName = async () => {
-    if (nameInput.trim()) {
-      try {
-        await actions.updateProject(project.id, { name: nameInput.trim() });
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-      }
-    }
-    setIsEditingName(false);
-  };
-
-  const handleSaveInfo = async () => {
-    const parsedRate = rateInput ? parseFloat(rateInput.replace(",", ".")) : undefined;
+  const handleRename = async (name: string) => {
     try {
-      await actions.updateProject(project.id, {
-        customer: customerInput.trim() || undefined,
-        location: locationInput.trim() || undefined,
-        notes: notesInput.trim() || undefined,
-        hourlyRate: parsedRate && parsedRate > 0 ? parsedRate : undefined,
-      });
-      toast.success("Objektinfo gespeichert");
+      await actions.updateProject(projectId, { name });
+      toast.success("Objekt umbenannt");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    }
-    setShowInfo(false);
-  };
-
-  const handleAddRoom = async (room: Omit<Room, "id">) => {
-    try {
-      if (editingRoom) {
-        await actions.updateRoom(project.id, editingRoom.id, room);
-        toast.success("Raum aktualisiert");
-      } else {
-        await actions.addRoom(project.id, room);
-        toast.success("Raum hinzugefügt");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    }
-    setSheetOpen(false);
-    setEditingRoom(undefined);
-  };
-
-  const showUpgradeGate = (gate: { reason?: string; trigger?: UpgradeTrigger }) => {
-    setUpgradeReason(gate.reason || "");
-    setUpgradeTrigger(gate.trigger);
-    setUpgradeOpen(true);
-  };
-
-  const openAddRoom = () => {
-    const gate = canAddRoom(project.id);
-    if (!gate.allowed) {
-      showUpgradeGate(gate);
-      return;
-    }
-    setEditingRoom(undefined);
-    setSheetOpen(true);
-  };
-
-  const handleDuplicateRoom = async (room: Room) => {
-    const gate = canAddRoom(project.id);
-    if (!gate.allowed) {
-      showUpgradeGate(gate);
-      return;
-    }
-    try {
-      const { id: _id, ...roomData } = room;
-      await actions.addRoom(project.id, roomData);
-      toast.success("Raum dupliziert");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Duplizieren");
+      toast.error(errorMessage(err, "Der Name konnte nicht gespeichert werden."));
+      throw err;
     }
   };
 
-  const handleSaveAsTemplate = async () => {
-    const gate = canUseTemplates();
-    if (!gate.allowed) {
-      showUpgradeGate(gate);
-      return;
-    }
-    try {
-      await actions.addTemplate(project.name, project.rooms.map(({ id: _id, ...rest }) => rest));
-      toast.success("Als Vorlage gespeichert");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    }
-    setMenuOpen(false);
-  };
-
-  const handleOpenPDF = () => {
-    setLocation(`/print/${project.id}`);
-    setMenuOpen(false);
-  };
-
-  const handleOpenInternalCalc = () => {
-    setLocation(`/print/${project.id}/intern`);
-    setMenuOpen(false);
+  const handleSaveInfo = async (v: InfoSheetValues) => {
+    await actions.updateProject(projectId, {
+      name: v.name,
+      customer: v.customer,
+      location: v.location,
+      objectType: v.objectType,
+      rpiContactName: v.contactName,
+      hourlyRate: v.hourlyRate,
+      notes: v.notes,
+    });
+    toast.success("Objektdaten gespeichert");
   };
 
   const handleDuplicate = async () => {
     const gate = canAddProject();
     if (!gate.allowed) {
-      showUpgradeGate(gate);
-      setMenuOpen(false);
+      showUpgrade(gate);
       return;
     }
     try {
-      await actions.duplicateProject(project.id);
-      toast.success("Dupliziert");
+      const newId = await actions.duplicateProject(projectId);
+      toast.success("Objekt dupliziert");
+      navigate(`/objekte/${newId}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Duplizieren");
+      toast.error(errorMessage(err, "Das Objekt konnte nicht dupliziert werden."));
     }
-    setMenuOpen(false);
+  };
+
+  const handleSaveTemplate = async () => {
+    const gate = canUseTemplates();
+    if (!gate.allowed) {
+      showUpgrade(gate);
+      return;
+    }
+    if (project.rooms.length === 0) {
+      toast.info("Vorlagen enthalten nur Räume – dieses Objekt hat keine Räume.");
+      return;
+    }
+    try {
+      await actions.addTemplate(
+        project.name,
+        project.rooms.map(({ id: _id, ...rest }) => rest),
+      );
+      toast.success("Als Vorlage gespeichert (nur Räume)");
+    } catch (err) {
+      toast.error(errorMessage(err, "Die Vorlage konnte nicht gespeichert werden."));
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      await actions.restoreProject(projectId);
+      toast.success("Objekt wiederhergestellt");
+    } catch (err) {
+      toast.error(errorMessage(err, "Das Objekt konnte nicht wiederhergestellt werden."));
+    }
   };
 
   const handleArchive = async () => {
     try {
-      await actions.archiveProject(project.id);
-      toast.success("Archiviert");
-      setLocation("/objekte");
+      await actions.archiveProject(projectId);
+      toast.success("Archiviert", {
+        action: { label: "Rückgängig", onClick: () => void handleRestore() },
+      });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Archivieren");
+      toast.error(errorMessage(err, "Das Objekt konnte nicht archiviert werden."));
     }
   };
 
-  const handleDeleteProject = async () => {
+  const handleDelete = async () => {
+    setDeletedId(projectId);
     try {
-      await actions.deleteProject(project.id);
-      setLocation("/objekte");
+      await actions.deleteProject(projectId);
       toast.success("Objekt gelöscht");
+      navigate("/objekte");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+      setDeletedId(null);
+      toast.error(errorMessage(err, "Das Objekt konnte nicht gelöscht werden."));
     }
   };
 
-  const handleDeleteRoom = async (roomId: string) => {
+  /* ── Leistungsmodule ── */
+
+  const openEditor = (module: "winterdienst" | "hms", isNew = false) => {
+    if (archived) return;
+    if (module === "winterdienst") {
+      const initial = isNew || !project.winterdienst ? createDefaultWinterdienst() : project.winterdienst;
+      setEditor({ module, initial, isNew: isNew || !project.winterdienst, key: Date.now() });
+    } else {
+      const initial = isNew || !project.hms ? createDefaultHms(project.objectType, uuidv4) : project.hms;
+      setEditor({ module, initial, isNew: isNew || !project.hms, key: Date.now() });
+    }
+    setEditorOpen(true);
+  };
+
+  const handleAddService = (module: ServiceModule) => {
+    if (module === "unterhalt") {
+      setForceCleaningFor(projectId);
+      goTab("reinigung");
+      return;
+    }
+    openEditor(module, true);
+  };
+
+  const saveWinterdienst = async (next: WinterdienstConfig, isNew: boolean) => {
+    await actions.updateProject(projectId, { winterdienst: next });
+    toast.success(isNew ? "Winterdienst hinzugefügt" : "Winterdienst gespeichert");
+    if (isNew) goTab("winterdienst");
+  };
+
+  const saveHms = async (next: HmsConfig, isNew: boolean) => {
+    await actions.updateProject(projectId, { hms: next });
+    toast.success(isNew ? "Hausmeisterservice hinzugefügt" : "Hausmeisterservice gespeichert");
+    if (isNew) goTab("hms");
+  };
+
+  const toggleWinterdienst = async (enabled: boolean) => {
+    const cfg = project.winterdienst;
+    if (!cfg) return;
     try {
-      await actions.deleteRoom(project.id, roomId);
-      toast.success("Raum gelöscht");
+      await actions.updateProject(projectId, { winterdienst: { ...cfg, enabled } });
+      toast.success(enabled ? "Winterdienst aktiviert" : "Winterdienst pausiert");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
+      toast.error(errorMessage(err, "Der Winterdienst konnte nicht geändert werden."));
     }
-    setDeleteRoomId(null);
   };
 
-  const handleMoveRoom = (index: number, direction: "up" | "down") => {
-    const target = direction === "up" ? index - 1 : index + 1;
-    if (target < 0 || target >= project.rooms.length) return;
-    reorderRooms(project.id, index, target);
+  const toggleHms = async (enabled: boolean) => {
+    const cfg = project.hms;
+    if (!cfg) return;
+    try {
+      await actions.updateProject(projectId, { hms: { ...cfg, enabled } });
+      toast.success(enabled ? "Hausmeisterservice aktiviert" : "Hausmeisterservice pausiert");
+    } catch (err) {
+      toast.error(errorMessage(err, "Der Hausmeisterservice konnte nicht geändert werden."));
+    }
+  };
+
+  const removeWinterdienst = async () => {
+    try {
+      await actions.updateProject(projectId, { winterdienst: undefined });
+      toast.success("Winterdienst entfernt");
+      goTab("uebersicht");
+    } catch (err) {
+      toast.error(errorMessage(err, "Der Winterdienst konnte nicht entfernt werden."));
+    }
+  };
+
+  const removeHms = async () => {
+    try {
+      await actions.updateProject(projectId, { hms: undefined });
+      toast.success("Hausmeisterservice entfernt");
+      goTab("uebersicht");
+    } catch (err) {
+      toast.error(errorMessage(err, "Der Hausmeisterservice konnte nicht entfernt werden."));
+    }
+  };
+
+  /* ── Mobile Aktionsleiste (§8.5) ── */
+
+  let stickyAction: { label: string; icon: LucideIcon; onClick: () => void } | null = null;
+  if (!archived) {
+    if (tab === "uebersicht") stickyAction = { label: "Angebot erstellen", icon: FileText, onClick: () => offer.trigger() };
+    else if (tab === "reinigung") stickyAction = { label: "Raum hinzufügen", icon: Plus, onClick: () => roomsEditorRef.current?.openAdd() };
+    else stickyAction = { label: "Bearbeiten", icon: Pencil, onClick: () => openEditor(tab) };
+  }
+
+  const cockpitProps = {
+    project,
+    economics: econ,
+    onOpenNachkalkulation: archived ? undefined : () => setNachkalkOpen(true),
   };
 
   return (
-    <PageTransition className="min-h-screen bg-background pb-32 md:pb-8">
-      <div className="bg-background/95 border-b border-border/20 sticky top-0 z-30 px-4 safe-header pb-3 flex items-center justify-between pt-12 md:pt-6">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/objekte")} className="-ml-2" aria-label="Zurück">
-          <ArrowLeft size={20} aria-hidden="true" />
-        </Button>
-        <div className="flex gap-2">
-          <Link href={`/kalkulation/${project.id}`}>
-            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" aria-hidden="true" />Kalkulation</Button>
-          </Link>
-          <Link href={`/auswertung/${project.id}`}>
-            <Button variant="outline" size="sm" className="h-9 px-3 text-xs"><BarChart3 size={14} className="mr-1.5" aria-hidden="true" />Controlling</Button>
-          </Link>
-          <Button variant="ghost" size="icon" onClick={() => setMenuOpen(!menuOpen)} className="relative" aria-label="Weitere Aktionen" aria-haspopup="menu" aria-expanded={menuOpen}>
-            <MoreHorizontal size={18} aria-hidden="true" />
-          </Button>
-        </div>
-      </div>
-
-      {menuOpen && (
-        <OptionsMenu
-          onClose={() => setMenuOpen(false)}
-          onEditInfo={() => { setShowInfo(true); setCustomerInput(project.customer || ""); setLocationInput(project.location || ""); setNotesInput(project.notes || ""); setRateInput(project.hourlyRate ? project.hourlyRate.toString().replace(".", ",") : ""); setMenuOpen(false); }}
-          onDuplicate={handleDuplicate}
-          onSaveAsTemplate={handleSaveAsTemplate}
-          onPdfPreview={() => { setShowPdfPreview(true); setMenuOpen(false); }}
-          onOpenPDF={handleOpenPDF}
-          onInternalCalc={handleOpenInternalCalc}
-          onArchive={handleArchive}
-          onDelete={() => { setMenuOpen(false); setDeleteConfirm(true); }}
-        />
-      )}
-
-      <div className="px-6 py-6 max-w-6xl mx-auto">
-        <div className="mb-6">
-          {isEditingName ? (
-            <div className="flex gap-2 mb-2">
-              <Input autoFocus aria-label="Objektname" value={nameInput} onChange={(e) => setNameInput(e.target.value)} className="text-xl font-semibold bg-card" onKeyDown={(e) => e.key === "Enter" && handleSaveName()} />
-              <Button size="icon" onClick={handleSaveName} aria-label="Namen speichern"><Check size={18} aria-hidden="true" /></Button>
-            </div>
-          ) : (
-            <h1
-              className="text-3xl font-semibold tracking-tight mb-1 text-foreground cursor-pointer group flex items-center gap-2"
-              onClick={() => { setNameInput(project.name); setIsEditingName(true); }}
-            >
-              {project.name}
-              <Edit3 size={16} className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
-            </h1>
-          )}
-          <p className="text-sm text-muted-foreground">
-            {project.customer && <>{project.customer} · </>}
-            Verrechnungssatz: {formatCurrency(effectiveRate)}/h
-          </p>
-        </div>
-
-        <WarningsPanel
-          warnings={warnings}
-          expanded={warningsExpanded}
-          onToggle={() => setWarningsExpanded(!warningsExpanded)}
-        />
-
-        <KpiRow totals={totals} />
-
-        {project.rooms.length > 0 && (
-          <div className="mb-6">
-            <WirtschaftlichkeitPanel
-              strategy={wirtschaft.strategy}
-              sensitivity={wirtschaft.sensitivity}
-              risk={wirtschaft.risk}
-              targetMarkupPct={targetMargin}
+    <PageTransition>
+      <PageShell
+        width="wide"
+        bodyClassName="space-y-6"
+        header={
+          <ObjectHeader
+            project={project}
+            status={objectStatus}
+            tab={tab}
+            refreshing={refreshing}
+            onRename={handleRename}
+            onOffer={() => offer.trigger()}
+            onEditInfo={() => setInfoOpen(true)}
+            onPreview={() => setPreviewOpen(true)}
+            onNachkalkulation={() => setNachkalkOpen(true)}
+            onDuplicate={() => void handleDuplicate()}
+            onSaveTemplate={() => void handleSaveTemplate()}
+            onArchive={() => void handleArchive()}
+            onRestore={() => void handleRestore()}
+            onDelete={() => setDeleteOpen(true)}
+          />
+        }
+        rail={
+          // Kleiner Abstand: Die Rail klebt unter dem (höheren) Objektkopf.
+          <div className="lg:pt-3">
+            <EconomicsCockpit
+              {...cockpitProps}
+              variant="rail"
+              nextStep={archived ? null : nextStep}
+              onOffer={() => offer.trigger()}
             />
           </div>
-        )}
+        }
+        railBelowLg="hidden"
+      >
+        {archived && <ArchivedBanner onRestore={handleRestore} />}
 
-        <div className="bg-card border border-border/20 rounded-2xl p-5 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-sm tracking-tight">Controlling</h3>
-            <Link href={`/auswertung/${project.id}`}>
-              <span className="text-xs text-primary font-medium">Details →</span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <p className="text-muted-foreground text-xs">Jahreskosten</p>
-              <p className="font-semibold text-foreground">{formatCurrency(totals.annualCost)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Stunden/Monat</p>
-              <p className="font-semibold text-foreground">{formatNumber(totals.hours, 1)} h</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Preis pro m²</p>
-              <p className="font-semibold text-foreground">{formatCurrency(totals.pricePerSqm)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Gesamtfläche</p>
-              <p className="font-semibold text-foreground">{formatNumber(totals.area, 0)} m²</p>
-            </div>
-          </div>
-        </div>
+        <KpiStrip economics={econ} />
+        <EconomicsCockpit {...cockpitProps} variant="compact" className="lg:hidden" />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg tracking-tight">Räume ({project.rooms.length})</h3>
-          </div>
-
-          {project.rooms.length === 0 ? (
-            <div className="text-center py-14 border border-dashed border-border/40 rounded-2xl">
-              <p className="text-muted-foreground mb-4">Noch keine Räume erfasst.</p>
-              <Button onClick={openAddRoom} variant="outline" className="px-6">Ersten Raum hinzufügen</Button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {project.rooms.map((room, index) => (
-                <RoomRow
-                  key={room.id}
-                  room={room}
-                  index={index}
-                  total={project.rooms.length}
-                  effectiveRate={effectiveRate}
-                  onEdit={() => { setEditingRoom(room); setSheetOpen(true); }}
-                  onMove={handleMoveRoom}
-                  onDuplicate={() => handleDuplicateRoom(room)}
-                  onDelete={() => setDeleteRoomId(room.id)}
-                />
+        <Tabs value={tab} onValueChange={(v) => isWorkspaceTab(v) && goTab(v)}>
+          {/* Container-Query: volle Tab-Namen erst ab 48rem Spaltenbreite, sonst Kurzlabels. */}
+          <div className="@container/tabs flex items-end gap-2">
+            <TabsList aria-label="Bereiche des Objekts" className="min-w-0 flex-1">
+              {tabs.map((t) => (
+                <TabsTrigger
+                  key={t}
+                  value={t}
+                  icon={TAB_ICON[t]}
+                  count={t === "reinigung" ? project.rooms.length : undefined}
+                  warning={tabHasWarnings(t, econ.warnings, projectId) ? "Hinweise vorhanden" : undefined}
+                >
+                  <span className="hidden @3xl/tabs:inline">{WORKSPACE_TAB_LABELS[t]}</span>
+                  <span className="@3xl/tabs:hidden">
+                    <span aria-hidden="true">{WORKSPACE_TAB_SHORT_LABELS[t]}</span>
+                    <span className="sr-only">{WORKSPACE_TAB_LABELS[t]}</span>
+                  </span>
+                  {t === "reinigung" && <span className="sr-only"> Räume:</span>}
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
+            {!archived && (
+              <div className="shrink-0 border-b border-border pb-1">
+                <AddServiceMenu
+                  project={project}
+                  cleaningVisible={isCleaningTabVisible(project, { forceCleaning })}
+                  onAdd={handleAddService}
+                />
+              </div>
+            )}
+          </div>
+
+          <TabsContent value="uebersicht">
+            <OverviewTab
+              project={project}
+              economics={econ}
+              nextStep={nextStep}
+              onOffer={() => offer.trigger()}
+              onOpenTab={goTab}
+              onEditInfo={() => setInfoOpen(true)}
+              onOpenNachkalkulation={() => setNachkalkOpen(true)}
+              forceCleaning={forceCleaning}
+              readOnly={archived}
+            />
+          </TabsContent>
+          {tabs.includes("reinigung") && (
+            <TabsContent value="reinigung">
+              <CleaningTab
+                project={project}
+                economics={econ}
+                readOnly={archived}
+                editorRef={roomsEditorRef}
+                onGateBlocked={showUpgrade}
+              />
+            </TabsContent>
           )}
-        </div>
-      </div>
+          {tabs.includes("winterdienst") && (
+            <TabsContent value="winterdienst">
+              <WinterdienstTab
+                project={project}
+                economics={econ}
+                readOnly={archived}
+                onEdit={() => openEditor("winterdienst")}
+                onToggleEnabled={(enabled) => void toggleWinterdienst(enabled)}
+                onRemove={() => void removeWinterdienst()}
+              />
+            </TabsContent>
+          )}
+          {tabs.includes("hms") && (
+            <TabsContent value="hms">
+              <HmsTab
+                project={project}
+                economics={econ}
+                readOnly={archived}
+                onEdit={() => openEditor("hms")}
+                onToggleEnabled={(enabled) => void toggleHms(enabled)}
+                onRemove={() => void removeHms()}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
 
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-full max-w-sm px-6 md:static md:max-w-6xl md:mx-auto md:px-6 md:py-4 md:left-auto md:translate-x-0" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <Button onClick={openAddRoom} className="w-full md:w-auto shadow-xl shadow-black/20 md:shadow-none" size="lg">
-          <Plus size={20} className="mr-2" aria-hidden="true" /> Raum hinzufügen
-        </Button>
-      </div>
+        {stickyAction && (
+          <StickyActionBar chrome="app" width="wide" label="Aktionen für dieses Objekt" className="md:hidden">
+            <Button type="button" size="lg" className="w-full" onClick={stickyAction.onClick}>
+              <stickyAction.icon aria-hidden="true" />
+              {stickyAction.label}
+            </Button>
+          </StickyActionBar>
+        )}
+      </PageShell>
 
-      <RoomEditorSheet
-        open={sheetOpen}
-        onClose={() => { setSheetOpen(false); setEditingRoom(undefined); }}
-        onSave={handleAddRoom}
-        editRoom={editingRoom}
-        hourlyRate={effectiveRate}
+      {offer.element}
+
+      <InfoSheet
+        open={infoOpen}
+        onOpenChange={setInfoOpen}
+        project={project}
+        defaultRate={globalRate}
+        onSave={handleSaveInfo}
       />
-
-      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={upgradeReason} triggerReason={upgradeTrigger} />
-      <ConfirmDialog open={deleteConfirm} onClose={() => setDeleteConfirm(false)} onConfirm={handleDeleteProject} title="Objekt löschen?" description="Alle Räume und Daten werden unwiderruflich gelöscht." confirmLabel="Löschen" destructive />
-      <ConfirmDialog open={!!deleteRoomId} onClose={() => setDeleteRoomId(null)} onConfirm={() => { if (deleteRoomId) handleDeleteRoom(deleteRoomId); }} title="Raum löschen?" description="Der Raum wird aus dem Objekt entfernt." confirmLabel="Löschen" destructive />
-
-      {showPdfPreview && (
-        <PdfPreviewOverlay
+      <OfferPreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} project={project} />
+      <NachkalkulationSheet
+        open={nachkalkOpen}
+        onOpenChange={setNachkalkOpen}
+        project={project}
+        economics={econ}
+        readOnly={archived}
+      />
+      {editor?.module === "winterdienst" && (
+        <WinterdienstEditorSheet
+          key={editor.key}
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
           project={project}
-          totals={totals}
-          effectiveRate={effectiveRate}
-          vatRate={vatRate}
-          pdfHeader={pdfHeader}
-          pdfFooter={pdfFooter}
-          companyName={companyName}
-          companyLogo={companyLogo}
-          companyStreet={companyStreet}
-          companyZip={companyZip}
-          companyCity={companyCity}
-          companyPhone={companyPhone}
-          companyEmail={companyEmail}
-          companyTaxNumber={companyTaxNumber}
-          companyVatId={companyVatId}
-          companyManagingDirector={companyManagingDirector}
-          onClose={() => setShowPdfPreview(false)}
-          onPrint={() => { setShowPdfPreview(false); setLocation(`/print/${project.id}`); }}
+          economics={econ}
+          initial={editor.initial}
+          isNew={editor.isNew}
+          onSave={(next) => saveWinterdienst(next, editor.isNew)}
         />
       )}
-
-      {showInfo && (
-        <InfoSheet
-          hourlyRate={hourlyRate}
-          customerInput={customerInput}
-          locationInput={locationInput}
-          rateInput={rateInput}
-          notesInput={notesInput}
-          onCustomerChange={setCustomerInput}
-          onLocationChange={setLocationInput}
-          onRateChange={setRateInput}
-          onNotesChange={setNotesInput}
-          onClose={() => setShowInfo(false)}
-          onSave={handleSaveInfo}
+      {editor?.module === "hms" && (
+        <HmsEditorSheet
+          key={editor.key}
+          open={editorOpen}
+          onOpenChange={setEditorOpen}
+          project={project}
+          economics={econ}
+          initial={editor.initial}
+          isNew={editor.isNew}
+          onSave={(next) => saveHms(next, editor.isNew)}
         />
       )}
+      <ConfirmDialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={() => void handleDelete()}
+        title="Objekt löschen?"
+        description={`„${project.name || "Objekt"}“ mit allen Räumen, Leistungen und Daten wird unwiderruflich gelöscht.`}
+        confirmLabel="Löschen"
+        destructive
+      />
+      <UpgradeModal
+        open={upgrade.open}
+        onClose={() => setUpgrade({ open: false })}
+        reason={upgrade.reason}
+        triggerReason={upgrade.trigger}
+      />
     </PageTransition>
   );
 }

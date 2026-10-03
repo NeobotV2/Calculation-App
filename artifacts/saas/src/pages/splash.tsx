@@ -19,21 +19,21 @@ export default function Splash() {
   }, [setLocation, setHasSeenSplash, hasOnboarded]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-background p-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="relative z-10 flex flex-col items-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="flex flex-col items-center"
       >
-        <div className="w-24 h-24 rounded-3xl bg-primary flex items-center justify-center mb-8 shadow-sm">
-          <Sparkles className="w-12 h-12 text-primary-foreground" strokeWidth={1.5} />
+        <div className="mb-8 flex size-20 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-raised">
+          <Sparkles aria-hidden="true" className="size-10" strokeWidth={2} />
         </div>
-        
-        <h1 className="text-5xl font-bold text-foreground mb-3 tracking-tight">
+
+        <h1 className="mb-3 text-display text-foreground">
           CleanCalc <span className="text-primary">Pro</span>
         </h1>
-        <p className="text-muted-foreground text-center max-w-xs text-base">
+        <p className="max-w-xs text-center text-base text-muted-foreground">
           Objektkalkulation für professionelle Gebäudereiniger.
         </p>
       </motion.div>

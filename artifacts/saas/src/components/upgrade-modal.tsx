@@ -1,10 +1,16 @@
 import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Crown, X, CheckCircle2, Lock, Minus } from "lucide-react";
-import { useStore } from "@/store/use-store";
 import { useLocation } from "wouter";
-import { type UpgradeTrigger, UPGRADE_TRIGGER_COPY } from "@/lib/billing-config";
+import { CircleCheck, Crown, Lock, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { type UpgradeTrigger, UPGRADE_TRIGGER_COPY, getPlanLimits } from "@/lib/billing-config";
 import { trackPaywallViewed, trackPaywallDismissed, trackUpgradeCtaClicked } from "@/services/analytics-service";
 
 interface UpgradeModalProps {
@@ -14,6 +20,40 @@ interface UpgradeModalProps {
   triggerReason?: UpgradeTrigger;
 }
 
+type Cell = string | boolean;
+
+const FREE = getPlanLimits("free");
+
+const COMPARISON: { label: string; basic: Cell; pro: Cell }[] = [
+  { label: "Objekte", basic: String(FREE.maxObjects), pro: "Unbegrenzt" },
+  { label: "Räume pro Objekt", basic: String(FREE.maxRoomsPerProject), pro: "Unbegrenzt" },
+  { label: "PDF-Angebote", basic: false, pro: true },
+  { label: "Vorlagen speichern", basic: false, pro: true },
+  { label: "Eigene Leistungswerte", basic: false, pro: true },
+  { label: "Firmenlogo & Branding", basic: false, pro: true },
+];
+
+function ComparisonCell({ value, highlight }: { value: Cell; highlight?: boolean }) {
+  if (typeof value === "string") {
+    return <span className={highlight ? "font-medium text-primary" : "text-muted-foreground"}>{value}</span>;
+  }
+  return value ? (
+    <>
+      <CircleCheck aria-hidden="true" className={`mx-auto size-4 ${highlight ? "text-primary" : "text-muted-foreground"}`} />
+      <span className="sr-only">Enthalten</span>
+    </>
+  ) : (
+    <>
+      <Minus aria-hidden="true" className="mx-auto size-4 text-muted-foreground" />
+      <span className="sr-only">Nicht enthalten</span>
+    </>
+  );
+}
+
+/**
+ * Hinweis auf eine Pro-Funktion (Plan-Gate). API unverändert; jetzt ein
+ * zugänglicher Dialog (Fokusfalle, Escape, „Schließen").
+ */
 export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeModalProps) {
   const [, setLocation] = useLocation();
 
@@ -28,117 +68,82 @@ export function UpgradeModal({ open, onClose, reason, triggerReason }: UpgradeMo
     onClose();
   };
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const handleUpgrade = () => {
+    trackUpgradeCtaClicked("paywall_modal");
+    onClose();
+    setLocation("/upgrade");
+  };
 
   const triggerCopy = triggerReason ? UPGRADE_TRIGGER_COPY[triggerReason] : null;
   const displayReason = triggerCopy?.text || reason;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-            onClick={handleClose}
-            aria-hidden="true"
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="upgrade-modal-title"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-background rounded-t-3xl border-t border-border max-h-[90vh] overflow-y-auto md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-lg md:w-full md:max-h-[85vh]"
-          >
-            <div className="p-6 pb-safe">
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
-                  <Crown size={28} className="text-primary" aria-hidden="true" />
-                </div>
-                <button onClick={handleClose} aria-label="Schließen" className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center">
-                  <X size={18} className="text-muted-foreground" aria-hidden="true" />
-                </button>
-              </div>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) handleClose();
+      }}
+    >
+      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+        <DialogHeader>
+          <div className="mb-2 flex size-10 items-center justify-center rounded-md bg-primary-soft text-primary">
+            <Crown aria-hidden="true" className="size-5" />
+          </div>
+          <DialogTitle>{triggerCopy?.headline || "Funktion im Pro-Plan verfügbar"}</DialogTitle>
+          {displayReason ? (
+            <DialogDescription className="flex items-start gap-2">
+              <Lock aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>{displayReason}</span>
+            </DialogDescription>
+          ) : (
+            <DialogDescription>Mit dem Pro-Plan nutzen Sie alle Funktionen ohne Einschränkungen.</DialogDescription>
+          )}
+        </DialogHeader>
 
-              <h2 id="upgrade-modal-title" className="text-3xl font-semibold tracking-tight mb-2">
-                {triggerCopy?.headline || "Funktion im Pro-Plan verfügbar"}
-              </h2>
+        <table className="w-full text-sm">
+          <caption className="mb-2 text-left text-overline uppercase text-muted-foreground">
+            Basic und Pro im Vergleich
+          </caption>
+          <thead>
+            <tr className="border-b border-border">
+              <th scope="col" className="py-2 text-left font-medium text-muted-foreground">
+                <span className="sr-only">Funktion</span>
+              </th>
+              <th scope="col" className="w-24 py-2 text-center text-xs font-semibold text-muted-foreground">
+                Basic
+              </th>
+              <th scope="col" className="w-24 py-2 text-center text-xs font-semibold text-primary">
+                Pro
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {COMPARISON.map((row) => (
+              <tr key={row.label}>
+                <th scope="row" className="py-2 text-left font-normal text-foreground">
+                  {row.label}
+                </th>
+                <td className="py-2 text-center text-xs">
+                  <ComparisonCell value={row.basic} />
+                </td>
+                <td className="py-2 text-center text-xs">
+                  <ComparisonCell value={row.pro} highlight />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-              {displayReason && (
-                <div className="flex items-start gap-3 bg-card border border-border/40 rounded-2xl p-4 mb-6 mt-4">
-                  <Lock size={18} className="text-primary mt-0.5 shrink-0" aria-hidden="true" />
-                  <p className="text-sm text-muted-foreground">{displayReason}</p>
-                </div>
-              )}
-
-              <div className="my-6">
-                <p className="text-xs text-muted-foreground uppercase tracking-widest font-semibold mb-3">Basic vs. Pro im Vergleich</p>
-                <div className="grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-2 text-sm items-center">
-                  <span className="text-muted-foreground font-medium"></span>
-                  <span className="text-muted-foreground text-xs font-semibold text-center">Basic</span>
-                  <span className="text-primary text-xs font-semibold text-center">Pro</span>
-
-                  {[
-                    { label: "Objekte", basic: "1", pro: "Unbegrenzt" },
-                    { label: "Räume pro Objekt", basic: "3", pro: "Unbegrenzt" },
-                    { label: "PDF-Angebote", basic: false, pro: true },
-                    { label: "Vorlagen speichern", basic: false, pro: true },
-                    { label: "Eigene Leistungswerte", basic: false, pro: true },
-                    { label: "Firmenlogo & Branding", basic: false, pro: true },
-                  ].map((row) => (
-                    <>
-                      <span key={row.label} className="text-foreground">{row.label}</span>
-                      <span className="text-center">
-                        {typeof row.basic === "string" ? (
-                          <span className="text-muted-foreground text-xs">{row.basic}</span>
-                        ) : row.basic ? (
-                          <CheckCircle2 size={14} className="text-muted-foreground mx-auto" aria-hidden="true" />
-                        ) : (
-                          <Minus size={14} className="text-muted-foreground/40 mx-auto" aria-hidden="true" />
-                        )}
-                      </span>
-                      <span className="text-center">
-                        {typeof row.pro === "string" ? (
-                          <span className="text-primary text-xs font-medium">{row.pro}</span>
-                        ) : row.pro ? (
-                          <CheckCircle2 size={14} className="text-primary mx-auto" aria-hidden="true" />
-                        ) : (
-                          <Minus size={14} className="text-muted-foreground/40 mx-auto" aria-hidden="true" />
-                        )}
-                      </span>
-                    </>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                onClick={() => { trackUpgradeCtaClicked("paywall_modal"); onClose(); setLocation("/upgrade"); }}
-                size="lg"
-                className="w-full h-14 text-lg mt-2"
-              >
-                Pro-Plan ansehen
-              </Button>
-
-              <button onClick={handleClose} className="w-full text-center text-sm text-muted-foreground mt-4 py-2">
-                Nicht jetzt
-              </button>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={handleClose}>
+            Nicht jetzt
+          </Button>
+          <Button type="button" onClick={handleUpgrade}>
+            <Crown aria-hidden="true" />
+            Pro-Plan ansehen
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,5 +1,3 @@
-"use client"
-
 import * as React from "react"
 import * as ToggleGroupPrimitive from "@radix-ui/react-toggle-group"
 import { type VariantProps } from "class-variance-authority"
@@ -14,6 +12,10 @@ const ToggleGroupContext = React.createContext<
   variant: "default",
 })
 
+/**
+ * Gruppe von Umschaltern. `variant="chip"` → umbrechende Chip-Reihe
+ * (Turnus, Objektart, Filter, Presets, Region).
+ */
 const ToggleGroup = React.forwardRef<
   React.ElementRef<typeof ToggleGroupPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> &
@@ -21,7 +23,12 @@ const ToggleGroup = React.forwardRef<
 >(({ className, variant, size, children, ...props }, ref) => (
   <ToggleGroupPrimitive.Root
     ref={ref}
-    className={cn("flex items-center justify-center gap-1", className)}
+    className={cn(
+      variant === "chip"
+        ? "flex flex-wrap items-center gap-2"
+        : "flex items-center justify-center gap-1",
+      className
+    )}
     {...props}
   >
     <ToggleGroupContext.Provider value={{ variant, size }}>

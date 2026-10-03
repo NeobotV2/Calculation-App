@@ -81,6 +81,20 @@ export function getSurchargeLabel(category: SurchargeCategory, optionId: string)
   return option ? option.label : "";
 }
 
+/**
+ * Klartext der Zeitwirkung eines Zu-/Abschlags. Der Modifier wirkt auf die
+ * Leistung (m²/h): Leistung × (1 + m). Der Zeitaufwand ändert sich daher um
+ * 1 / (1 + m) − 1 — „Stark“ (−0,25) ⇒ „Aufwand +33 %“, „Leicht“ (+0,2) ⇒
+ * „Aufwand −17 %“, 0 ⇒ „Standard“.
+ */
+export function getSurchargeEffectLabel(modifier: number): string {
+  if (!Number.isFinite(modifier) || modifier === 0) return "Standard";
+  if (1 + modifier <= 0) return "Aufwand sehr hoch";
+  const pct = Math.round((1 / (1 + modifier) - 1) * 100);
+  if (pct === 0) return "Standard";
+  return pct > 0 ? `Aufwand +${pct} %` : `Aufwand −${Math.abs(pct)} %`;
+}
+
 export function getTotalModifier(surcharges?: RoomSurcharges): number {
   if (!surcharges) return 0;
   let total = 0;

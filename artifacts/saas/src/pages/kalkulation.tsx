@@ -1,9 +1,19 @@
 import { useState, useMemo, useCallback } from "react";
-import { useLocation } from "wouter";
+import { RotateCcw, Save } from "lucide-react";
+import { toast } from "sonner";
 import { useStore } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
+import { useEconomicsSettings } from "@/hooks/use-object-economics";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { PageShell } from "@/components/layout/PageShell";
+import { StickyActionBar } from "@/components/layout/StickyActionBar";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Callout } from "@/components/ui/callout";
+import { Kpi } from "@/components/ui/kpi";
+import { Money, formatMoney } from "@/components/ui/money";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BUNDESLAENDER } from "@/data/bundeslaender";
 import {
   type HourlyRateConfig,
@@ -14,13 +24,8 @@ import {
   CLEANING_TYPE_LABELS,
   CLEANING_TYPE_OVERHEADS,
 } from "@/lib/hourly-rate-calc";
-import {
-  ArrowLeft,
-  Save,
-  RotateCcw,
-} from "lucide-react";
-import { toast } from "sonner";
-import { cn, formatEuro } from "@/lib/utils";
+import type { EconomicsSettings } from "@/lib/object-economics";
+import { calcRateImpact, type RateImpact } from "@/pages/auswertung/portfolio";
 import { BasislohnSection } from "./kalkulation/sections/BasislohnSection";
 import { SchichtzuschlaegeSection } from "./kalkulation/sections/SchichtzuschlaegeSection";
 import { SvSection } from "./kalkulation/sections/SvSection";
@@ -29,14 +34,34 @@ import { GemeinkostenSection } from "./kalkulation/sections/GemeinkostenSection"
 import { GewinnmargeSection } from "./kalkulation/sections/GewinnmargeSection";
 import { ResultSummary } from "./kalkulation/sections/ResultSummary";
 import { BenchmarkCard } from "./kalkulation/sections/BenchmarkCard";
+import { CLEANING_TYPES } from "./kalkulation/constants";
 
-const fmtEuro = formatEuro;
+const roundRate = (v: number) => Math.round(v * 100) / 100;
+
+/** „Betrifft 3 Objekte ohne eigenen Satz · Monatsumsatz +120,00 €" */
+export function rateImpactText(impact: RateImpact): string {
+  const objects = `${impact.affectedCount} ${impact.affectedCount === 1 ? "Objekt" : "Objekte"} ohne eigenen Satz`;
+  return `Betrifft ${objects} · Monatsumsatz ${formatMoney(impact.deltaMonthly, { signed: true })}`;
+}
+
+function ImpactCallout({ impact }: { impact: RateImpact }) {
+  return (
+    <Callout tone="info" title="Auswirkung beim Übernehmen">
+      <p>{rateImpactText(impact)}</p>
+      <p className="text-xs text-muted-foreground">
+        Objekte mit eigenem Verrechnungssatz behalten ihren Preis; deren Vollkosten und Marge ändern sich dennoch.
+      </p>
+    </Callout>
+  );
+}
 
 export default function Kalkulation() {
-  const [, setLocation] = useLocation();
   const storedConfig = useStore((s) => s.hourlyRateConfig);
   const currentHourlyRate = useStore((s) => s.hourlyRate);
+  const projects = useStore((s) => s.projects);
+  const settings = useEconomicsSettings();
   const actions = useStoreActions();
+  const [isSaving, setIsSaving] = useState(false);
 
   const [config, setConfig] = useState<HourlyRateConfig>(() => {
     const defaults = getDefaultConfig();
@@ -132,17 +157,34 @@ export default function Kalkulation() {
     config.schichtzuschlaege.sonntag.enabled ||
     config.schichtzuschlaege.feiertag.enabled;
 
+  const newRate = roundRate(breakdown.stundenverrechnungssatz);
+  const hasChanged = JSON.stringify(config) !== JSON.stringify(storedConfig) || newRate !== currentHourlyRate;
+
+  // Auswirkung auf den Monatsumsatz: computeObjectEconomics mit alten vs. neuen
+  // Einstellungen (gleiche Regel wie updateHourlyRateConfig im Store).
+  const impact = useMemo<RateImpact | null>(() => {
+    if (!hasChanged) return null;
+    const next: EconomicsSettings = {
+      ...settings,
+      hourlyRate: newRate,
+      hourlyRateConfig: config,
+      targetMargin: settings.targetMargin === storedConfig.gewinnmarge ? config.gewinnmarge : settings.targetMargin,
+    };
+    return calcRateImpact(projects, settings, next);
+  }, [hasChanged, settings, newRate, config, storedConfig.gewinnmarge, projects]);
+
   const handleSave = async () => {
+    if (isSaving) return;
+    const note = impact ? rateImpactText(impact) : undefined;
+    setIsSaving(true);
     try {
       useStore.getState().updateHourlyRateConfig(config);
-      await actions.updateSettings({
-        hourlyRate: Math.round(breakdown.stundenverrechnungssatz * 100) / 100,
-      });
-      toast.success("Stundenverrechnungssatz übernommen");
+      await actions.updateSettings({ hourlyRate: newRate });
+      toast.success("Verrechnungssatz übernommen", note ? { description: note } : undefined);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Fehler beim Speichern"
-      );
+      toast.error(err instanceof Error ? err.message : "Der Verrechnungssatz konnte nicht gespeichert werden.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -156,149 +198,156 @@ export default function Kalkulation() {
 
   const handleReset = () => {
     setConfig(getDefaultConfig());
-    toast.success("Auf Standardwerte zurückgesetzt");
+    toast.success("Standardwerte eingesetzt – übernehmen Sie sie mit „Als Verrechnungssatz übernehmen“.");
   };
 
   const bl = BUNDESLAENDER.find(
     (b) => b.id === config.ausfallzeiten.bundeslandId
   );
 
-  const hasChanged = JSON.stringify(config) !== JSON.stringify(storedConfig) ||
-    Math.round(breakdown.stundenverrechnungssatz * 100) / 100 !== currentHourlyRate;
-
   return (
-    <PageTransition className="min-h-screen pb-28 md:pb-8 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
-        <div className="flex items-center gap-3 mb-1 max-w-5xl mx-auto">
-          <button
-            onClick={() => setLocation("/einstellungen")}
-            className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center"
-          >
-            <ArrowLeft size={18} className="text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Verrechnungssatz-Kalkulator
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              Verrechnungssatz kalkulieren
-            </p>
-          </div>
+    <PageTransition>
+      <PageShell
+        header={
+          <PageHeader
+            title="Verrechnungssatz"
+            back={{ href: "/mehr", label: "Mehr" }}
+            subtitle="Kalkulieren Sie Ihren Stundenverrechnungssatz aus Lohn, Zuschlägen, Ausfallzeiten und Gemeinkosten."
+          />
+        }
+        rail={
+          <>
+            <ResultSummary config={config} breakdown={breakdown} savedRate={currentHourlyRate}>
+              {impact && (
+                <div className="hidden lg:block">
+                  <ImpactCallout impact={impact} />
+                </div>
+              )}
+            </ResultSummary>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Card className="lg:hidden">
+            <Kpi
+              label="Ihr Verrechnungssatz"
+              value={breakdown.stundenverrechnungssatz}
+              format="currency"
+              period="hour"
+              emphasis="hero"
+              tone="brand"
+              hint={
+                <>
+                  Aktuell gespeichert: <Money value={currentHourlyRate} size="sm" period="hour" />
+                </>
+              }
+            />
+          </Card>
+          {impact && (
+            <div className="lg:hidden">
+              <ImpactCallout impact={impact} />
+            </div>
+          )}
+
+          <Card as="section" aria-labelledby="rate-cleaning-type">
+            <fieldset className="space-y-2">
+              <legend id="rate-cleaning-type" className="mb-2 text-h3 text-foreground">
+                Reinigungsart
+              </legend>
+              <ToggleGroup
+                type="single"
+                variant="chip"
+                value={config.cleaningType}
+                onValueChange={(v) => {
+                  if (v) handleCleaningTypeChange(v as CleaningType);
+                }}
+                aria-label="Reinigungsart"
+              >
+                {CLEANING_TYPES.map((type) => (
+                  <ToggleGroupItem key={type} value={type}>
+                    {CLEANING_TYPE_LABELS[type]}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+              <p className="text-xs text-muted-foreground">
+                Die Reinigungsart setzt Vorschlagswerte für die Gemeinkosten. Sie können diese anschließend anpassen.
+              </p>
+            </fieldset>
+          </Card>
+
+          <BasislohnSection
+            config={config}
+            open={openSections.basislohn}
+            onToggle={() => toggle("basislohn")}
+            updateConfig={updateConfig}
+          />
+
+          <SchichtzuschlaegeSection
+            config={config}
+            breakdown={breakdown}
+            open={openSections.schicht}
+            onToggle={() => toggle("schicht")}
+            updateSchichtzuschlag={updateSchichtzuschlag}
+            hasAnySchichtzuschlag={hasAnySchichtzuschlag}
+          />
+
+          <SvSection
+            config={config}
+            breakdown={breakdown}
+            open={openSections.sv}
+            onToggle={() => toggle("sv")}
+            activeSvRates={activeSvRates}
+            svTotalRate={svTotalRate}
+            updateSvRate={updateSvRate}
+          />
+
+          <AusfallzeitenSection
+            config={config}
+            breakdown={breakdown}
+            open={openSections.ausfall}
+            onToggle={() => toggle("ausfall")}
+            updateAusfall={updateAusfall}
+            bl={bl}
+          />
+
+          <GemeinkostenSection
+            config={config}
+            breakdown={breakdown}
+            open={openSections.overhead}
+            onToggle={() => toggle("overhead")}
+            updateOverhead={updateOverhead}
+          />
+
+          <GewinnmargeSection
+            config={config}
+            breakdown={breakdown}
+            open={openSections.gewinn}
+            onToggle={() => toggle("gewinn")}
+            updateConfig={updateConfig}
+          />
+
+          <BenchmarkCard config={config} breakdown={breakdown} />
         </div>
-      </div>
+      </PageShell>
 
-      <div className="p-4 space-y-3 max-w-5xl mx-auto">
-        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5 text-center">
-          <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-medium">
-            Stundenverrechnungssatz
-          </p>
-          <p className="text-4xl font-bold text-primary tracking-tight">
-            {fmtEuro(breakdown.stundenverrechnungssatz)} €
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Aktuell gespeichert: {fmtEuro(currentHourlyRate)} €/h
-          </p>
+      <StickyActionBar chrome="app" label="Verrechnungssatz übernehmen">
+        <div className="min-w-0 flex-1 text-sm">
+          <span className="block text-label text-muted-foreground">
+            {hasChanged ? "Neuer Verrechnungssatz" : "Verrechnungssatz ist aktuell"}
+          </span>
+          <Money value={breakdown.stundenverrechnungssatz} period="hour" className="font-semibold text-foreground" />
         </div>
-
-        <div className="bg-card border border-border/40 rounded-2xl p-4">
-          <label className="text-xs font-medium text-muted-foreground mb-2 block">
-            Reinigungsart
-          </label>
-          <div className="grid grid-cols-4 gap-1.5">
-            {(["unterhalt", "sonder", "glas", "bauend"] as CleaningType[]).map(
-              (type) => (
-                <button
-                  key={type}
-                  onClick={() => handleCleaningTypeChange(type)}
-                  className={cn(
-                    "h-9 rounded-xl text-xs font-medium transition-all border",
-                    config.cleaningType === type
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background border-border/50 text-muted-foreground hover:border-border"
-                  )}
-                >
-                  {CLEANING_TYPE_LABELS[type]}
-                </button>
-              )
-            )}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-2">
-            Die Reinigungsart setzt Vorschlagswerte für Gemeinkosten. Sie können anschließend manuell anpassen.
-          </p>
-        </div>
-
-        <BasislohnSection
-          config={config}
-          open={openSections.basislohn}
-          onToggle={() => toggle("basislohn")}
-          updateConfig={updateConfig}
-        />
-
-        <SchichtzuschlaegeSection
-          config={config}
-          breakdown={breakdown}
-          open={openSections.schicht}
-          onToggle={() => toggle("schicht")}
-          updateSchichtzuschlag={updateSchichtzuschlag}
-          hasAnySchichtzuschlag={hasAnySchichtzuschlag}
-        />
-
-        <SvSection
-          config={config}
-          breakdown={breakdown}
-          open={openSections.sv}
-          onToggle={() => toggle("sv")}
-          activeSvRates={activeSvRates}
-          svTotalRate={svTotalRate}
-          updateSvRate={updateSvRate}
-        />
-
-        <AusfallzeitenSection
-          config={config}
-          breakdown={breakdown}
-          open={openSections.ausfall}
-          onToggle={() => toggle("ausfall")}
-          updateAusfall={updateAusfall}
-          bl={bl}
-        />
-
-        <GemeinkostenSection
-          config={config}
-          breakdown={breakdown}
-          open={openSections.overhead}
-          onToggle={() => toggle("overhead")}
-          updateOverhead={updateOverhead}
-        />
-
-        <GewinnmargeSection
-          config={config}
-          breakdown={breakdown}
-          open={openSections.gewinn}
-          onToggle={() => toggle("gewinn")}
-          updateConfig={updateConfig}
-        />
-
-        <ResultSummary config={config} breakdown={breakdown} />
-
-        <BenchmarkCard config={config} breakdown={breakdown} />
-
-        <div className="space-y-2 pt-2">
-          <Button onClick={handleSave} className="w-full h-12" disabled={!hasChanged}>
-            <Save size={18} className="mr-2" />
-            {hasChanged
-              ? "Als Verrechnungssatz übernehmen"
-              : "Verrechnungssatz bereits aktuell"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleReset}
-            className="w-full h-12 text-muted-foreground"
-          >
-            <RotateCcw size={16} className="mr-2" /> Standardwerte
-          </Button>
-        </div>
-      </div>
-
+        <Button type="button" variant="ghost" onClick={handleReset}>
+          <RotateCcw aria-hidden="true" />
+          <span className="hidden sm:inline">Standardwerte</span>
+          <span className="sr-only sm:hidden">Standardwerte</span>
+        </Button>
+        <Button type="button" onClick={handleSave} disabled={!hasChanged} loading={isSaving}>
+          <Save aria-hidden="true" />
+          <span className="hidden sm:inline">Als Verrechnungssatz übernehmen</span>
+          <span className="sm:hidden">Übernehmen</span>
+        </Button>
+      </StickyActionBar>
     </PageTransition>
   );
 }

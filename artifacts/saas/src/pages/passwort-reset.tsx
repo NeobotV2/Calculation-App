@@ -4,7 +4,9 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, Lock, CheckCircle2 } from "lucide-react";
+import { Callout } from "@/components/ui/callout";
+import { FormField } from "@/components/ui/form-field";
+import { Sparkles, Lock, CircleCheck } from "lucide-react";
 
 export default function PasswortReset() {
   const [, setLocation] = useLocation();
@@ -49,18 +51,16 @@ export default function PasswortReset() {
 
   if (success) {
     return (
-      <PageTransition className="min-h-screen bg-background flex flex-col px-6">
-        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full text-center">
-          <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-success" aria-hidden="true" />
-            </div>
+      <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 text-center">
+          <div className="mb-8 flex justify-center">
+            <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
+              <CircleCheck className="size-8" aria-hidden="true" strokeWidth={2} />
+            </span>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight mb-3 text-foreground">
-            Passwort geändert
-          </h1>
-          <p className="text-muted-foreground text-base">
-            Ihr Passwort wurde erfolgreich geändert. Sie werden weitergeleitet...
+          <h1 className="mb-3 text-h1 text-foreground">Passwort geändert</h1>
+          <p role="status" className="text-base text-muted-foreground">
+            Ihr Passwort wurde erfolgreich geändert. Sie werden weitergeleitet…
           </p>
         </div>
       </PageTransition>
@@ -68,65 +68,54 @@ export default function PasswortReset() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background flex flex-col px-6">
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-        <div className="flex justify-center mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} aria-hidden="true" />
-          </div>
+    <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <div className="mb-10 flex justify-center">
+          <span className="flex size-20 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-raised">
+            <Sparkles className="size-10" strokeWidth={2} aria-hidden="true" />
+          </span>
         </div>
 
-        <h1 className="text-3xl font-semibold tracking-tight text-center mb-3 text-foreground">
-          Neues Passwort
-        </h1>
-        <p className="text-muted-foreground text-base text-center mb-10">
-          Wählen Sie ein neues Passwort für Ihr Konto.
-        </p>
+        <h1 className="mb-3 text-center text-h1 text-foreground">Neues Passwort</h1>
+        <p className="mb-10 text-center text-base text-muted-foreground">Wählen Sie ein neues Passwort für Ihr Konto.</p>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20" role="alert">
-            <p id="password-reset-error" className="text-sm text-destructive">{error}</p>
-          </div>
+          <Callout tone="critical" live className="mb-6">
+            <p id="password-reset-error">{error}</p>
+          </Callout>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="new-password" className="sr-only">Neues Passwort</label>
+          <FormField id="new-password" label="Neues Passwort" hint="Mindestens 6 Zeichen">
             <Input
-              id="new-password"
               type="password"
-              placeholder="Neues Passwort (mind. 6 Zeichen)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-14 bg-card border-border/50 text-base"
+              inputSize="lg"
+              autoComplete="new-password"
               autoFocus
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "password-reset-error" : undefined}
             />
-          </div>
-          <div>
-            <label htmlFor="confirm-password" className="sr-only">Passwort bestätigen</label>
+          </FormField>
+          <FormField id="confirm-password" label="Passwort bestätigen">
             <Input
-              id="confirm-password"
               type="password"
-              placeholder="Passwort bestätigen"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="h-14 bg-card border-border/50 text-base"
+              inputSize="lg"
+              autoComplete="new-password"
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "password-reset-error" : undefined}
             />
-          </div>
+          </FormField>
 
-          <Button type="submit" className="w-full h-14 text-lg mt-6" disabled={isLoading}>
+          <Button type="submit" size="lg" className="mt-6 w-full" loading={isLoading}>
             {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Wird gespeichert...
-              </span>
+              "Wird gespeichert…"
             ) : (
               <>
-                <Lock size={20} className="mr-2" aria-hidden="true" /> Passwort ändern
+                <Lock aria-hidden="true" /> Passwort ändern
               </>
             )}
           </Button>

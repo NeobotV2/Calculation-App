@@ -1,16 +1,18 @@
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense, type ReactNode } from "react";
 import { useStore } from "@/store/use-store";
 import { useAuth, SupabaseAuthProvider } from "@/lib/auth-context";
 import { useSupabaseSync } from "@/hooks/use-supabase-sync";
 import { AnimatePresence, MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui/sonner";
 import { Sparkles } from "lucide-react";
+import { useResolvedTheme } from "@/lib/theme";
+import { THEME_COLOR } from "@/lib/tokens";
 
 // Eager: erste authentifizierte Ansicht + kleine Redirect-Helfer
 import Home from "@/pages/home";
-import { KalkulationListRedirect, KalkulationDetailRedirect, StundensatzRedirect } from "@/pages/legacy-redirect";
+import { KalkulationListRedirect, ObjekteNeuRedirect, StundensatzRedirect } from "@/pages/legacy-redirect";
 
 // Lazy: alle übrigen Routen werden bei Bedarf nachgeladen (Code-Splitting)
 const Willkommen = lazy(() => import("@/pages/willkommen"));
@@ -22,7 +24,6 @@ const PasswortVergessen = lazy(() => import("@/pages/passwort-vergessen"));
 const PasswortReset = lazy(() => import("@/pages/passwort-reset"));
 const ObjekteList = lazy(() => import("@/pages/objekte/index"));
 const ObjektDetail = lazy(() => import("@/pages/objekte/[id]"));
-const ObjektWizard = lazy(() => import("@/pages/objekte/wizard"));
 const AuswertungGlobal = lazy(() => import("@/pages/auswertung/index"));
 const AuswertungDetail = lazy(() => import("@/pages/auswertung/[id]"));
 const Vorlagen = lazy(() => import("@/pages/vorlagen"));
@@ -31,6 +32,7 @@ const PrintView = lazy(() => import("@/pages/print/[id]"));
 const InternPrintView = lazy(() => import("@/pages/print/intern-[id]"));
 const Einstellungen = lazy(() => import("@/pages/einstellungen"));
 const KalkulationWizard = lazy(() => import("@/pages/kalkulation-wizard"));
+const Verrechnungssatz = lazy(() => import("@/pages/kalkulation"));
 const Konto = lazy(() => import("@/pages/konto"));
 const Upgrade = lazy(() => import("@/pages/upgrade"));
 const Mehr = lazy(() => import("@/pages/mehr"));
@@ -43,107 +45,148 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { CookieNotice } from "@/components/cookie-notice";
 import { useAndroidBack } from "@/hooks/use-android-back";
 import { AppShell } from "@/components/layout/AppShell";
+import {
+  consumeIntendedPath,
+  getRouteTransitionKey,
+  getShellMode,
+  peekIntendedPath,
+  rememberIntendedPath,
+  resolveAuthGuard,
+  type GuardDecision,
+} from "@/components/layout/nav-config";
 
 function BrandLoader() {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-      <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center mb-6 shadow-lg">
-        <Sparkles className="w-8 h-8 text-primary-foreground" strokeWidth={1.5} />
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-background"
+    >
+      <div className="flex size-16 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-raised">
+        <Sparkles aria-hidden="true" className="size-8" strokeWidth={2} />
       </div>
-      <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div
+        aria-hidden="true"
+        className="size-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary motion-reduce:animate-none"
+      />
+      <span className="sr-only">Wird geladen…</span>
     </div>
   );
 }
 
-function SessionLoader() {
-  const { isLoading } = useAuth();
-  if (isLoading) return <BrandLoader />;
-  return null;
+/** Persistierter Store geladen (auf nativen Plattformen asynchron). */
+function useStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(() => useStore.persist?.hasHydrated?.() ?? true);
+  useEffect(() => {
+    if (hydrated || !useStore.persist) return;
+    const unsubscribe = useStore.persist.onFinishHydration(() => setHydrated(true));
+    if (useStore.persist.hasHydrated()) setHydrated(true);
+    return unsubscribe;
+  }, [hydrated]);
+  return hydrated;
 }
 
-const publicRoutes = [
-  "/willkommen",
-  "/splash",
-  "/onboarding",
-  "/login",
-  "/register",
-  "/passwort-vergessen",
-  "/passwort-reset",
-  "/impressum",
-  "/datenschutz",
-  "/agb",
-];
-
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [location, setLocation] = useLocation();
+/**
+ * Zugangssteuerung (§2):
+ * - Angemeldete Nutzer werden nie auf /willkommen oder /onboarding geschickt.
+ * - Deep-Links (z. B. /print/:id) werden in sessionStorage `cc:intendedPath`
+ *   gemerkt und nach Splash, Onboarding bzw. Login fortgesetzt.
+ */
+function AuthGuard({ children }: { children: ReactNode }) {
+  const [location, navigate] = useLocation();
   const hasSeenSplash = useStore((s) => s.hasSeenSplash);
   const hasOnboarded = useStore((s) => s.hasOnboarded);
   const { isLoading, isAuthenticated } = useAuth();
-  const [isReady, setIsReady] = useState(false);
+  const hydrated = useStoreHydrated();
+  const ready = hydrated && !isLoading;
+
+  const decision: GuardDecision | null = ready
+    ? resolveAuthGuard(location, { isAuthenticated, hasSeenSplash, hasOnboarded })
+    : null;
+  const resumeTarget =
+    decision?.kind === "resume" ? (peekIntendedPath() ?? decision.fallback ?? null) : null;
+  const pendingNavigation =
+    decision?.kind === "redirect" || (resumeTarget !== null && resumeTarget !== location);
 
   useEffect(() => {
-    setIsReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isReady || isLoading) return;
-
-    const isPublic = publicRoutes.some((r) => location === r || location.startsWith(r + "/"));
-
-    if (isAuthenticated && (location === "/login" || location === "/register")) {
-      setLocation("/");
-      return;
+    if (!decision) return;
+    if (decision.kind === "redirect") {
+      if (decision.remember) rememberIntendedPath(location);
+      navigate(decision.to, { replace: true });
+    } else if (decision.kind === "resume") {
+      const target = consumeIntendedPath() ?? decision.fallback;
+      if (target && target !== location) navigate(target, { replace: true });
     }
+    // Entscheidung hängt nur von Ort und Zugangszustand ab.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location, ready, isAuthenticated, hasSeenSplash, hasOnboarded, navigate]);
 
-    // Neue Besucher landen zuerst auf der Marketing-Startseite (Top of Funnel).
-    if (!hasSeenSplash && location !== "/willkommen") {
-      setLocation("/willkommen");
-    } else if (hasSeenSplash && !hasOnboarded && !isAuthenticated && !isPublic) {
-      setLocation("/onboarding");
-    }
-  }, [location, hasSeenSplash, hasOnboarded, setLocation, isReady, isLoading, isAuthenticated]);
-
-  if (!isReady || isLoading) return <SessionLoader />;
+  if (!ready) return <BrandLoader />;
+  // Während einer Weiterleitung nichts rendern (kein Aufblitzen der Zielseite).
+  if (pendingNavigation) return null;
   return <>{children}</>;
 }
 
+/**
+ * Wendet das aufgelöste Farbschema an (Hell/Dunkel/System). Druckansichten und
+ * der Druck selbst sind immer hell; `meta[name=theme-color]` folgt dem Schema.
+ */
 function ThemeApplicator() {
-  const theme = useStore((s) => s.theme);
+  const resolved = useResolvedTheme();
+  const [location] = useLocation();
+  const isPrintRoute = location.startsWith("/print/");
+  const dark = resolved === "dark" && !isPrintRoute;
+  const darkRef = useRef(dark);
+  darkRef.current = dark;
+
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
+    root.classList.toggle("dark", dark);
+    root.style.colorScheme = dark ? "dark" : "light";
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "theme-color";
+      document.head.appendChild(meta);
     }
-  }, [theme]);
+    meta.content = THEME_COLOR[dark ? "dark" : "light"];
+  }, [dark]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const beforePrint = () => {
+      root.classList.remove("dark");
+      root.style.colorScheme = "light";
+    };
+    const afterPrint = () => {
+      root.classList.toggle("dark", darkRef.current);
+      root.style.colorScheme = darkRef.current ? "dark" : "light";
+    };
+    window.addEventListener("beforeprint", beforePrint);
+    window.addEventListener("afterprint", afterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", beforePrint);
+      window.removeEventListener("afterprint", afterPrint);
+    };
+  }, []);
+
   return null;
 }
 
 function DataSync() {
-  useSupabaseSync();
+  useSupabaseSync({ primary: true });
   useAndroidBack();
   return null;
 }
 
-const shellRoutes = ["/", "/objekte", "/auswertung", "/einstellungen", "/stundensatz", "/kalkulation", "/konto", "/vorlagen", "/ausschreibung", "/upgrade", "/mehr"];
-
-function needsShell(loc: string): boolean {
-  if (loc.startsWith("/print/")) return false;
-  for (const route of shellRoutes) {
-    if (route === "/" && loc === "/") return true;
-    if (route !== "/" && (loc === route || loc.startsWith(route + "/"))) return true;
-  }
-  return false;
-}
-
 function AppRouter() {
   const [location] = useLocation();
-  const showShell = needsShell(location);
+  const shellMode = getShellMode(location);
 
   const routes = (
     <AnimatePresence mode="wait" initial={false}>
-      <Switch location={location} key={location}>
+      <Switch location={location} key={getRouteTransitionKey(location)}>
+        {/* Öffentlich (ohne Shell) */}
         <Route path="/willkommen" component={Willkommen} />
         <Route path="/splash" component={Splash} />
         <Route path="/onboarding" component={Onboarding} />
@@ -151,27 +194,32 @@ function AppRouter() {
         <Route path="/register" component={Register} />
         <Route path="/passwort-vergessen" component={PasswortVergessen} />
         <Route path="/passwort-reset" component={PasswortReset} />
-        <Route path="/" component={Home} />
-        <Route path="/objekte" component={ObjekteList} />
-        <Route path="/objekte/neu" component={ObjektWizard} />
-        <Route path="/objekte/:id" component={ObjektDetail} />
-        <Route path="/auswertung" component={AuswertungGlobal} />
-        <Route path="/auswertung/:id" component={AuswertungDetail} />
-        <Route path="/vorlagen" component={Vorlagen} />
-        <Route path="/ausschreibung" component={Ausschreibung} />
-        <Route path="/print/:id/intern" component={InternPrintView} />
-        <Route path="/print/:id" component={PrintView} />
-        <Route path="/einstellungen" component={Einstellungen} />
-        <Route path="/stundensatz" component={StundensatzRedirect} />
-        <Route path="/kalkulation/neu" component={KalkulationWizard} />
-        <Route path="/kalkulation/:id" component={KalkulationWizard} />
-        <Route path="/konto" component={Konto} />
-        <Route path="/upgrade" component={Upgrade} />
-        <Route path="/mehr" component={Mehr} />
         <Route path="/impressum" component={Impressum} />
         <Route path="/datenschutz" component={Datenschutz} />
         <Route path="/agb" component={AGB} />
+
+        {/* App */}
+        <Route path="/" component={Home} />
+        <Route path="/objekte" component={ObjekteList} />
+        <Route path="/objekte/neu" component={ObjekteNeuRedirect} />
+        <Route path="/objekte/:id/:tab?" component={ObjektDetail} />
         <Route path="/kalkulation" component={KalkulationListRedirect} />
+        <Route path="/kalkulation/:id/:schritt?" component={KalkulationWizard} />
+        <Route path="/verrechnungssatz" component={Verrechnungssatz} />
+        <Route path="/stundensatz" component={StundensatzRedirect} />
+        <Route path="/ausschreibung" component={Ausschreibung} />
+        <Route path="/vorlagen" component={Vorlagen} />
+        <Route path="/konto" component={Konto} />
+        <Route path="/upgrade" component={Upgrade} />
+        <Route path="/mehr" component={Mehr} />
+        <Route path="/auswertung" component={AuswertungGlobal} />
+        <Route path="/auswertung/:id" component={AuswertungDetail} />
+        <Route path="/einstellungen/:bereich?" component={Einstellungen} />
+
+        {/* Druck (ohne Shell) */}
+        <Route path="/print/:id/intern" component={InternPrintView} />
+        <Route path="/print/:id" component={PrintView} />
+
         <Route component={NotFound} />
       </Switch>
     </AnimatePresence>
@@ -179,10 +227,9 @@ function AppRouter() {
 
   const content = <Suspense fallback={<BrandLoader />}>{routes}</Suspense>;
 
-  if (showShell) {
+  if (shellMode === "app") {
     return <AppShell>{content}</AppShell>;
   }
-
   return content;
 }
 
@@ -197,7 +244,7 @@ function App() {
             <AuthGuard>
               <AppRouter />
             </AuthGuard>
-            <Toaster position="top-center" />
+            <Toaster />
             <CookieNotice />
           </WouterRouter>
         </SupabaseAuthProvider>

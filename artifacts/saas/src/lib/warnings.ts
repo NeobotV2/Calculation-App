@@ -2,6 +2,8 @@ import { type Project } from "@/store/use-store";
 import { calcProjectTotals, calcRoom } from "@/lib/calc";
 import { calcHourlyRate, type HourlyRateConfig, type HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
 import { markupToRevenueMargin } from "@/lib/price-strategy";
+import { calcObjectTotals, hasActiveModules } from "@/lib/object-totals";
+import { evaluateModuleFindings } from "@/lib/service-modules/plausibility";
 
 export type WarningSeverity = "critical" | "warning" | "info";
 
@@ -29,6 +31,8 @@ export const WARNING_TYPES = [
   { key: "perf", label: "Leistungswert unrealistisch", severity: "warning" as WarningSeverity },
   { key: "sanitaer", label: "Hoher Sanitäranteil", severity: "info" as WarningSeverity },
   { key: "default_rate", label: "Standard-Stundensatz", severity: "info" as WarningSeverity },
+  { key: "winterdienst", label: "Winterdienst-Plausibilität", severity: "warning" as WarningSeverity },
+  { key: "hms", label: "Hausmeisterservice-Plausibilität", severity: "warning" as WarningSeverity },
 ] as const;
 
 export function getWarningTypeKey(warningId: string): string {
@@ -39,6 +43,8 @@ export function getWarningTypeKey(warningId: string): string {
   if (parts[0] === "default" && parts[1] === "rate") return "default_rate";
   if (parts[0] === "perf") return "perf";
   if (parts[0] === "sanitaer") return "sanitaer";
+  if (parts[0] === "wd") return "winterdienst";
+  if (parts[0] === "hms") return "hms";
   return parts.join("_");
 }
 
@@ -57,67 +63,70 @@ export function getProjectWarnings(
   // Vergleich wird das Ziel in die Umsatzbasis konvertiert (10 % ⇒ 9,09 %).
   const marginTarget = markupToRevenueMargin(targetMargin ?? hourlyRateConfig.gewinnmarge);
 
-  if (project.rooms.length === 0) return warnings;
+  const modulesActive = hasActiveModules(project);
+  if (project.rooms.length === 0 && !modulesActive) return warnings;
 
-  if (effectiveRate < breakdown.vollkosten) {
-    warnings.push({
-      id: `${project.id}_below_cost`,
-      severity: "critical",
-      title: "Unter Vollkosten",
-      message: `Der Verrechnungssatz (${fmt(effectiveRate)} €/h) liegt unter den Vollkosten (${fmt(breakdown.vollkosten)} €/h). Dieses Objekt wird mit Verlust kalkuliert.`,
-      action: "Verrechnungssatz im Stundensatz-Kalkulator oder in der Objektinfo erhöhen.",
-    });
-  }
+  if (project.rooms.length > 0) {
+    if (effectiveRate < breakdown.vollkosten) {
+      warnings.push({
+        id: `${project.id}_below_cost`,
+        severity: "critical",
+        title: "Unter Vollkosten",
+        message: `Der Verrechnungssatz (${fmt(effectiveRate)} €/h) liegt unter den Vollkosten (${fmt(breakdown.vollkosten)} €/h). Dieses Objekt wird mit Verlust kalkuliert.`,
+        action: "Verrechnungssatz im Stundensatz-Kalkulator oder in der Objektinfo erhöhen.",
+      });
+    }
 
-  const marginPercent = effectiveRate > 0
-    ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
-    : 0;
+    const marginPercent = effectiveRate > 0
+      ? ((effectiveRate - breakdown.vollkosten) / effectiveRate) * 100
+      : 0;
 
-  if (marginPercent >= 0 && marginPercent < marginTarget - 1e-9 && effectiveRate >= breakdown.vollkosten) {
-    warnings.push({
-      id: `${project.id}_low_margin`,
-      severity: "warning",
-      title: "Marge unter Zielwert",
-      message: `Die Marge liegt bei ${fmt(marginPercent)}% — unter dem Zielwert von ${fmt(marginTarget)}%.`,
-      action: "Verrechnungssatz prüfen oder Leistungswerte der Räume optimieren.",
-    });
-  }
+    if (marginPercent >= 0 && marginPercent < marginTarget - 1e-9 && effectiveRate >= breakdown.vollkosten) {
+      warnings.push({
+        id: `${project.id}_low_margin`,
+        severity: "warning",
+        title: "Marge unter Zielwert",
+        message: `Die Marge liegt bei ${fmt(marginPercent)}% — unter dem Zielwert von ${fmt(marginTarget)}%.`,
+        action: "Verrechnungssatz prüfen oder Leistungswerte der Räume optimieren.",
+      });
+    }
 
-  for (const room of project.rooms) {
-    if (room.customPerformance && room.typePerformance > 0) {
-      const deviation = (room.customPerformance - room.typePerformance) / room.typePerformance;
-      if (deviation > PERFORMANCE_DEVIATION_THRESHOLD) {
+    for (const room of project.rooms) {
+      if (room.customPerformance && room.typePerformance > 0) {
+        const deviation = (room.customPerformance - room.typePerformance) / room.typePerformance;
+        if (deviation > PERFORMANCE_DEVIATION_THRESHOLD) {
+          warnings.push({
+            id: `${project.id}_perf_${room.id}`,
+            severity: "warning",
+            title: "Leistungswert unrealistisch",
+            message: `„${room.name || room.typeName}": Leistungswert ${room.customPerformance} m²/h liegt ${Math.round(deviation * 100)}% über dem Branchenwert (${room.typePerformance} m²/h).`,
+            action: "Leistungswert prüfen — zu hohe Werte führen zu Unterkalkulierung.",
+          });
+        }
+      }
+    }
+
+    const totals = calcProjectTotals(project, effectiveRate);
+    if (totals.cost > 0) {
+      let sanitaerCost = 0;
+      for (const room of project.rooms) {
+        if (room.groupId === SANITAER_GROUP_ID) {
+          const rc = calcRoom(room, effectiveRate);
+          sanitaerCost += rc.monthlyCost;
+        }
+      }
+      const sanitaerRatio = sanitaerCost / totals.cost;
+      if (sanitaerRatio > SANITAER_COST_THRESHOLD) {
         warnings.push({
-          id: `${project.id}_perf_${room.id}`,
-          severity: "warning",
-          title: "Leistungswert unrealistisch",
-          message: `„${room.name || room.typeName}": Leistungswert ${room.customPerformance} m²/h liegt ${Math.round(deviation * 100)}% über dem Branchenwert (${room.typePerformance} m²/h).`,
-          action: "Leistungswert prüfen — zu hohe Werte führen zu Unterkalkulierung.",
+          id: `${project.id}_sanitaer`,
+          severity: "info",
+          title: "Hoher Sanitäranteil",
+          message: `${Math.round(sanitaerRatio * 100)}% der Kosten entfallen auf Sanitärräume. Sanitärbereiche sind personalintensiv.`,
+          action: "Ggf. separate Preisgestaltung oder Sondervereinbarung prüfen.",
         });
       }
     }
-  }
-
-  const totals = calcProjectTotals(project, effectiveRate);
-  if (totals.cost > 0) {
-    let sanitaerCost = 0;
-    for (const room of project.rooms) {
-      if (room.groupId === SANITAER_GROUP_ID) {
-        const rc = calcRoom(room, effectiveRate);
-        sanitaerCost += rc.monthlyCost;
-      }
-    }
-    const sanitaerRatio = sanitaerCost / totals.cost;
-    if (sanitaerRatio > SANITAER_COST_THRESHOLD) {
-      warnings.push({
-        id: `${project.id}_sanitaer`,
-        severity: "info",
-        title: "Hoher Sanitäranteil",
-        message: `${Math.round(sanitaerRatio * 100)}% der Kosten entfallen auf Sanitärräume. Sanitärbereiche sind personalintensiv.`,
-        action: "Ggf. separate Preisgestaltung oder Sondervereinbarung prüfen.",
-      });
-    }
-  }
+  } // Ende der Raum-Prüfungen
 
   if (isDefaultRate && !project.hourlyRate) {
     warnings.push({
@@ -127,6 +136,13 @@ export function getProjectWarnings(
       message: "Es wird der Standard-Stundensatz verwendet. Für eine realistische Kalkulation sollte ein firmenspezifischer Satz berechnet werden.",
       action: "Stundensatz-Kalkulator unter Einstellungen nutzen.",
     });
+  }
+
+  if (modulesActive) {
+    const objectTotals = calcObjectTotals(project, { rate: effectiveRate, vollkosten: breakdown.vollkosten });
+    for (const f of evaluateModuleFindings(project, objectTotals, marginTarget)) {
+      warnings.push({ id: `${project.id}_${f.idSuffix}`, severity: f.severity, title: f.title, message: f.message, action: f.action });
+    }
   }
 
   return warnings;

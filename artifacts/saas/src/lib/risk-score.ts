@@ -1,5 +1,7 @@
 import type { Project } from "@/store/use-store";
 import { BENCHMARKS, estimateFte } from "@/data/benchmarks";
+import type { ObjectTotals } from "@/lib/object-totals";
+import { evaluateModuleFindings } from "@/lib/service-modules/plausibility";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Risiko-Scoring (0–100) für eine Objektkalkulation.
@@ -10,6 +12,10 @@ import { BENCHMARKS, estimateFte } from "@/data/benchmarks";
    ───────────────────────────────────────────────────────────────────────── */
 
 export type RiskLevel = "niedrig" | "mittel" | "hoch";
+
+/** Zahl im deutschen Format (Dezimalkomma) mit fester Nachkommazahl. */
+const de = (n: number, digits: number) =>
+  n.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 export interface RiskFactor {
   key: string;
@@ -48,6 +54,13 @@ export interface RiskInput {
    * Risiko dieser Kalkulation unmittelbar.
    */
   actualMonthlyHours?: number;
+  /**
+   * NEU, optional: Gesamtkalkulation inkl. Winterdienst/HMS (calcObjectTotals).
+   * monthlyHours/area/monthlyCost bleiben die REINIGUNGS-Werte — Nachkalkulation (8)
+   * und €/m²-Benchmark (2) behalten ihre Bedeutung. Ohne objectTotals bzw. ohne
+   * aktive Module ist das Ergebnis identisch mit bisher.
+   */
+  objectTotals?: ObjectTotals;
 }
 
 /** Ab +5 % Ist-Mehrstunden: Hinweis; ab +10 %: deutliches Risiko. */
@@ -68,11 +81,11 @@ export function calcRiskScore(input: RiskInput): RiskResult {
       "Satz erhöhen oder Leistungsumfang reduzieren — so nicht anbieten.");
   } else if (marginPct < targetMarginPct / 2) {
     add("margin_half", 25, "Marge weit unter Zielwert",
-      `Nur ${marginPct.toFixed(1)} % statt ${targetMarginPct.toFixed(1)} % Ziel-Marge.`,
+      `Nur ${de(marginPct, 1)} % statt ${de(targetMarginPct, 1)} % Zielmarge (vom Umsatz).`,
       "Preis anheben oder Kostenstruktur prüfen; kaum Reserve für Unvorhergesehenes.");
   } else if (marginPct < targetMarginPct - 1e-9) {
     add("margin_low", 12, "Marge unter Zielwert",
-      `${marginPct.toFixed(1)} % liegt unter der Ziel-Marge von ${targetMarginPct.toFixed(1)} %.`,
+      `${de(marginPct, 1)} % liegt unter der Zielmarge (vom Umsatz) von ${de(targetMarginPct, 1)} %.`,
       "Verhandlungsspielraum bewusst begrenzen.");
   }
 
@@ -80,7 +93,7 @@ export function calcRiskScore(input: RiskInput): RiskResult {
   const pricePerSqm = area > 0 ? monthlyCost / area : 0;
   if (area > 0 && pricePerSqm < BENCHMARKS.pricePerSqmMonthly.min) {
     add("price_sqm_low", 15, "Gefährlich niedriger m²-Preis",
-      `${pricePerSqm.toFixed(2)} €/m² liegt unter dem Branchenminimum (${BENCHMARKS.pricePerSqmMonthly.min.toFixed(2)} €/m²).`,
+      `${de(pricePerSqm, 2)} €/m² liegt unter dem Branchenminimum (${de(BENCHMARKS.pricePerSqmMonthly.min, 2)} €/m²).`,
       "Leistungswerte und Intervalle prüfen — vermutlich zu optimistisch kalkuliert.");
   }
 
@@ -110,14 +123,16 @@ export function calcRiskScore(input: RiskInput): RiskResult {
   }
 
   // 6. Personalbedarf / operative Machbarkeit
-  const fte = estimateFte(monthlyHours);
-  if (monthlyHours > BENCHMARKS.hoursPerFteMonth) {
+  // Stetige Stunden = Reinigung + HMS; Winterdienst bewusst NICHT (Spitzenlast → wd_peak_crew).
+  const steadyHours = monthlyHours + (input.objectTotals?.hms?.laborHoursMonthly ?? 0);
+  const fte = estimateFte(steadyHours);
+  if (steadyHours > BENCHMARKS.hoursPerFteMonth) {
     add("staffing_multi", 8, "Mehrere Kräfte erforderlich",
-      `≈ ${fte.toFixed(1)} Vollzeit-Äquivalente (${Math.round(monthlyHours)} h/Monat).`,
+      `≈ ${de(fte, 1)} Vollzeit-Äquivalente (${Math.round(steadyHours)} h/Monat).`,
       "Vertretung (Urlaub/Krankheit) und Revierplanung einplanen.");
-  } else if (monthlyHours > BENCHMARKS.hoursSinglePersonMax && monthlyHours <= BENCHMARKS.hoursPerFteMonth) {
+  } else if (steadyHours > BENCHMARKS.hoursSinglePersonMax && steadyHours <= BENCHMARKS.hoursPerFteMonth) {
     add("staffing_parttime", 4, "Über Minijob-Umfang",
-      `${Math.round(monthlyHours)} h/Monat übersteigen eine einzelne geringfügige Kraft.`,
+      `${Math.round(steadyHours)} h/Monat übersteigen eine einzelne geringfügige Kraft.`,
       "Teilzeitkraft oder Aufteilung auf zwei Kräfte vorsehen.");
   }
 
@@ -135,12 +150,19 @@ export function calcRiskScore(input: RiskInput): RiskResult {
     const overrun = (actual - monthlyHours) / monthlyHours;
     if (overrun > NACHKALK_HEAVY_OVERRUN) {
       add("nachkalk_overrun", 15, "Nachkalkulation: deutliche Mehrstunden",
-        `Ist ${actual.toFixed(1)} h statt geplanter ${monthlyHours.toFixed(1)} h (+${(overrun * 100).toFixed(0)} %).`,
+        `Ist ${de(actual, 1)} h statt geplanter ${de(monthlyHours, 1)} h (+${de(overrun * 100, 0)} %).`,
         "Leistungswerte dieses Objekts korrigieren — die reale Marge liegt unter Plan.");
     } else if (overrun > NACHKALK_LIGHT_OVERRUN) {
       add("nachkalk_drift", 8, "Nachkalkulation: Mehrstunden",
-        `Ist ${actual.toFixed(1)} h statt geplanter ${monthlyHours.toFixed(1)} h (+${(overrun * 100).toFixed(0)} %).`,
+        `Ist ${de(actual, 1)} h statt geplanter ${de(monthlyHours, 1)} h (+${de(overrun * 100, 0)} %).`,
         "Entwicklung beobachten; bei Verstetigung Leistungswerte anpassen.");
+    }
+  }
+
+  // 9. Leistungsmodule (Winterdienst/HMS) — gleiche Befunde wie warnings.ts
+  if (input.objectTotals?.hasModules) {
+    for (const f of evaluateModuleFindings(project, input.objectTotals, targetMarginPct)) {
+      if (f.riskPoints > 0) add(f.riskKey, f.riskPoints, f.title, f.message, f.action);
     }
   }
 

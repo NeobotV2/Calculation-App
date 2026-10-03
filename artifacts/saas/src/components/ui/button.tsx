@@ -1,50 +1,95 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import { LoaderCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+/*
+ * Hierarchie: ein `primary` je Bereich (Seitenkopf, Sticky-Bar, Dialog-Footer),
+ * `secondary` für Alternativen, `ghost` in Toolbars, `destructive` nur in
+ * Bestätigungsdialogen, `destructive-ghost` in Menüs.
+ * Aliasse für Altbestand: default → primary, outline/glass → secondary,
+ * size default → md.
+ */
+const PRIMARY = "bg-primary text-primary-foreground shadow-surface hover:bg-primary/90"
+const SECONDARY = "border border-border-strong bg-card text-foreground shadow-surface hover:bg-muted"
+
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-base font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-busy:cursor-progress [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-border/50 bg-transparent hover:bg-card text-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-card text-muted-foreground hover:text-foreground border border-transparent",
+        primary: PRIMARY,
+        secondary: SECONDARY,
+        tonal: "bg-primary-soft text-primary hover:bg-primary/15",
+        ghost: "text-foreground hover:bg-muted",
+        destructive: "bg-destructive text-destructive-foreground shadow-surface hover:bg-destructive/90",
+        "destructive-ghost": "text-destructive hover:bg-destructive-soft",
         link: "text-primary underline-offset-4 hover:underline",
-        glass: "bg-card border border-border/40 hover:bg-secondary text-foreground"
+        // Aliasse (Altbestand)
+        default: PRIMARY,
+        outline: SECONDARY,
+        glass: SECONDARY,
       },
       size: {
-        default: "h-12 px-6 py-3",
-        sm: "h-10 rounded-lg px-4 text-sm",
-        lg: "h-14 rounded-xl px-8 text-lg",
-        icon: "h-12 w-12",
+        sm: "h-8 px-3 pointer-coarse:h-10",
+        md: "h-10 px-4 pointer-coarse:h-11",
+        lg: "h-11 px-5 text-base pointer-coarse:h-12",
+        "icon-sm": "size-8 pointer-coarse:size-10",
+        icon: "size-10 pointer-coarse:size-11",
+        // Alias (Altbestand)
+        default: "h-10 px-4 pointer-coarse:h-11",
       },
     },
+    compoundVariants: [
+      { variant: "link", className: "h-auto px-0 pointer-coarse:h-auto pointer-coarse:min-h-10" },
+    ],
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: "primary",
+      size: "md",
     },
   }
 )
 
+type ButtonVariantProps = VariantProps<typeof buttonVariants>
+export type ButtonVariant = NonNullable<ButtonVariantProps["variant"]>
+export type ButtonSize = NonNullable<ButtonVariantProps["size"]>
+
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+    ButtonVariantProps {
   asChild?: boolean
+  /** Zeigt einen Spinner, setzt `aria-busy` und deaktiviert den Button. */
+  loading?: boolean
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  ({ className, variant, size, asChild = false, loading = false, disabled, children, ...props }, ref) => {
+    const classes = cn(buttonVariants({ variant, size }), className)
+    if (asChild) {
+      return (
+        <Slot
+          ref={ref}
+          className={classes}
+          aria-busy={loading || undefined}
+          aria-disabled={disabled || loading || undefined}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+      <button
         ref={ref}
+        className={classes}
+        disabled={disabled || loading}
+        aria-busy={loading || undefined}
         {...props}
-      />
+      >
+        {loading && <LoaderCircle className="animate-spin" aria-hidden="true" />}
+        {children}
+      </button>
     )
   }
 )

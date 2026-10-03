@@ -1,85 +1,87 @@
-import { Calculator, Save, Clock, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
+import { Calculator, ChevronRight } from "lucide-react";
+import { Callout } from "@/components/ui/callout";
+import { Card, CardHeader } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
-import { FREQUENCY_LABELS } from "@/lib/calc";
+import { NumberInput } from "@/components/ui/number-input";
+import { NativeSelect } from "@/components/ui/select";
+import { FREQUENCY_OPTIONS } from "@/data/frequencies";
+import { formatMoney } from "@/components/ui/money";
 import type { FrequencyKey } from "@/store/use-store";
+import type { RateImpact } from "@/pages/auswertung/portfolio";
+import type { SettingsForm } from "./use-settings-form";
 
 interface CalculationSectionProps {
-  rate: string;
-  setRate: (v: string) => void;
-  vat: string;
-  setVat: (v: string) => void;
-  freq: FrequencyKey;
-  setFreq: (v: FrequencyKey) => void;
-  isSaving: boolean;
-  onSave: () => void;
-  onOpenRateCalculator: () => void;
+  form: Pick<SettingsForm, "values" | "setField" | "errors">;
+  /** Auswirkung eines geänderten Standard-Verrechnungssatzes (vor dem Speichern). */
+  rateImpact?: RateImpact | null;
 }
 
-/** Presentational form for calculation defaults (rate, MwSt, frequency). */
-export function CalculationSection({
-  rate,
-  setRate,
-  vat,
-  setVat,
-  freq,
-  setFreq,
-  isSaving,
-  onSave,
-  onOpenRateCalculator,
-}: CalculationSectionProps) {
+/** Kalkulations-Standards: Verrechnungssatz, Standardturnus, Link zum Rechner. */
+export function CalculationSection({ form, rateImpact }: CalculationSectionProps) {
+  const { values, setField, errors } = form;
   return (
-    <section className="space-y-4">
-      <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-        <Calculator size={16} /> Kalkulation
-      </h2>
-      <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
-        <div>
-          <label htmlFor="setting-rate" className="text-sm font-medium text-foreground mb-2 block">Standard-Verrechnungssatz (€/h)</label>
-          <div className="flex gap-2">
-            <Input id="setting-rate" aria-describedby="setting-rate-hint" value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" className="bg-background border-border/50 h-12 flex-1" />
-            <button
-              onClick={onOpenRateCalculator}
-              className="h-12 px-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center gap-2 text-primary hover:bg-primary/15 transition-colors shrink-0"
-            >
-              <Calculator size={16} aria-hidden="true" />
-              <span className="text-sm font-medium">Kalkulieren</span>
-              <ChevronRight size={14} aria-hidden="true" />
-            </button>
-          </div>
-          <p id="setting-rate-hint" className="text-xs text-muted-foreground mt-1.5 ml-1">
-            Nutzen Sie den Kalkulator für eine professionelle Verrechnungssatz-Berechnung.
-          </p>
-        </div>
-        <FormField
-          id="setting-vat"
-          label="MwSt.-Satz (%)"
-          hint="Wird auf dem PDF-Angebot ausgewiesen. 0 = keine MwSt."
-        >
-          <Input value={vat} onChange={(e) => setVat(e.target.value)} inputMode="decimal" placeholder="0 = ohne MwSt." className="bg-background border-border/50 h-12" />
-        </FormField>
-        <div>
-          <label htmlFor="setting-frequency" className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-            <Clock size={14} aria-hidden="true" /> Standard-Reinigungshäufigkeit
-          </label>
-          <select
-            id="setting-frequency"
-            value={freq}
-            onChange={(e) => setFreq(e.target.value as FrequencyKey)}
-            className="w-full h-12 rounded-xl border border-border/50 bg-background px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+    <>
+      <Card as="section" aria-labelledby="settings-calc-title">
+        <CardHeader
+          title={<span id="settings-calc-title">Standardwerte</span>}
+          description="Gelten für neue Objekte und für alle Objekte ohne eigenen Verrechnungssatz."
+        />
+        <div className="space-y-4">
+          <FormField
+            id="setting-rate"
+            label="Standard-Verrechnungssatz"
+            error={errors.hourlyRate}
+            hint="Ermitteln Sie den Satz am besten mit dem Verrechnungssatz-Rechner."
           >
-            {Object.entries(FREQUENCY_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
+            <NumberInput
+              value={values.hourlyRate}
+              onValueChange={(v) => setField("hourlyRate", v)}
+              unit="€/h"
+              decimals={2}
+              min={0}
+              wrapperClassName="sm:max-w-48"
+            />
+          </FormField>
+          {rateImpact && (
+            <Callout tone="info" title="Auswirkung beim Speichern">
+              Betrifft {rateImpact.affectedCount} {rateImpact.affectedCount === 1 ? "Objekt" : "Objekte"} ohne eigenen Satz
+              {" · "}Monatsumsatz {formatMoney(rateImpact.deltaMonthly, { signed: true })}
+            </Callout>
+          )}
+          <FormField id="setting-frequency" label="Standardturnus" hint="Vorauswahl für neue Räume.">
+            <NativeSelect
+              value={values.defaultFrequency}
+              onChange={(e) => setField("defaultFrequency", e.target.value as FrequencyKey)}
+              wrapperClassName="sm:max-w-72"
+            >
+              {FREQUENCY_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
         </div>
-        <div className="pt-2">
-          <Button onClick={onSave} className="w-full" disabled={isSaving}>
-            <Save size={18} className="mr-2" /> Änderungen speichern
-          </Button>
-        </div>
-      </div>
-    </section>
+      </Card>
+
+      <Card padding="none" interactive>
+        <Link
+          href="/verrechnungssatz"
+          className="flex min-h-14 items-center gap-3 px-4 py-3 outline-none after:absolute after:inset-0 after:content-['']"
+        >
+          <span aria-hidden="true" className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
+            <Calculator className="size-4" strokeWidth={2} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-medium text-foreground">Verrechnungssatz-Rechner öffnen</span>
+            <span className="block text-xs text-muted-foreground">
+              Lohn, Zuschläge, Ausfallzeiten und Gemeinkosten kalkulieren
+            </span>
+          </span>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        </Link>
+      </Card>
+    </>
   );
 }

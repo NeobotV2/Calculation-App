@@ -5,6 +5,8 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Callout } from "@/components/ui/callout";
 import { FormField } from "@/components/ui/form-field";
 import { ArrowRight } from "lucide-react";
 import { hasDemoData, getDemoData, migrateDemoData } from "@/services/migration-service";
@@ -83,45 +85,31 @@ export default function Login() {
 
   if (showMigration) {
     return (
-      <PageTransition className="min-h-screen bg-background flex flex-col px-6">
-        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-          <div className="flex justify-center mb-8">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">
-              CleanCalc <span className="text-primary">Pro</span>
-            </h2>
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight text-center mb-3 text-foreground">
-            Demo-Daten gefunden
-          </h1>
-          <p className="text-muted-foreground text-base text-center mb-8">
+      <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+          <p className="mb-8 text-center text-h1 text-foreground" aria-hidden="true">
+            CleanCalc <span className="text-primary">Pro</span>
+          </p>
+          <h1 className="mb-3 text-center text-h1 text-foreground">Demo-Daten gefunden</h1>
+          <p className="mb-8 text-center text-base text-muted-foreground">
             Sie haben im Demo-Modus Daten erstellt. Möchten Sie diese in Ihr Konto übernehmen?
           </p>
           {migrationData && (
-            <div className="bg-card border border-border/40 rounded-2xl p-4 mb-8">
+            <Card tone="sunken" padding="sm" className="mb-8">
               <p className="text-sm text-muted-foreground">
                 {migrationData.projects.length} Objekt{migrationData.projects.length !== 1 ? "e" : ""},
                 {" "}{migrationData.templates.length} Vorlage{migrationData.templates.length !== 1 ? "n" : ""}
               </p>
-            </div>
+            </Card>
           )}
           <div className="space-y-3">
-            <Button
-              className="w-full h-14 text-lg"
-              onClick={() => handleMigrate(true)}
-              disabled={isMigrating}
-            >
-              {isMigrating ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Wird übertragen...
-                </span>
-              ) : (
-                "Ja, Daten übernehmen"
-              )}
+            <Button size="lg" className="w-full" onClick={() => handleMigrate(true)} loading={isMigrating}>
+              {isMigrating ? "Wird übertragen…" : "Ja, Daten übernehmen"}
             </Button>
             <Button
-              variant="outline"
-              className="w-full h-14 text-base"
+              variant="secondary"
+              size="lg"
+              className="w-full"
               onClick={() => handleMigrate(false)}
               disabled={isMigrating}
             >
@@ -134,21 +122,19 @@ export default function Login() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background flex flex-col px-6">
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-        <div className="flex flex-col items-center mb-10">
-          <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            CleanCalc <span className="text-primary">Pro</span>
-          </h2>
-        </div>
+    <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <p className="mb-10 text-center text-h1 text-foreground" aria-hidden="true">
+          CleanCalc <span className="text-primary">Pro</span>
+        </p>
 
-        <h1 className="text-4xl font-semibold tracking-tight text-center mb-3 text-foreground">Willkommen</h1>
-        <p className="text-muted-foreground text-lg text-center mb-10">Melden Sie sich an, um fortzufahren.</p>
+        <h1 className="mb-3 text-center text-h1 text-foreground">Willkommen</h1>
+        <p className="mb-10 text-center text-base text-muted-foreground">Melden Sie sich an, um fortzufahren.</p>
 
         {error && (
-          <div role="alert" className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20">
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
+          <Callout tone="critical" live className="mb-6">
+            {error}
+          </Callout>
         )}
 
         <form onSubmit={handleLogin} className="space-y-5" noValidate>
@@ -158,7 +144,7 @@ export default function Login() {
               placeholder="name@firma.de"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-14 bg-card border-border/50 text-base"
+              inputSize="lg"
               autoComplete="email"
             />
           </FormField>
@@ -168,36 +154,36 @@ export default function Login() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-14 bg-card border-border/50 text-base"
+              inputSize="lg"
               autoComplete="current-password"
             />
           </FormField>
 
           {isSupabaseReady && (
             <div className="text-right">
-              <Link href="/passwort-vergessen" className="text-sm text-primary font-medium hover:underline">
+              <Link href="/passwort-vergessen" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
                 Passwort vergessen?
               </Link>
             </div>
           )}
 
-          <Button type="submit" className="w-full h-14 text-lg mt-6" disabled={isLoading}>
+          <Button type="submit" size="lg" className="mt-6 w-full" loading={isLoading}>
             {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Wird angemeldet...
-              </span>
+              "Wird angemeldet…"
             ) : (
               <>
-                Anmelden <ArrowRight size={20} className="ml-2" aria-hidden="true" />
+                Anmelden <ArrowRight aria-hidden="true" />
               </>
             )}
           </Button>
         </form>
 
         <div className="mt-10 text-center">
-          <p className="text-muted-foreground text-base">
-            Neu hier? <Link href="/register" className="text-primary font-medium hover:underline">Account erstellen</Link>
+          <p className="text-base text-muted-foreground">
+            Neu hier?{" "}
+            <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+              Konto erstellen
+            </Link>
           </p>
         </div>
       </div>

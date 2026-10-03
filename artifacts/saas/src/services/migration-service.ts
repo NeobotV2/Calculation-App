@@ -61,14 +61,22 @@ export async function migrateDemoData(data: DemoData): Promise<boolean> {
     for (const project of data.projects) {
       const newId = await objectService.createObject(project.name, project.customer);
       if (newId) {
-        if (project.location || project.notes || project.hourlyRate) {
-          await objectService.updateObject(newId, {
-            location: project.location,
-            notes: project.notes,
-            hourlyRate: project.hourlyRate,
-            status: project.status,
-          });
-        }
+        // Immer übertragen — sonst gingen Objektart, Ansprechpartner, Rüst-/Wegezeit
+        // und die Leistungsmodule (Winterdienst/HMS inkl. Ist-Daten) verloren.
+        const ok = await objectService.updateObject(newId, {
+          location: project.location,
+          notes: project.notes,
+          hourlyRate: project.hourlyRate,
+          status: project.status,
+          objectType: project.objectType,
+          rpiContactName: project.rpiContactName,
+          ruestzeit: project.ruestzeit,
+          wegezeit: project.wegezeit,
+          ...(project.winterdienst ? { winterdienst: project.winterdienst } : {}),
+          ...(project.hms ? { hms: project.hms } : {}),
+          ...(project.serviceActuals ? { serviceActuals: project.serviceActuals } : {}),
+        });
+        if (!ok) allSucceeded = false;
         for (const room of project.rooms) {
           const { id: _id, ...roomData } = room;
           const roomResult = await objectService.addRoom(newId, roomData);

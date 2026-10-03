@@ -106,6 +106,24 @@ export function useStoreActions() {
     useStore.getState().deleteRoom(projectId, roomId);
   }, [isAuthenticated, reload]);
 
+  /**
+   * Raumreihenfolge ändern — nur im Demo-/Lokalmodus (in der Cloud gibt es keine
+   * Sortierspalte). Gibt false im Cloud-Modus sowie bei unbekanntem Objekt oder
+   * ungültigen Indizes zurück (dann ohne Änderung); sonst true.
+   */
+  const reorderRooms = useCallback((projectId: string, from: number, to: number): boolean => {
+    if (isAuthenticated) return false;
+    const store = useStore.getState();
+    const project = store.projects.find((p) => p.id === projectId);
+    if (!project) return false;
+    const n = project.rooms.length;
+    const valid = (i: number) => Number.isInteger(i) && i >= 0 && i < n;
+    if (!valid(from) || !valid(to)) return false;
+    if (from === to) return true;
+    store.reorderRooms(projectId, from, to);
+    return true;
+  }, [isAuthenticated]);
+
   const addTemplate = useCallback(async (name: string, rooms: Omit<Room, "id">[]): Promise<void> => {
     if (isAuthenticated) {
       const id = await templateService.createTemplate(name, rooms);
@@ -255,6 +273,9 @@ export function useStoreActions() {
     addRoom,
     updateRoom,
     deleteRoom,
+    reorderRooms,
+    /** Räume lassen sich nur lokal (Demo-Modus) umsortieren. */
+    canReorderRooms: !isAuthenticated,
     addTemplate,
     deleteTemplate,
     renameTemplate,

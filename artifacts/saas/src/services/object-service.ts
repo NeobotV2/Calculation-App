@@ -1,7 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import type { Project, Room } from "@/store/use-store";
+import { sanitizeHms, sanitizeServiceActuals, sanitizeWinterdienst } from "@/lib/service-modules/sanitize";
 
-interface DbObject {
+export interface DbObject {
   id: string;
   company_id: string;
   name: string;
@@ -16,9 +17,13 @@ interface DbObject {
   status: string;
   created_at: string;
   updated_at: string;
+  /** JSONB-Spalten aus 005_service_modules.sql — fehlen vor der Migration (undefined). */
+  winterdienst?: unknown;
+  hms?: unknown;
+  service_actuals?: unknown;
 }
 
-interface DbRoom {
+export interface DbRoom {
   id: string;
   object_id: string;
   company_id: string;
@@ -38,7 +43,8 @@ interface DbRoom {
   updated_at: string;
 }
 
-function dbObjectToProject(obj: DbObject, rooms: DbRoom[]): Project {
+/** DB-Zeile → Project. Modul-Spalten laufen durch die Sanitizer (fehlend/ungültig ⇒ undefined). Exportiert für Tests. */
+export function dbObjectToProject(obj: DbObject, rooms: DbRoom[]): Project {
   return {
     id: obj.id,
     name: obj.name,
@@ -53,6 +59,9 @@ function dbObjectToProject(obj: DbObject, rooms: DbRoom[]): Project {
     status: obj.status as "active" | "archived",
     createdAt: obj.created_at,
     updatedAt: obj.updated_at,
+    winterdienst: sanitizeWinterdienst(obj.winterdienst),
+    hms: sanitizeHms(obj.hms),
+    serviceActuals: sanitizeServiceActuals(obj.service_actuals),
     rooms: rooms.map((r) => ({
       id: r.id,
       name: r.name,
@@ -88,10 +97,12 @@ export async function getAllObjects(): Promise<Project[]> {
   const objectIds = objects.map((o: DbObject) => o.id);
   if (objectIds.length === 0) return objects.map((o: DbObject) => dbObjectToProject(o, []));
 
+  // Deterministische Raumreihenfolge (Anlagezeitpunkt); ändert keine Berechnung.
   const { data: rooms } = await supabase
     .from("rooms")
     .select("*")
-    .in("object_id", objectIds);
+    .in("object_id", objectIds)
+    .order("created_at", { ascending: true });
 
   const roomsByObject = new Map<string, DbRoom[]>();
   (rooms || []).forEach((r: DbRoom) => {
@@ -119,20 +130,26 @@ export async function createObject(name: string, customer?: string): Promise<str
 
 export async function updateObject(
   id: string,
-  updates: Partial<Pick<Project, "name" | "customer" | "location" | "notes" | "hourlyRate" | "status" | "objectType" | "rpiContactName" | "ruestzeit" | "wegezeit">>
+  updates: Partial<Pick<Project, "name" | "customer" | "location" | "notes" | "hourlyRate" | "status" | "objectType" | "rpiContactName" | "ruestzeit" | "wegezeit" | "winterdienst" | "hms" | "serviceActuals">>
 ): Promise<boolean> {
   if (!supabase) return false;
   const dbUpdates: Record<string, unknown> = {};
   if (updates.name !== undefined) dbUpdates.name = updates.name;
-  if (updates.customer !== undefined) dbUpdates.customer = updates.customer || null;
-  if (updates.location !== undefined) dbUpdates.location = updates.location || null;
-  if (updates.notes !== undefined) dbUpdates.notes = updates.notes || null;
+  // Optionale Textfelder: ein vorhandener Schlüssel ist maßgeblich – "" oder
+  // undefined leeren die Spalte (NULL), wie `updateProject` im Demo-Modus.
+  if ("customer" in updates) dbUpdates.customer = updates.customer || null;
+  if ("location" in updates) dbUpdates.location = updates.location || null;
+  if ("notes" in updates) dbUpdates.notes = updates.notes || null;
   if ("hourlyRate" in updates) dbUpdates.hourly_rate = updates.hourlyRate ?? null;
   if (updates.status !== undefined) dbUpdates.status = updates.status;
-  if (updates.objectType !== undefined) dbUpdates.object_type = updates.objectType || null;
-  if (updates.rpiContactName !== undefined) dbUpdates.contact_name = updates.rpiContactName || null;
+  if ("objectType" in updates) dbUpdates.object_type = updates.objectType || null;
+  if ("rpiContactName" in updates) dbUpdates.contact_name = updates.rpiContactName || null;
   if (updates.ruestzeit !== undefined) dbUpdates.ruestzeit = updates.ruestzeit;
   if (updates.wegezeit !== undefined) dbUpdates.wegezeit = updates.wegezeit;
+  // Module nur senden, wenn der Schlüssel vorhanden ist; undefined ⇒ NULL (Modul entfernen).
+  if ("winterdienst" in updates) dbUpdates.winterdienst = updates.winterdienst ?? null;
+  if ("hms" in updates) dbUpdates.hms = updates.hms ?? null;
+  if ("serviceActuals" in updates) dbUpdates.service_actuals = updates.serviceActuals ?? null;
 
   const { error } = await supabase
     .from("cleaning_objects")
@@ -173,6 +190,10 @@ export async function duplicateObject(id: string): Promise<string | null> {
       ruestzeit: original.ruestzeit,
       wegezeit: original.wegezeit,
       status: "active",
+      // Modul-Planung nur mitsenden, wenn vorhanden (Insert scheitert sonst vor Migration 005);
+      // Ist-Daten (service_actuals) gehören zum Original und werden nicht kopiert.
+      ...(original.winterdienst != null ? { winterdienst: original.winterdienst } : {}),
+      ...(original.hms != null ? { hms: original.hms } : {}),
     })
     .select("id")
     .single();

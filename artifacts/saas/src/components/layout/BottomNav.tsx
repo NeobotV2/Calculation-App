@@ -1,58 +1,56 @@
 import { Link, useLocation } from "wouter";
-import { Home, Calculator, Building2, BarChart3, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NAV_ITEMS, isNavActive } from "./nav-config";
 
-const navItems = [
-  { href: "/", label: "Start", icon: Home },
-  { href: "/kalkulation/neu", label: "Kalkulation", icon: Calculator },
-  { href: "/objekte", label: "Objekte", icon: Building2 },
-  { href: "/auswertung", label: "Controlling", icon: BarChart3 },
-  { href: "/mehr", label: "Mehr", icon: Menu },
-];
-
+/**
+ * Untere Navigation unter md (§3.1): Start · Objekte · Neu · Controlling · Mehr.
+ * „Neu" ist eine Plus-Kachel in Primärfarbe; aktiv = Primärfarbe + Indikator oben.
+ */
 export function BottomNav() {
   const [location] = useLocation();
-
-  const isActive = (href: string) => {
-    if (href === "/" && location !== "/") return false;
-    if (href === "/kalkulation/neu") return location.startsWith("/kalkulation");
-    if (href === "/mehr") {
-      const mehrSubRoutes = ["/mehr", "/einstellungen", "/konto", "/vorlagen", "/upgrade", "/impressum", "/datenschutz", "/agb"];
-      return mehrSubRoutes.some((r) => location === r || location.startsWith(r + "/"));
-    }
-    return location === href || location.startsWith(href + "/");
-  };
 
   return (
     <nav
       aria-label="Hauptnavigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-xl border-t border-border/30 no-print md:hidden"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+      className="no-print fixed inset-x-0 bottom-0 z-nav border-t border-border bg-card pb-safe pl-safe pr-safe md:hidden"
     >
-      <div className="flex items-center justify-around px-2 h-16 max-w-md mx-auto">
-        {navItems.map((item) => {
-          const active = isActive(item.href);
+      <ul className="mx-auto flex h-(--nav-h) max-w-md items-stretch justify-around px-1">
+        {NAV_ITEMS.mobile.map((item) => {
+          const active = isNavActive(item.href, location);
           const Icon = item.icon;
+          const isNew = item.id === "neu";
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className="flex-1 flex flex-col items-center justify-center gap-1 h-full min-w-[44px] min-h-[44px] active:scale-95 transition-transform rounded-lg"
-            >
-              <div className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                active ? "bg-primary/10" : ""
-              )}>
-                <Icon aria-hidden="true" size={20} strokeWidth={active ? 2.5 : 1.8} className={cn("transition-colors", active ? "text-primary" : "text-muted-foreground")} />
-              </div>
-              <span className={cn("text-[10px] font-medium transition-colors", active ? "text-primary" : "text-muted-foreground")}>
-                {item.label}
-              </span>
-            </Link>
+            <li key={item.id} className="flex flex-1">
+              <Link
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "relative flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 rounded-md outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  active ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {active && !isNew && (
+                  <span aria-hidden="true" className="absolute inset-x-0 top-0 mx-auto h-0.5 w-8 rounded-full bg-primary" />
+                )}
+                {isNew ? (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-surface",
+                      active && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card",
+                    )}
+                  >
+                    <Icon className="size-5" strokeWidth={2} />
+                  </span>
+                ) : (
+                  <Icon aria-hidden="true" className="size-5" strokeWidth={2} />
+                )}
+                <span className="text-label">{item.label}</span>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

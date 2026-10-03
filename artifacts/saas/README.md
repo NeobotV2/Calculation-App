@@ -177,15 +177,16 @@ src/
     home.tsx                 # Dashboard with KPIs and quick actions
     objekte/
       index.tsx              # Object list with search, filter, sort
-      [id].tsx               # Object detail with rooms
-      wizard.tsx             # New object creation wizard
+      [id].tsx               # Object workspace (tabs per service module)
+    kalkulation-wizard.tsx   # Unified flow "Neue Kalkulation" / "Kalkulation bearbeiten"
     auswertung/
       index.tsx              # Global controlling/analytics
       [id].tsx               # Per-object controlling detail
     print/[id].tsx           # Print/PDF view for quotes
+    print/intern-[id].tsx    # Internal calculation print view
     vorlagen.tsx             # Template management (Pro)
     einstellungen.tsx        # Settings (company, calc, rooms, PDF, data)
-    kalkulation.tsx          # Hourly rate calculator
+    kalkulation.tsx          # Verrechnungssatz (hourly rate calculator)
     konto.tsx                # Profile, plan, account management
     upgrade.tsx              # Pro plan upgrade page
     login.tsx                # Login page

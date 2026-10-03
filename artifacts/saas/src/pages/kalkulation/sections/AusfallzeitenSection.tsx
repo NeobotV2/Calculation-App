@@ -1,10 +1,12 @@
 import { CalendarOff } from "lucide-react";
-import { formatEuro } from "@/lib/utils";
+import { FormField } from "@/components/ui/form-field";
+import { Money } from "@/components/ui/money";
+import { NativeSelect } from "@/components/ui/select";
 import { BUNDESLAENDER } from "@/data/bundeslaender";
 import type { HourlyRateConfig, HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
-import { Section } from "../Section";
+import { CalcResultRow, Section } from "../Section";
 import { NumberInput } from "../NumberInput";
-import { fmtPct } from "../constants";
+import { fmtHours, fmtPct } from "../constants";
 
 export function AusfallzeitenSection({
   config,
@@ -28,115 +30,86 @@ export function AusfallzeitenSection({
       open={open}
       onToggle={onToggle}
       badge={`${fmtPct(breakdown.produktivitaetsquote * 100)} % produktiv`}
-      tooltip="Produktive Zeit: Nicht jede bezahlte Stunde ist produktiv — Urlaub, Krankheit und Feiertage reduzieren die tatsächlich verfügbare Arbeitszeit. Der Ausfallzuschlag gleicht dies aus, damit Ihre kalkulierten Kosten die reale Leistung widerspiegeln."
+      tooltip="Nicht jede bezahlte Stunde ist produktiv: Urlaub, Krankheit und Feiertage verringern die tatsächlich verfügbare Arbeitszeit. Der Ausfallzuschlag gleicht dies aus, damit Ihre kalkulierten Kosten die reale Leistung widerspiegeln."
     >
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Wochenarbeitszeit
-        </label>
-        <NumberInput
-          value={config.ausfallzeiten.weeklyHours}
-          onChange={(v) => updateAusfall({ weeklyHours: v })}
-          suffix="h/Woche"
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField id="rate-weekly-hours" label="Wochenarbeitszeit">
+          <NumberInput
+            value={config.ausfallzeiten.weeklyHours}
+            onChange={(v) => updateAusfall({ weeklyHours: v })}
+            suffix="h/Woche"
+          />
+        </FormField>
+        <FormField id="rate-bundesland" label="Bundesland (Feiertage)">
+          <NativeSelect
+            value={config.ausfallzeiten.bundeslandId}
+            onChange={(e) => updateAusfall({ bundeslandId: e.target.value })}
+          >
+            {BUNDESLAENDER.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name} ({b.feiertage2026} Tage)
+              </option>
+            ))}
+          </NativeSelect>
+        </FormField>
       </div>
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Bundesland (Feiertage)
-        </label>
-        <select
-          value={config.ausfallzeiten.bundeslandId}
-          onChange={(e) => updateAusfall({ bundeslandId: e.target.value })}
-          className="w-full h-11 rounded-xl border border-border/50 bg-background px-4 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-        >
-          {BUNDESLAENDER.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name} ({b.feiertage2026} Tage)
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-            Urlaubstage
-          </label>
+      <div className="grid grid-cols-2 gap-4">
+        <FormField id="rate-urlaub" label="Urlaubstage">
           <NumberInput
             value={config.ausfallzeiten.urlaubTage}
             onChange={(v) => updateAusfall({ urlaubTage: v })}
             suffix="Tage"
           />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-            Krankheitstage
-          </label>
+        </FormField>
+        <FormField id="rate-krankheit" label="Krankheitstage">
           <NumberInput
             value={config.ausfallzeiten.krankheitTage}
             onChange={(v) => updateAusfall({ krankheitTage: v })}
             suffix="Tage"
           />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
+        </FormField>
+        <div className="space-y-1.5">
+          <p id="rate-feiertage-label" className="text-label text-muted-foreground">
             Feiertage
-          </label>
-          <div className="h-11 rounded-xl border border-border/50 bg-background/50 px-4 flex items-center text-sm text-muted-foreground">
+          </p>
+          <output
+            aria-labelledby="rate-feiertage-label"
+            className="flex h-10 items-center justify-end rounded-md border border-border bg-surface-sunken px-3 text-sm tabular-nums text-muted-foreground"
+          >
             {bl?.feiertage2026 ?? 10} Tage
-          </div>
+          </output>
         </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-            Fortbildung
-          </label>
+        <FormField id="rate-fortbildung" label="Fortbildung">
           <NumberInput
             value={config.ausfallzeiten.fortbildungTage}
             onChange={(v) => updateAusfall({ fortbildungTage: v })}
             suffix="Tage"
           />
-        </div>
+        </FormField>
       </div>
+
+      <dl className="space-y-1.5 text-sm">
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Jahresarbeitsstunden</dt>
+          <dd className="font-medium tabular-nums text-foreground">{fmtHours(breakdown.jahresArbeitsstunden)} h</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Ausfallstunden gesamt</dt>
+          <dd className="font-medium tabular-nums text-foreground">−{fmtHours(breakdown.totalAusfallStunden)} h</dd>
+        </div>
+        <div className="flex justify-between gap-3">
+          <dt className="text-muted-foreground">Produktivstunden</dt>
+          <dd className="font-semibold tabular-nums text-primary">{fmtHours(breakdown.produktivStunden)} h</dd>
+        </div>
+      </dl>
 
       <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">
-            Jahresarbeitsstunden
-          </span>
-          <span className="text-foreground font-medium">
-            {breakdown.jahresArbeitsstunden.toLocaleString("de-DE")} h
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">
-            Ausfallstunden gesamt
-          </span>
-          <span className="text-foreground font-medium">
-            − {breakdown.totalAusfallStunden.toLocaleString("de-DE")} h
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">Produktivstunden</span>
-          <span className="text-primary font-bold">
-            {breakdown.produktivStunden.toLocaleString("de-DE")} h
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-        <span className="text-sm font-medium text-foreground">
-          Ausfallzuschlag
-        </span>
-        <span className="text-sm font-bold text-primary">
+        <CalcResultRow label="Ausfallzuschlag" emphasis>
           × {fmtPct(breakdown.ausfallzuschlag)}
-        </span>
-      </div>
-      <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-        <span className="text-sm font-medium text-foreground">
-          Lohnkosten inkl. Ausfall
-        </span>
-        <span className="text-sm font-bold text-foreground">
-          {formatEuro(breakdown.lohnkostenMitAusfall)} €/h
-        </span>
+        </CalcResultRow>
+        <CalcResultRow label="Lohnkosten inkl. Ausfall">
+          <Money value={breakdown.lohnkostenMitAusfall} period="hour" />
+        </CalcResultRow>
       </div>
     </Section>
   );

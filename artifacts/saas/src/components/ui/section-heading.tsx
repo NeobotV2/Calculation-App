@@ -5,19 +5,30 @@ interface SectionHeadingProps {
   children: ReactNode;
   action?: ReactNode;
   className?: string;
+  /**
+   * `default`: Abschnittstitel (`text-h2`).
+   * `eyebrow`: kleine Großbuchstaben-Überschrift (`text-overline uppercase`).
+   */
+  variant?: "default" | "eyebrow";
+  /** Überschriften-Ebene (Standard h2). */
+  as?: "h2" | "h3";
+  id?: string;
 }
 
-/**
- * Konsistente Abschnittsüberschrift (Label-Stil, Großbuchstaben).
- * Ersetzt das wiederholte
- * `text-[13px] font-semibold uppercase tracking-widest text-muted-foreground`-Markup.
- */
-export function SectionHeading({ children, action, className }: SectionHeadingProps) {
+/** Abschnittsüberschrift mit optionaler Aktion rechts. */
+export function SectionHeading({ children, action, className, variant = "default", as: Tag = "h2", id }: SectionHeadingProps) {
   return (
-    <div className={cn("flex items-center justify-between mb-3", className)}>
-      <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className={cn("mb-3 flex items-center justify-between gap-3", className)}>
+      <Tag
+        id={id}
+        className={
+          variant === "eyebrow"
+            ? "text-overline uppercase text-muted-foreground"
+            : "text-h2 text-foreground"
+        }
+      >
         {children}
-      </h2>
+      </Tag>
       {action}
     </div>
   );

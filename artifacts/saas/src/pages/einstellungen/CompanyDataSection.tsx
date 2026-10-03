@@ -1,99 +1,119 @@
-import { Building2, Save, MapPin, FileCheck } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Card, CardHeader } from "@/components/ui/card";
 import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { NumberInput } from "@/components/ui/number-input";
+import type { SettingsForm } from "./use-settings-form";
 
 interface CompanyDataSectionProps {
-  company: string;
-  setCompany: (v: string) => void;
-  street: string;
-  setStreet: (v: string) => void;
-  zip: string;
-  setZip: (v: string) => void;
-  city: string;
-  setCity: (v: string) => void;
-  phone: string;
-  setPhone: (v: string) => void;
-  email: string;
-  setEmail: (v: string) => void;
-  taxNumber: string;
-  setTaxNumber: (v: string) => void;
-  vatId: string;
-  setVatId: (v: string) => void;
-  managingDirector: string;
-  setManagingDirector: (v: string) => void;
-  isSaving: boolean;
-  onSave: () => void;
+  form: Pick<SettingsForm, "values" | "setField" | "errors">;
 }
 
-/** Presentational form for company master data (Firmenstammdaten). */
-export function CompanyDataSection({
-  company,
-  setCompany,
-  street,
-  setStreet,
-  zip,
-  setZip,
-  city,
-  setCity,
-  phone,
-  setPhone,
-  email,
-  setEmail,
-  taxNumber,
-  setTaxNumber,
-  vatId,
-  setVatId,
-  managingDirector,
-  setManagingDirector,
-  isSaving,
-  onSave,
-}: CompanyDataSectionProps) {
+/** Firmenstammdaten und steuerliche Angaben (Teil von „Firma & Angebot"). */
+export function CompanyDataSection({ form }: CompanyDataSectionProps) {
+  const { values, setField, errors } = form;
   return (
-    <section className="space-y-4">
-      <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-        <Building2 size={16} /> Firmenstammdaten
-      </h2>
-      <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-5">
-        <FormField id="company-name" label="Firmenname">
-          <Input value={company} onChange={(e) => setCompany(e.target.value)} className="bg-background border-border/50 h-12" />
-        </FormField>
-        <div>
-          <span className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-            <MapPin size={14} aria-hidden="true" /> Adresse
-          </span>
-          <div className="space-y-3">
-            <Input aria-label="Straße und Hausnummer" value={street} onChange={(e) => setStreet(e.target.value)} placeholder="Straße und Hausnummer" className="bg-background border-border/50 h-12" />
-            <div className="flex gap-3">
-              <Input aria-label="PLZ" value={zip} onChange={(e) => setZip(e.target.value)} placeholder="PLZ" className="bg-background border-border/50 h-12 w-28" />
-              <Input aria-label="Ort" value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ort" className="bg-background border-border/50 h-12 flex-1" />
-            </div>
+    <>
+      <Card as="section" aria-labelledby="settings-company-title">
+        <CardHeader
+          title={<span id="settings-company-title">Firmendaten</span>}
+          description="Erscheinen im Briefkopf und in der Fußzeile Ihrer Angebote."
+        />
+        <div className="space-y-4">
+          <FormField id="company-name" label="Firmenname">
+            <Input
+              value={values.companyName}
+              onChange={(e) => setField("companyName", e.target.value)}
+              autoComplete="organization"
+            />
+          </FormField>
+          <FormField id="company-street" label="Straße und Hausnummer">
+            <Input
+              value={values.companyStreet}
+              onChange={(e) => setField("companyStreet", e.target.value)}
+              autoComplete="street-address"
+            />
+          </FormField>
+          <div className="grid grid-cols-[minmax(0,7rem)_minmax(0,1fr)] gap-3">
+            <FormField id="company-zip" label="PLZ">
+              <Input
+                value={values.companyZip}
+                onChange={(e) => setField("companyZip", e.target.value)}
+                inputMode="numeric"
+                autoComplete="postal-code"
+              />
+            </FormField>
+            <FormField id="company-city" label="Ort">
+              <Input
+                value={values.companyCity}
+                onChange={(e) => setField("companyCity", e.target.value)}
+                autoComplete="address-level2"
+              />
+            </FormField>
           </div>
-        </div>
-        <FormField id="company-phone" label="Telefon">
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="z.B. +49 123 456789" type="tel" className="bg-background border-border/50 h-12" />
-        </FormField>
-        <FormField id="company-email" label="E-Mail">
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@firma.de" type="email" className="bg-background border-border/50 h-12" />
-        </FormField>
-        <div>
-          <span className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-            <FileCheck size={14} aria-hidden="true" /> Steuerliche Angaben
-          </span>
-          <div className="space-y-3">
-            <Input aria-label="Steuernummer" value={taxNumber} onChange={(e) => setTaxNumber(e.target.value)} placeholder="Steuernummer" className="bg-background border-border/50 h-12" />
-            <Input aria-label="USt-IdNr." value={vatId} onChange={(e) => setVatId(e.target.value)} placeholder="USt-IdNr. (z.B. DE123456789)" className="bg-background border-border/50 h-12" />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField id="company-phone" label="Telefon">
+              <Input
+                type="tel"
+                value={values.companyPhone}
+                onChange={(e) => setField("companyPhone", e.target.value)}
+                placeholder="z. B. +49 30 123456"
+                autoComplete="tel"
+              />
+            </FormField>
+            <FormField id="company-email" label="E-Mail">
+              <Input
+                type="email"
+                value={values.companyEmail}
+                onChange={(e) => setField("companyEmail", e.target.value)}
+                placeholder="info@firma.de"
+                autoComplete="email"
+              />
+            </FormField>
           </div>
+          <FormField id="company-director" label="Geschäftsführung">
+            <Input
+              value={values.companyManagingDirector}
+              onChange={(e) => setField("companyManagingDirector", e.target.value)}
+              placeholder="Vor- und Nachname"
+              autoComplete="name"
+            />
+          </FormField>
         </div>
-        <FormField id="company-director" label="Geschäftsführer">
-          <Input value={managingDirector} onChange={(e) => setManagingDirector(e.target.value)} placeholder="Vor- und Nachname" className="bg-background border-border/50 h-12" />
-        </FormField>
-        <div className="pt-2">
-          <Button onClick={onSave} className="w-full" disabled={isSaving}>
-            <Save size={18} className="mr-2" /> Firmenstammdaten speichern
-          </Button>
+      </Card>
+
+      <Card as="section" aria-labelledby="settings-tax-title">
+        <CardHeader title={<span id="settings-tax-title">Steuerliche Angaben</span>} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField id="company-tax-number" label="Steuernummer">
+            <Input value={values.companyTaxNumber} onChange={(e) => setField("companyTaxNumber", e.target.value)} />
+          </FormField>
+          <FormField id="company-vat-id" label="USt-IdNr.">
+            <Input
+              value={values.companyVatId}
+              onChange={(e) => setField("companyVatId", e.target.value)}
+              placeholder="z. B. DE123456789"
+            />
+          </FormField>
+          <FormField
+            id="setting-vat"
+            label="MwSt.-Satz"
+            hint="Wird im Angebot ausgewiesen. 0 = ohne MwSt."
+            error={errors.vatRate}
+            className="sm:col-span-2"
+          >
+            <NumberInput
+              value={values.vatRate}
+              onValueChange={(v) => setField("vatRate", v)}
+              unit="%"
+              decimals={2}
+              min={0}
+              max={100}
+              placeholder="0"
+              wrapperClassName="sm:max-w-40"
+            />
+          </FormField>
         </div>
-      </div>
-    </section>
+      </Card>
+    </>
   );
 }

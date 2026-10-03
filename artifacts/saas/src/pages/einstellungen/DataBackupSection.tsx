@@ -1,44 +1,65 @@
-import type { RefObject } from "react";
-import { Download, Upload, RotateCcw } from "lucide-react";
+import { useRef } from "react";
+import { Download, RotateCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
+import { Card, CardHeader } from "@/components/ui/card";
 
 interface DataBackupSectionProps {
   isAuthenticated: boolean;
-  fileInputRef: RefObject<HTMLInputElement | null>;
   onExport: () => void;
-  onImport: () => void;
+  /** Gewählte JSON-Datei einlesen (nur Demo-/Lokalmodus). */
   onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRequestReset: () => void;
 }
 
-/** Data export/import and reset-to-defaults (danger zone). */
-export function DataBackupSection({
-  isAuthenticated,
-  fileInputRef,
-  onExport,
-  onImport,
-  onFileChange,
-  onRequestReset,
-}: DataBackupSectionProps) {
+/** Einziger Ort für JSON-Export/-Import und das Zurücksetzen der Einstellungen. */
+export function DataBackupSection({ isAuthenticated, onExport, onFileChange, onRequestReset }: DataBackupSectionProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   return (
-    <section className="space-y-4">
-      <h2 className="text-[13px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 ml-1">
-        <Download size={16} /> Daten & Sicherung
-      </h2>
-      <div className="bg-card border border-border/40 rounded-2xl p-5 space-y-3">
-        <Button variant="outline" onClick={onExport} className="w-full justify-start h-12 text-sm bg-background">
-          <Download size={16} className="mr-3 text-muted-foreground" /> Alle Daten exportieren (JSON)
-        </Button>
-        {!isAuthenticated && (
-          <Button variant="outline" onClick={onImport} className="w-full justify-start h-12 text-sm bg-background">
-            <Upload size={16} className="mr-3 text-muted-foreground" /> Daten importieren (JSON)
+    <>
+      <Card as="section" aria-labelledby="settings-backup-title">
+        <CardHeader
+          title={<span id="settings-backup-title">Datensicherung</span>}
+          description="Sichern Sie Objekte, Vorlagen und Einstellungen als JSON-Datei."
+        />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button type="button" variant="secondary" onClick={onExport}>
+            <Download aria-hidden="true" />
+            Alle Daten exportieren (JSON)
           </Button>
+          {!isAuthenticated && (
+            <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()}>
+              <Upload aria-hidden="true" />
+              Daten importieren (JSON)
+            </Button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          onChange={onFileChange}
+          className="sr-only"
+          tabIndex={-1}
+          aria-label="JSON-Datei für den Import auswählen"
+        />
+        {isAuthenticated && (
+          <Callout tone="neutral" className="mt-4">
+            Im Cloud-Modus werden Ihre Daten automatisch gespeichert. Ein Import ist hier nicht verfügbar.
+          </Callout>
         )}
-        <input ref={fileInputRef} type="file" accept=".json,application/json" onChange={onFileChange} className="hidden" />
-        <Button variant="outline" onClick={onRequestReset} className="w-full justify-start h-12 text-sm bg-background border-warning/30 text-warning hover:bg-warning/10">
-          <RotateCcw size={16} className="mr-3" /> Einstellungen zurücksetzen
+      </Card>
+
+      <Card as="section" tone="critical" aria-labelledby="settings-reset-title">
+        <CardHeader
+          title={<span id="settings-reset-title">Einstellungen zurücksetzen</span>}
+          description="Setzt Firmendaten, Verrechnungssatz, MwSt., Turnus, Angebots-Layout und eigene Raumarten auf Standard. Objekte und Vorlagen bleiben erhalten."
+        />
+        <Button type="button" variant="secondary" onClick={onRequestReset}>
+          <RotateCcw aria-hidden="true" />
+          Einstellungen zurücksetzen
         </Button>
-      </div>
-    </section>
+      </Card>
+    </>
   );
 }

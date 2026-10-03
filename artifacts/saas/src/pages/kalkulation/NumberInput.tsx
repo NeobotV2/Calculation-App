@@ -1,52 +1,28 @@
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { NumberInput as UiNumberInput, type NumberInputProps as UiNumberInputProps } from "@/components/ui/number-input";
 
-export function NumberInput({
-  value,
-  onChange,
-  suffix,
-  className,
-}: {
+export interface NumberInputProps
+  extends Omit<UiNumberInputProps, "value" | "onValueChange" | "unit" | "min"> {
   value: number;
+  /** Nur gültige Zahlen ≥ 0; ein geleertes Feld stellt den letzten Wert wieder her. */
   onChange: (v: number) => void;
+  /** Einheit im Feld, z. B. „€/h", „%", „Tage". */
   suffix?: string;
-  className?: string;
-}) {
-  const [raw, setRaw] = useState(value.toString().replace(".", ","));
-  const [focused, setFocused] = useState(false);
+}
 
-  useEffect(() => {
-    if (!focused) {
-      setRaw(value.toString().replace(".", ","));
-    }
-  }, [value, focused]);
-
-  const handleBlur = () => {
-    setFocused(false);
-    const parsed = parseFloat(raw.replace(",", "."));
-    if (!isNaN(parsed) && parsed >= 0) {
-      onChange(parsed);
-    } else {
-      setRaw(value.toString().replace(".", ","));
-    }
-  };
-
+/**
+ * Dünner Adapter auf `ui/number-input` für den Verrechnungssatz-Rechner
+ * (Dezimalkomma, Einheit im Feld, Übernahme während der Eingabe).
+ */
+export function NumberInput({ value, onChange, suffix, ...props }: NumberInputProps) {
   return (
-    <div className="relative">
-      <Input
-        value={raw}
-        onChange={(e) => setRaw(e.target.value)}
-        onFocus={() => setFocused(true)}
-        onBlur={handleBlur}
-        inputMode="decimal"
-        className={cn("bg-background border-border/50 h-11 pr-12", className)}
-      />
-      {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-          {suffix}
-        </span>
-      )}
-    </div>
+    <UiNumberInput
+      value={value}
+      unit={suffix}
+      min={0}
+      onValueChange={(v) => {
+        if (v !== undefined && Number.isFinite(v) && v >= 0) onChange(v);
+      }}
+      {...props}
+    />
   );
 }

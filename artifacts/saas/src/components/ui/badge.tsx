@@ -1,43 +1,69 @@
 import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import { cva } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
+import type { Tone } from "@/lib/status"
+
+export type BadgeTone = Tone | "brand" | "outline"
+export type BadgeSize = "sm" | "md"
 
 const badgeVariants = cva(
-  // @replit
-  // Whitespace-nowrap: Badges should never wrap.
-  "whitespace-nowrap inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
-  " hover-elevate ",
+  "inline-flex max-w-full shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border font-medium [&_svg]:pointer-events-none [&_svg]:shrink-0",
   {
     variants: {
-      variant: {
-        default:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-primary text-primary-foreground shadow-xs",
-        secondary:
-          // @replit no hover because we use hover-elevate
-          "border-transparent bg-secondary text-secondary-foreground",
-        destructive:
-          // @replit shadow-xs instead of shadow, no hover because we use hover-elevate
-          "border-transparent bg-destructive text-destructive-foreground shadow-xs",
-          // @replit shadow-xs" - use badge outline variable
-        outline: "text-foreground border [border-color:var(--badge-outline)]",
+      tone: {
+        neutral: "border-transparent bg-muted text-muted-foreground",
+        info: "border-info-border bg-info-soft text-info",
+        success: "border-success-border bg-success-soft text-success",
+        warning: "border-warning-border bg-warning-soft text-warning",
+        critical: "border-destructive-border bg-destructive-soft text-destructive",
+        brand: "border-primary/30 bg-primary-soft text-primary",
+        outline: "border-border-strong bg-card text-foreground",
+      },
+      size: {
+        sm: "h-5 px-1.5 text-xs [&_svg]:size-3",
+        md: "h-6 px-2 text-label [&_svg]:size-3.5",
       },
     },
     defaultVariants: {
-      variant: "default",
+      tone: "neutral",
+      size: "md",
     },
   }
 )
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
-
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  )
+/** Altbestand (shadcn): variant → tone. */
+type LegacyBadgeVariant = "default" | "secondary" | "destructive" | "outline"
+const legacyVariantTone: Record<LegacyBadgeVariant, BadgeTone> = {
+  default: "brand",
+  secondary: "neutral",
+  destructive: "critical",
+  outline: "outline",
 }
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  tone?: BadgeTone
+  size?: BadgeSize
+  /** @deprecated `tone` verwenden. */
+  variant?: LegacyBadgeVariant
+}
+
+/**
+ * Kleines, nicht-interaktives Etikett. Für Status immer `StatusBadge`
+ * (Icon + Text + Farbe) verwenden.
+ */
+const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ className, tone, size, variant, ...props }, ref) => (
+    <span
+      ref={ref}
+      className={cn(
+        badgeVariants({ tone: tone ?? (variant ? legacyVariantTone[variant] : undefined), size }),
+        className
+      )}
+      {...props}
+    />
+  )
+)
+Badge.displayName = "Badge"
 
 export { Badge, badgeVariants }

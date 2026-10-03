@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { calcAdjustedPerformance, getTotalModifier, getSurchargeLabel } from "./surcharges";
+import { getSurchargeEffectLabel, SURCHARGE_DEFINITIONS } from "./surcharges";
 
 describe("calcAdjustedPerformance", () => {
   it("returns the base performance when no surcharges are given", () => {
@@ -42,5 +43,37 @@ describe("getSurchargeLabel", () => {
   });
   it("returns an empty string for an unknown option", () => {
     expect(getSurchargeLabel("soilingLevel", "nope")).toBe("");
+  });
+});
+
+describe("getSurchargeEffectLabel", () => {
+  it("labels a neutral modifier as Standard", () => {
+    expect(getSurchargeEffectLabel(0)).toBe("Standard");
+    expect(getSurchargeEffectLabel(Number.NaN)).toBe("Standard");
+  });
+  it("converts a performance reduction into the time effect 1/(1+m) − 1", () => {
+    // Stark: −0,25 ⇒ 1/0,75 − 1 = +33,3 %
+    expect(getSurchargeEffectLabel(-0.25)).toBe("Aufwand +33 %");
+    // Sehr stark: −0,4 ⇒ 1/0,6 − 1 = +66,7 %
+    expect(getSurchargeEffectLabel(-0.4)).toBe("Aufwand +67 %");
+    // Teppichboden: −0,15 ⇒ +17,6 %
+    expect(getSurchargeEffectLabel(-0.15)).toBe("Aufwand +18 %");
+  });
+  it("uses a typographic minus for less effort", () => {
+    // Leicht: +0,2 ⇒ 1/1,2 − 1 = −16,7 %
+    expect(getSurchargeEffectLabel(0.2)).toBe("Aufwand −17 %");
+    expect(getSurchargeEffectLabel(0.15)).toBe("Aufwand −13 %");
+  });
+  it("rounds tiny effects to Standard and guards impossible modifiers", () => {
+    expect(getSurchargeEffectLabel(0.001)).toBe("Standard");
+    expect(getSurchargeEffectLabel(-1)).toBe("Aufwand sehr hoch");
+  });
+  it("produces a label for every defined option", () => {
+    for (const def of SURCHARGE_DEFINITIONS) {
+      for (const o of def.options) {
+        const label = getSurchargeEffectLabel(o.modifier);
+        expect(o.modifier === 0 ? label === "Standard" : label.startsWith("Aufwand ")).toBe(true);
+      }
+    }
   });
 });

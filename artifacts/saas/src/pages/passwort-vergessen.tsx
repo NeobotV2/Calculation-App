@@ -4,7 +4,9 @@ import { useAuth } from "@/lib/auth-context";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Sparkles, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
+import { Callout } from "@/components/ui/callout";
+import { FormField } from "@/components/ui/form-field";
+import { Sparkles, ArrowLeft, Mail, CircleCheck } from "lucide-react";
 
 export default function PasswortVergessen() {
   const [, setLocation] = useLocation();
@@ -41,21 +43,19 @@ export default function PasswortVergessen() {
 
   if (sent) {
     return (
-      <PageTransition className="min-h-screen bg-background flex flex-col px-6">
-        <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-          <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle2 className="w-8 h-8 text-success" aria-hidden="true" />
-            </div>
+      <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+          <div className="mb-8 flex justify-center">
+            <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
+              <CircleCheck className="size-8" aria-hidden="true" strokeWidth={2} />
+            </span>
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-center mb-3 text-foreground">
-            E-Mail gesendet
-          </h1>
-          <p className="text-muted-foreground text-base text-center mb-10">
+          <h1 className="mb-3 text-center text-h1 text-foreground">E-Mail gesendet</h1>
+          <p className="mb-10 text-center text-base text-muted-foreground">
             Falls ein Konto mit <span className="font-medium text-foreground">{email}</span> existiert, haben wir Ihnen einen Link zum Zurücksetzen Ihres Passworts gesendet.
           </p>
-          <Button variant="outline" className="w-full h-14 text-base" onClick={() => setLocation("/login")}>
-            <ArrowLeft size={18} className="mr-2" aria-hidden="true" /> Zurück zum Login
+          <Button variant="secondary" size="lg" className="w-full" onClick={() => setLocation("/login")}>
+            <ArrowLeft aria-hidden="true" /> Zurück zur Anmeldung
           </Button>
         </div>
       </PageTransition>
@@ -63,63 +63,59 @@ export default function PasswortVergessen() {
   }
 
   return (
-    <PageTransition className="min-h-screen bg-background flex flex-col px-6">
-      <div className="flex-1 flex flex-col justify-center max-w-sm mx-auto w-full">
-        <div className="flex justify-center mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-primary flex items-center justify-center shadow-lg">
-            <Sparkles className="w-10 h-10 text-primary-foreground" strokeWidth={1.5} aria-hidden="true" />
-          </div>
+    <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
+      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <div className="mb-10 flex justify-center">
+          <span className="flex size-20 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-raised">
+            <Sparkles className="size-10" strokeWidth={2} aria-hidden="true" />
+          </span>
         </div>
 
-        <h1 className="text-3xl font-semibold tracking-tight text-center mb-3 text-foreground">
-          Passwort vergessen?
-        </h1>
-        <p className="text-muted-foreground text-base text-center mb-10">
-          Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen einen Link zum Zurücksetzen.
+        <h1 className="mb-3 text-center text-h1 text-foreground">Passwort vergessen?</h1>
+        <p className="mb-10 text-center text-base text-muted-foreground">
+          Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen Link zum Zurücksetzen.
         </p>
 
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-destructive/10 border border-destructive/20" role="alert">
-            <p id="reset-error" className="text-sm text-destructive">{error}</p>
-          </div>
+          <Callout tone="critical" live className="mb-6">
+            <p id="reset-error">{error}</p>
+          </Callout>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="reset-email" className="sr-only">E-Mail-Adresse</label>
+          <FormField id="reset-email" label="E-Mail-Adresse">
             <Input
-              id="reset-email"
               type="email"
-              placeholder="E-Mail Adresse"
+              placeholder="name@firma.de"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-14 bg-card border-border/50 text-base"
+              inputSize="lg"
+              autoComplete="email"
               autoFocus
               aria-invalid={error ? true : undefined}
               aria-describedby={error ? "reset-error" : undefined}
             />
-          </div>
+          </FormField>
 
-          <Button type="submit" className="w-full h-14 text-lg mt-6" disabled={isLoading}>
+          <Button type="submit" size="lg" className="mt-6 w-full" loading={isLoading}>
             {isLoading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                Wird gesendet...
-              </span>
+              "Wird gesendet…"
             ) : (
               <>
-                <Mail size={20} className="mr-2" aria-hidden="true" /> Link senden
+                <Mail aria-hidden="true" /> Link senden
               </>
             )}
           </Button>
         </form>
 
         <div className="mt-10 text-center">
-          <p className="text-muted-foreground text-base">
-            <Link href="/login" className="text-primary font-medium hover:underline">
-              <ArrowLeft size={14} className="inline mr-1" aria-hidden="true" />Zurück zum Login
-            </Link>
-          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1 text-base font-medium text-primary underline-offset-4 hover:underline"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            Zurück zur Anmeldung
+          </Link>
         </div>
       </div>
     </PageTransition>

@@ -1,22 +1,43 @@
 import { Lock } from "lucide-react";
+import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
 
 interface ProLockProps {
   title: string;
   description: string;
-  onUpgrade: () => void;
+  /** Optional statt des Links zu /upgrade (z. B. UpgradeModal). */
+  onUpgrade?: () => void;
 }
 
-/** Pro-plan upgrade overlay shown over gated settings sections. */
+/** Hinweis über Pro-Funktionen in den Einstellungen (Callout mit „Pro"-Badge). */
 export function ProLock({ title, description, onUpgrade }: ProLockProps) {
   return (
-    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-card/60 backdrop-blur-sm">
-      <div className="w-12 h-12 bg-background border border-border/50 rounded-full flex items-center justify-center mb-3">
-        <Lock size={20} className="text-foreground" />
-      </div>
-      <p className="font-semibold text-foreground mb-1">{title}</p>
-      <p className="text-xs text-muted-foreground mb-4">{description}</p>
-      <Button variant="outline" size="sm" onClick={onUpgrade}>Pro-Plan ansehen</Button>
-    </div>
+    <Callout
+      tone="info"
+      icon={Lock}
+      title={
+        <span className="flex flex-wrap items-center gap-2">
+          {title}
+          <Badge tone="brand" size="sm">
+            Pro
+          </Badge>
+        </span>
+      }
+      action={
+        onUpgrade ? (
+          <Button type="button" variant="secondary" size="sm" onClick={onUpgrade}>
+            Pro-Plan ansehen
+          </Button>
+        ) : (
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/upgrade">Pro-Plan ansehen</Link>
+          </Button>
+        )
+      }
+    >
+      <p className="text-muted-foreground">{description}</p>
+    </Callout>
   );
 }

@@ -1,27 +1,34 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { BottomNav } from "./BottomNav";
+import { SyncBanner } from "./SyncBanner";
 
 function focusMain() {
   document.getElementById("main-content")?.focus();
 }
 
+/**
+ * App-Rahmen (Shell-Modus „app"): Sidebar ab md (Rail/voll), BottomNav unter
+ * md, SyncBanner über dem Seiteninhalt. Fokus- und Druckrouten rendern ohne Shell.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen">
-      {/* Skip-Link für Tastatur-/Screenreader-Nutzer. Als Button umgesetzt,
-          damit der Hash-Router (#/route) nicht durch einen #anchor gestört wird. */}
+    <div className="min-h-dvh bg-background">
+      {/* Skip-Link als Button, damit der Hash-Router nicht durch einen #anker gestört wird. */}
       <button
         type="button"
         onClick={focusMain}
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-skip focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-overlay focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         Zum Inhalt springen
       </button>
       <DesktopSidebar />
-      <main id="main-content" tabIndex={-1} className="md:ml-64 outline-none">
-        {children}
-      </main>
+      <div className="md:pl-(--rail-w) lg:pl-(--sidebar-w)">
+        <SyncBanner />
+        <main id="main-content" tabIndex={-1} className="outline-none">
+          {children}
+        </main>
+      </div>
       <BottomNav />
     </div>
   );

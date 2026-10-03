@@ -1,68 +1,178 @@
+import { useId, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, Calculator, Building2, BarChart3, Menu, Sparkles } from "lucide-react";
+import { Monitor, Moon, Sparkles, Sun } from "lucide-react";
+import { useStore } from "@/store/use-store";
 import { cn } from "@/lib/utils";
+import { nextThemeMode } from "@/lib/theme";
+import { THEME_MODE_LABELS, type ThemeMode } from "@/lib/tokens";
+import { getActiveObjectCount, getObjectLimit } from "@/lib/feature-gates";
+import { isPaidPlan } from "@/lib/billing-config";
+import { Badge } from "@/components/ui/badge";
+import { IconButton } from "@/components/ui/icon-button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { NAV_ITEMS, isNavActive, type NavItem } from "./nav-config";
 
-const navItems = [
-  { href: "/", label: "Start", icon: Home },
-  { href: "/kalkulation/neu", label: "Kalkulation", icon: Calculator },
-  { href: "/objekte", label: "Objekte", icon: Building2 },
-  { href: "/auswertung", label: "Controlling", icon: BarChart3 },
-  { href: "/mehr", label: "Mehr", icon: Menu },
-];
+const THEME_ICON = { light: Sun, dark: Moon, system: Monitor } as const;
 
+/** Tooltip nur auf der Icon-Leiste (md bis lg) und nur bei feinem Zeiger. */
+function RailTooltip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right" className="pointer-coarse:hidden lg:hidden">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
+  const Icon = item.icon;
+  return (
+    <RailTooltip label={item.label}>
+      <Link
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "flex h-9 items-center justify-center gap-3 rounded-md px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11 lg:justify-start",
+          active ? "bg-primary-soft text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+      >
+        <Icon aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />
+        <span className="sr-only lg:not-sr-only lg:truncate">{item.label}</span>
+      </Link>
+    </RailTooltip>
+  );
+}
+
+/** Plan-Etikett im Footer: „Basic · n/limit Objekte" bzw. „Pro". */
+function PlanBadge() {
+  const plan = useStore((s) => s.plan);
+  // Abonnieren, damit die Zählung bei Änderungen neu berechnet wird.
+  useStore((s) => s.projects);
+  if (isPaidPlan(plan)) {
+    return (
+      <Badge tone="brand" size="sm">
+        Pro
+      </Badge>
+    );
+  }
+  return (
+    <Badge tone="neutral" size="sm" className="tabular-nums">
+      Basic · {getActiveObjectCount()}/{getObjectLimit()} Objekte
+    </Badge>
+  );
+}
+
+/**
+ * Desktop-Navigation (§3.2): ab md Icon-Leiste (`--rail-w`) mit Tooltips,
+ * ab lg volle Breite (`--sidebar-w`) mit Gruppen-Überschriften.
+ */
 export function DesktopSidebar() {
   const [location] = useLocation();
-
-  const isActive = (href: string) => {
-    if (href === "/" && location !== "/") return false;
-    if (href === "/kalkulation/neu") return location.startsWith("/kalkulation");
-    if (href === "/mehr") {
-      const mehrSubRoutes = ["/mehr", "/einstellungen", "/konto", "/vorlagen", "/upgrade", "/impressum", "/datenschutz", "/agb"];
-      return mehrSubRoutes.some((r) => location === r || location.startsWith(r + "/"));
-    }
-    return location === href || location.startsWith(href + "/");
-  };
+  const theme = useStore((s) => s.theme) as ThemeMode;
+  const setTheme = useStore((s) => s.setTheme);
+  const baseId = useId();
+  const primary = NAV_ITEMS.desktop.primary;
+  const account = NAV_ITEMS.desktop.account;
+  const PrimaryIcon = primary.icon;
+  const AccountIcon = account.icon;
+  const primaryActive = isNavActive(primary.href, location);
+  const accountActive = isNavActive(account.href, location);
+  const currentTheme: ThemeMode = theme in THEME_ICON ? theme : "light";
+  const next = nextThemeMode(currentTheme);
 
   return (
-    <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-64 flex-col border-r border-border/20 bg-background/98 no-print">
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-border/20">
-        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-          <Sparkles className="w-5 h-5 text-primary-foreground" strokeWidth={1.5} />
+    <TooltipProvider delayDuration={300}>
+      <aside
+        aria-label="Seitenleiste"
+        className="no-print fixed inset-y-0 left-0 z-nav hidden w-(--rail-w) flex-col border-r border-border bg-card pt-safe pl-safe md:flex lg:w-(--sidebar-w)"
+      >
+        {/* Logo */}
+        <div className="flex h-16 shrink-0 items-center justify-center gap-3 px-3 lg:justify-start lg:px-4">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <Sparkles aria-hidden="true" className="size-5" strokeWidth={2} />
+          </div>
+          <div className="hidden min-w-0 lg:block">
+            <p className="truncate text-sm font-semibold text-foreground">
+              CleanCalc <span className="text-primary">Pro</span>
+            </p>
+            <p className="truncate text-xs text-muted-foreground">Gebäudereinigung</p>
+          </div>
+          <span className="sr-only lg:hidden">CleanCalc Pro</span>
         </div>
-        <div>
-          <p className="text-base font-semibold tracking-tight text-foreground">CleanCalc <span className="text-primary">Pro</span></p>
-          <p className="text-[11px] text-muted-foreground">Gebäudereinigung</p>
-        </div>
-      </div>
 
-      <nav aria-label="Hauptnavigation" className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          const Icon = item.icon;
-          return (
+        {/* Primäraktion */}
+        <div className="px-3 pb-2">
+          <RailTooltip label={primary.label}>
             <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
+              href={primary.href}
+              aria-label={primary.label}
+              aria-current={primaryActive ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
-                active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                "flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary text-sm font-medium text-primary-foreground shadow-surface outline-none transition-colors hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card pointer-coarse:h-11",
+                primaryActive && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card",
               )}
             >
-              <Icon aria-hidden="true" size={20} strokeWidth={active ? 2.2 : 1.8} />
-              {item.label}
+              <PrimaryIcon aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />
+              <span className="hidden lg:inline">{primary.label}</span>
             </Link>
-          );
-        })}
-      </nav>
-
-      <div className="px-4 pb-4">
-        <div className="text-[10px] text-muted-foreground/50 text-center">
-          CleanCalc Pro v1.0
+          </RailTooltip>
         </div>
-      </div>
-    </aside>
+
+        {/* Gruppen */}
+        <nav aria-label="Hauptnavigation" className="no-scrollbar flex-1 space-y-4 overflow-y-auto px-3 py-2">
+          {NAV_ITEMS.desktop.groups.map((group, gi) => {
+            const headingId = `${baseId}-${group.id}`;
+            return (
+              <div key={group.id} className={cn(gi > 0 && "border-t border-border pt-4 lg:border-t-0 lg:pt-0")}>
+                <p
+                  id={headingId}
+                  className="sr-only lg:not-sr-only lg:mb-1 lg:block lg:px-3 lg:text-overline lg:uppercase lg:text-muted-foreground"
+                >
+                  {group.label}
+                </p>
+                <ul aria-labelledby={headingId} className="space-y-1">
+                  {group.items.map((item) => (
+                    <li key={item.id}>
+                      <SidebarLink item={item} active={isNavActive(item.href, location)} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Footer: Konto & Plan, Farbschema */}
+        <div className="flex shrink-0 flex-col items-center gap-2 border-t border-border p-3 pb-[calc(var(--safe-bottom)+0.75rem)] lg:flex-row lg:items-center">
+          <RailTooltip label={account.label}>
+            <Link
+              href={account.href}
+              aria-current={accountActive ? "page" : undefined}
+              className={cn(
+                "flex min-h-10 w-full min-w-0 flex-1 items-center justify-center gap-3 rounded-md px-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring lg:justify-start",
+                accountActive ? "bg-primary-soft text-primary" : "text-foreground hover:bg-muted",
+              )}
+            >
+              <AccountIcon aria-hidden="true" className="size-4 shrink-0" strokeWidth={2} />
+              <span className="sr-only lg:not-sr-only lg:min-w-0 lg:flex-1 lg:space-y-1 lg:py-1.5">
+                <span className="block truncate text-sm font-medium">{account.label}</span>
+                <span className="block">
+                  <PlanBadge />
+                </span>
+              </span>
+            </Link>
+          </RailTooltip>
+          <IconButton
+            icon={THEME_ICON[currentTheme]}
+            label={`Farbschema: ${THEME_MODE_LABELS[currentTheme]} – wechseln zu ${THEME_MODE_LABELS[next]}`}
+            variant="ghost"
+            size="sm"
+            onClick={() => setTheme(next)}
+          />
+        </div>
+      </aside>
+    </TooltipProvider>
   );
 }

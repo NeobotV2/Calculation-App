@@ -1,9 +1,13 @@
 import { Euro } from "lucide-react";
-import { cn, formatEuro } from "@/lib/utils";
+import { FormField } from "@/components/ui/form-field";
+import { Money } from "@/components/ui/money";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { HourlyRateConfig, EmploymentType } from "@/lib/hourly-rate-calc";
 import { Section } from "../Section";
 import { NumberInput } from "../NumberInput";
 import { EMPLOYMENT_LABELS } from "../constants";
+
+const EMPLOYMENT_TYPES: EmploymentType[] = ["minijob", "teilzeit", "vollzeit"];
 
 export function BasislohnSection({
   config,
@@ -22,47 +26,33 @@ export function BasislohnSection({
       icon={Euro}
       open={open}
       onToggle={onToggle}
-      badge={`${formatEuro(config.baseLohn)} €/h`}
+      badge={<Money value={config.baseLohn} size="sm" period="hour" />}
       tooltip="Der tarifliche oder vereinbarte Bruttostundenlohn Ihrer Reinigungskräfte. Grundlage für alle weiteren Berechnungen."
     >
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Beschäftigungsart
-        </label>
-        <div className="grid grid-cols-3 gap-2">
-          {(["minijob", "teilzeit", "vollzeit"] as EmploymentType[]).map(
-            (type) => (
-              <button
-                key={type}
-                onClick={() => updateConfig({ employmentType: type })}
-                className={cn(
-                  "h-10 rounded-xl text-sm font-medium transition-all border",
-                  config.employmentType === type
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-background border-border/50 text-muted-foreground hover:border-border"
-                )}
-              >
-                {EMPLOYMENT_LABELS[type]}
-              </button>
-            )
-          )}
-        </div>
+      <fieldset className="space-y-1.5">
+        <legend className="mb-1.5 text-label text-muted-foreground">Beschäftigungsart</legend>
+        <ToggleGroup
+          type="single"
+          variant="chip"
+          value={config.employmentType}
+          onValueChange={(v) => {
+            if (v) updateConfig({ employmentType: v as EmploymentType });
+          }}
+          aria-label="Beschäftigungsart"
+        >
+          {EMPLOYMENT_TYPES.map((type) => (
+            <ToggleGroupItem key={type} value={type}>
+              {EMPLOYMENT_LABELS[type]}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
         {config.employmentType === "minijob" && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Minijob-Grenze 2026: max. 603 €/Monat
-          </p>
+          <p className="text-xs text-muted-foreground">Minijob-Grenze 2026: max. 603 € pro Monat</p>
         )}
-      </div>
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Brutto-Stundenlohn (Tariflohn LG1 ab 01/2026)
-        </label>
-        <NumberInput
-          value={config.baseLohn}
-          onChange={(v) => updateConfig({ baseLohn: v })}
-          suffix="€/h"
-        />
-      </div>
+      </fieldset>
+      <FormField id="rate-base-lohn" label="Brutto-Stundenlohn (Tariflohn LG 1 ab 01/2026)">
+        <NumberInput value={config.baseLohn} onChange={(v) => updateConfig({ baseLohn: v })} suffix="€/h" decimals={2} />
+      </FormField>
     </Section>
   );
 }

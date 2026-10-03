@@ -1,239 +1,245 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useStore } from "@/store/use-store";
-import { PageTransition } from "@/components/layout/PageTransition";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, Crown, ShieldCheck, Sparkles, FileText, Building2, Clock, Star } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { PRICING, formatCents, isPaidPlan } from "@/lib/billing-config";
-import { isFoundingOfferAvailable, getFoundingOfferRemainingSlots, getFoundingOfferMaxSlots } from "@/services/founding-offer-service";
+import { Building2, CircleCheck, Clock, Crown, FileText, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { useStore } from "@/store/use-store";
+import { PRICING, formatCents, getPlanLimits, isPaidPlan, type PlanId } from "@/lib/billing-config";
+import {
+  isFoundingOfferAvailable,
+  getFoundingOfferRemainingSlots,
+  getFoundingOfferMaxSlots,
+} from "@/services/founding-offer-service";
 import { trackUpgradePageViewed, trackSubscriptionStarted, trackFoundingOfferViewed } from "@/services/analytics-service";
+import { PageTransition } from "@/components/layout/PageTransition";
+import { PageShell } from "@/components/layout/PageShell";
+import { Section } from "@/components/layout/Section";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StateView } from "@/components/ui/state-view";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+
+type PaidPlanKey = Extract<PlanId, "pro_monthly" | "pro_annual" | "founding_annual">;
 
 const BENEFITS = [
-  { icon: Building2, text: "Unbegrenzt Objekte & Räume kalkulieren" },
+  { icon: Building2, text: "Unbegrenzt Objekte und Räume kalkulieren" },
   { icon: FileText, text: "Druckfertige PDF-Angebote für Ihre Auftraggeber" },
-  { icon: Sparkles, text: "Vorlagen speichern & wiederverwenden" },
+  { icon: Sparkles, text: "Vorlagen speichern und wiederverwenden" },
   { icon: Clock, text: "Keine Marge durch Kalkulationsfehler verlieren" },
-  { icon: Star, text: "Eigenes Firmenbranding: Logo, Kopf- & Fußzeile" },
+  { icon: Star, text: "Eigenes Firmenbranding: Logo, Kopf- und Fußzeile" },
 ];
+
+interface PlanOption {
+  key: PaidPlanKey;
+  name: string;
+  description: string;
+  monthly: string;
+  detail: string;
+  saving?: string;
+  extra?: string;
+}
 
 export default function Upgrade() {
   const [, setLocation] = useLocation();
   const plan = useStore((s) => s.plan);
   const upgradePlan = useStore((s) => s.upgradePlan);
+  const [pending, setPending] = useState<PlanOption | null>(null);
 
   const foundingAvailable = isFoundingOfferAvailable();
   const remainingSlots = getFoundingOfferRemainingSlots();
   const maxSlots = getFoundingOfferMaxSlots();
+  const paid = isPaidPlan(plan);
+  const freeLimits = getPlanLimits("free");
 
   useEffect(() => {
     if (!isPaidPlan(plan)) {
       trackUpgradePageViewed();
       if (foundingAvailable) trackFoundingOfferViewed();
     }
+    // Nur beim Öffnen der Seite (Analytics unverändert).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (isPaidPlan(plan)) {
+  if (paid) {
     return (
-      <PageTransition className="min-h-screen bg-background flex flex-col">
-        <div className="safe-header p-4 pt-14 md:pt-8">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="rounded-full bg-card border border-border/50">
-            <ArrowLeft size={20} />
-          </Button>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center text-center px-6 pb-20">
-          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-6">
-            <Crown size={40} className="text-primary" />
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight mb-3">Pro-Plan aktiv</h1>
-          <p className="text-muted-foreground max-w-sm">Sie haben vollen Zugang zu allen Pro-Funktionen. Viel Erfolg mit Ihren Kalkulationen!</p>
-          <Button onClick={() => setLocation("/")} variant="outline" className="mt-8">Zurück zum Start</Button>
-        </div>
+      <PageTransition>
+        <PageShell width="narrow" header={<PageHeader title="Pro-Plan" back={{ href: "/konto", label: "Profil & Konto" }} width="narrow" />}>
+          <StateView
+            kind="empty"
+            icon={Crown}
+            title="Pro-Plan aktiv"
+            description="Sie haben vollen Zugang zu allen Pro-Funktionen. Viel Erfolg mit Ihren Kalkulationen!"
+            action={{ label: "Zur Startseite", href: "/" }}
+          />
+        </PageShell>
       </PageTransition>
     );
   }
 
-  const handleSelectPlan = (planKey: "pro_monthly" | "pro_annual" | "founding_annual") => {
-    trackSubscriptionStarted(planKey, plan);
-    upgradePlan(planKey);
-    toast.success("Pro-Plan aktiviert — Sie können jetzt ohne Einschränkungen kalkulieren.");
+  const options: PlanOption[] = [
+    ...(foundingAvailable
+      ? [
+          {
+            key: "founding_annual" as const,
+            name: "Gründer-Tarif",
+            description: `Exklusiv für die ersten ${maxSlots} Nutzer`,
+            monthly: formatCents(PRICING.foundingAnnual.effectiveMonthlyFromAnnualCents),
+            detail: `${formatCents(PRICING.foundingAnnual.annualPriceCents)} / Jahr · danach regulär ${formatCents(PRICING.proAnnual.annualPriceCents)} / Jahr`,
+            saving: `${Math.round((1 - PRICING.foundingAnnual.annualPriceCents / PRICING.proAnnual.annualPriceCents) * 100)} % sparen`,
+            extra: `Noch ${remainingSlots} von ${maxSlots} Plätzen verfügbar`,
+          },
+        ]
+      : []),
+    {
+      key: "pro_annual",
+      name: "Pro Jährlich",
+      description: "Jährliche Abrechnung",
+      monthly: formatCents(PRICING.proAnnual.effectiveMonthlyFromAnnualCents),
+      detail: `${formatCents(PRICING.proAnnual.annualPriceCents)} / Jahr`,
+      saving: foundingAvailable
+        ? undefined
+        : `${Math.round((1 - PRICING.proAnnual.annualPriceCents / (PRICING.proMonthly.monthlyPriceCents * 12)) * 100)} % sparen gegenüber monatlich`,
+    },
+    {
+      key: "pro_monthly",
+      name: "Pro Monatlich",
+      description: "Monatlich kündbar, keine Mindestlaufzeit",
+      monthly: formatCents(PRICING.proMonthly.monthlyPriceCents),
+      detail: "Monatliche Abrechnung",
+    },
+  ];
+  const recommended: PaidPlanKey = foundingAvailable ? "founding_annual" : "pro_annual";
+  const recommendedOption = options.find((o) => o.key === recommended) ?? options[0];
+
+  const confirmPlan = (option: PlanOption) => {
+    trackSubscriptionStarted(option.key, plan);
+    upgradePlan(option.key);
+    toast.success("Pro-Plan aktiviert – Sie können jetzt ohne Einschränkungen kalkulieren.");
     setLocation("/");
   };
 
   return (
-    <PageTransition className="min-h-screen bg-background flex flex-col">
-      <div className="safe-header p-4 pt-14 md:pt-8 relative z-10">
-        <Button variant="ghost" size="icon" onClick={() => setLocation("/")} className="absolute left-4 top-14 md:top-8 rounded-full bg-card border border-border/50">
-          <ArrowLeft size={20} />
-        </Button>
-      </div>
-
-      <div className="flex-1 px-6 pb-12 flex flex-col max-w-2xl mx-auto w-full">
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="text-center mb-10 pt-4"
-        >
-          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <Crown size={40} className="text-primary" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3 text-foreground">
-            Kalkulieren ohne Kompromisse.
-          </h1>
-          <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
-            Vollständige Angebote, exakte Margen, professionelle Dokumente — alles in einer App.
-          </p>
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.05 }}
-          className="space-y-3 mb-10"
-        >
+    <PageTransition>
+      <PageShell
+        width="narrow"
+        header={
+          <PageHeader
+            title="Kalkulieren ohne Kompromisse"
+            subtitle="Vollständige Angebote, exakte Margen, professionelle Dokumente – alles in einer App."
+            back={{ href: "/konto", label: "Profil & Konto" }}
+            width="narrow"
+          />
+        }
+      >
+        <ul className="grid gap-3 sm:grid-cols-2">
           {BENEFITS.map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-3.5">
-              <div className="w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center shrink-0">
-                <Icon size={18} className="text-primary" />
-              </div>
-              <span className="text-sm font-medium text-foreground">{text}</span>
-            </div>
+            <li key={text} className="flex items-center gap-3 text-sm font-medium text-foreground">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary">
+                <Icon aria-hidden="true" className="size-4" />
+              </span>
+              {text}
+            </li>
           ))}
-        </motion.div>
+        </ul>
 
-        <div className="space-y-4 mb-8">
-          {foundingAvailable && (
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.1 }}
-            >
-              <button
-                onClick={() => handleSelectPlan("founding_annual")}
-                className="w-full text-left bg-card border-2 border-primary rounded-[1.5rem] p-6 relative shadow-lg shadow-primary/10 hover:shadow-xl hover:shadow-primary/15 transition-shadow"
-              >
-                <div className="absolute -top-3 left-6 bg-primary text-primary-foreground text-[11px] font-bold px-3 py-1 rounded-full tracking-wider uppercase">
-                  Empfohlen
-                </div>
-                <div className="flex items-start justify-between mb-4 mt-1">
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">Gründer-Tarif</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Exklusiv für die ersten {maxSlots} Nutzer</p>
-                  </div>
-                  <Sparkles size={20} className="text-primary mt-1" />
-                </div>
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-4xl font-bold text-foreground">{formatCents(PRICING.foundingAnnual.effectiveMonthlyFromAnnualCents)}</span>
-                  <span className="text-muted-foreground text-sm">/ Monat</span>
-                </div>
-                <p className="text-xs text-muted-foreground mb-4">
-                  {formatCents(PRICING.foundingAnnual.annualPriceCents)} / Jahr · danach regulär {formatCents(PRICING.proAnnual.annualPriceCents)} / Jahr
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                    Noch {remainingSlots} von {maxSlots} Plätzen verfügbar
-                  </span>
-                  <span className="text-xs font-semibold text-success">
-                    {Math.round((1 - PRICING.foundingAnnual.annualPriceCents / PRICING.proAnnual.annualPriceCents) * 100)}% sparen
-                  </span>
-                </div>
-              </button>
-            </motion.div>
-          )}
+        <Section title="Pläne">
+          <ul className="space-y-4">
+            <li>
+              <Card as="article" aria-label="Basic">
+                <CardHeader
+                  title="Basic"
+                  description={`Kostenlos – ${freeLimits.maxObjects === 1 ? "ein Objekt" : `${freeLimits.maxObjects} Objekte`} mit bis zu ${freeLimits.maxRoomsPerProject} Räumen, Angebotsvorschau`}
+                  action={
+                    <Badge tone="neutral" size="sm">
+                      <CircleCheck aria-hidden="true" />
+                      Aktueller Plan
+                    </Badge>
+                  }
+                />
+              </Card>
+            </li>
+            {options.map((o) => {
+              const isRecommended = o.key === recommended;
+              return (
+                <li key={o.key}>
+                  <Card as="article" tone={isRecommended ? "brand" : "default"} aria-label={o.name}>
+                    <CardHeader
+                      title={o.name}
+                      description={o.description}
+                      action={
+                        isRecommended ? (
+                          <Badge tone="brand" size="sm">
+                            <Star aria-hidden="true" />
+                            Empfohlen
+                          </Badge>
+                        ) : undefined
+                      }
+                    />
+                    <p className="flex items-baseline gap-1">
+                      <span className="text-money tabular-nums text-foreground">{o.monthly}</span>
+                      <span className="text-sm text-muted-foreground">/ Monat</span>
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">{o.detail}</p>
+                    {(o.extra || o.saving) && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {o.extra && (
+                          <Badge tone="brand" size="sm">
+                            {o.extra}
+                          </Badge>
+                        )}
+                        {o.saving && (
+                          <Badge tone="success" size="sm">
+                            {o.saving}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    <CardFooter>
+                      <Button
+                        type="button"
+                        variant={isRecommended ? "primary" : "secondary"}
+                        onClick={() => setPending(o)}
+                      >
+                        {o.name} wählen
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
 
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: foundingAvailable ? 0.15 : 0.1 }}
-          >
-            <button
-              onClick={() => handleSelectPlan("pro_annual")}
-              className={`w-full text-left bg-card rounded-[1.5rem] p-6 relative transition-shadow hover:shadow-lg ${
-                foundingAvailable
-                  ? "border border-border/40"
-                  : "border-2 border-primary shadow-lg shadow-primary/10"
-              }`}
-            >
-              {!foundingAvailable && (
-                <div className="absolute -top-3 left-6 bg-primary text-primary-foreground text-[11px] font-bold px-3 py-1 rounded-full tracking-wider uppercase">
-                  Empfohlen
-                </div>
-              )}
-              <div className="flex items-start justify-between mb-4 mt-1">
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">Pro Jährlich</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Jährliche Abrechnung</p>
-                </div>
-                <Crown size={20} className="text-primary mt-1" />
-              </div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-bold text-foreground">{formatCents(PRICING.proAnnual.effectiveMonthlyFromAnnualCents)}</span>
-                <span className="text-muted-foreground text-sm">/ Monat</span>
-              </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                {formatCents(PRICING.proAnnual.annualPriceCents)} / Jahr
-              </p>
-              {!foundingAvailable && (
-                <span className="text-xs font-semibold text-success">
-                  {Math.round((1 - PRICING.proAnnual.annualPriceCents / (PRICING.proMonthly.monthlyPriceCents * 12)) * 100)}% sparen vs. monatlich
-                </span>
-              )}
-            </button>
-          </motion.div>
-
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: foundingAvailable ? 0.2 : 0.15 }}
-          >
-            <button
-              onClick={() => handleSelectPlan("pro_monthly")}
-              className="w-full text-left bg-card border border-border/40 rounded-[1.5rem] p-6 transition-shadow hover:shadow-lg"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">Pro Monatlich</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">Monatlich kündbar, keine Mindestlaufzeit</p>
-                </div>
-              </div>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-4xl font-bold text-foreground">{formatCents(PRICING.proMonthly.monthlyPriceCents)}</span>
-                <span className="text-muted-foreground text-sm">/ Monat</span>
-              </div>
-            </button>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="mb-6"
-        >
-          <Button
-            onClick={() => handleSelectPlan(foundingAvailable ? "founding_annual" : "pro_annual")}
-            size="lg"
-            className="w-full h-16 text-lg rounded-2xl"
-          >
+        <div className="space-y-3">
+          <Button type="button" size="lg" className="w-full" onClick={() => setPending(recommendedOption)}>
+            <Crown aria-hidden="true" />
             Jetzt Pro freischalten
           </Button>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center space-y-2 pb-safe"
-        >
-          <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-            <ShieldCheck size={14} /> Sichere Zahlung. Jederzeit kündbar.
+          <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+            <ShieldCheck aria-hidden="true" className="size-4" />
+            Sichere Zahlung. Jederzeit kündbar.
           </p>
-          <p className="text-[11px] text-muted-foreground/70">
+          <p className="text-center text-xs text-muted-foreground">
             Es gelten unsere AGB und Datenschutzbestimmungen. Abonnements verlängern sich automatisch.
           </p>
-        </motion.div>
-      </div>
+        </div>
+      </PageShell>
+
+      <ConfirmDialog
+        open={!!pending}
+        onClose={() => setPending(null)}
+        onConfirm={() => {
+          if (pending) confirmPlan(pending);
+        }}
+        title={pending ? `${pending.name} aktivieren?` : "Plan aktivieren?"}
+        description={
+          pending
+            ? `${pending.monthly} / Monat (${pending.detail}). Der Pro-Plan wird sofort freigeschaltet.`
+            : ""
+        }
+        confirmLabel="Aktivieren"
+      />
     </PageTransition>
   );
 }

@@ -1,136 +1,116 @@
-import { useState, useRef } from "react";
-import { useLocation } from "wouter";
-import { useStore, type FrequencyKey, type CustomRoomType } from "@/store/use-store";
-import { useStoreActions } from "@/hooks/use-store-actions";
-import { useAuth } from "@/lib/auth-context";
-import { PageTransition } from "@/components/layout/PageTransition";
-import { ConfirmDialog } from "@/components/confirm-dialog";
-import { DEFAULT_ROOM_GROUPS } from "@/data/room-types";
+import { useMemo, useState } from "react";
+import { Link, useRoute } from "wouter";
 import { toast } from "sonner";
+import { RotateCcw } from "lucide-react";
+import { useStore } from "@/store/use-store";
+import { useStoreActions } from "@/hooks/use-store-actions";
+import { useEconomicsSettings } from "@/hooks/use-object-economics";
+import { useAuth } from "@/lib/auth-context";
+import { useMediaQuery } from "@/lib/theme";
+import { MEDIA } from "@/lib/tokens";
+import { cn } from "@/lib/utils";
+import { PageTransition } from "@/components/layout/PageTransition";
+import { PageShell } from "@/components/layout/PageShell";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { OFFLINE_MESSAGE, useCloudOffline } from "@/components/layout/SyncBanner";
+import { PageHeader } from "@/components/ui/page-header";
+import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
+import { StateView } from "@/components/ui/state-view";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { calcRateImpact } from "@/pages/auswertung/portfolio";
 import { CompanyDataSection } from "./einstellungen/CompanyDataSection";
 import { CalculationSection } from "./einstellungen/CalculationSection";
 import { RoomTypesSection } from "./einstellungen/RoomTypesSection";
 import { WarningsSection } from "./einstellungen/WarningsSection";
 import { PdfBrandingSection } from "./einstellungen/PdfBrandingSection";
-import { BrandingPlaceholderSection } from "./einstellungen/BrandingPlaceholderSection";
 import { AppearanceSection } from "./einstellungen/AppearanceSection";
 import { DataBackupSection } from "./einstellungen/DataBackupSection";
+import { SettingsNav, SettingsSectionList } from "./einstellungen/SettingsNav";
+import { SaveBar } from "./einstellungen/SaveBar";
+import { useLeaveGuard, useSettingsForm, type SettingsFieldKey } from "./einstellungen/use-settings-form";
+import {
+  DEFAULT_SETTINGS_SECTION,
+  getSettingsSection,
+  isSettingsSectionId,
+  settingsHref,
+  type SettingsSectionId,
+} from "./einstellungen/settings-sections";
+
+/** In welchem Bereich ein Formularfeld steht (für Hinweise auf Fehler anderswo). */
+const FIELD_SECTION: Record<SettingsFieldKey, SettingsSectionId> = {
+  companyName: "firma",
+  companyStreet: "firma",
+  companyZip: "firma",
+  companyCity: "firma",
+  companyPhone: "firma",
+  companyEmail: "firma",
+  companyTaxNumber: "firma",
+  companyVatId: "firma",
+  companyManagingDirector: "firma",
+  vatRate: "firma",
+  pdfHeader: "firma",
+  pdfFooter: "firma",
+  hourlyRate: "kalkulation",
+  defaultFrequency: "kalkulation",
+  targetMargin: "pruefregeln",
+};
+
+const isSettingsPath = (path: string) => path === "/einstellungen" || path.startsWith("/einstellungen/");
 
 export default function Einstellungen() {
-  const [, setLocation] = useLocation();
-  const companyName = useStore((s) => s.companyName);
-  const companyStreet = useStore((s) => s.companyStreet);
-  const companyZip = useStore((s) => s.companyZip);
-  const companyCity = useStore((s) => s.companyCity);
-  const companyPhone = useStore((s) => s.companyPhone);
-  const companyEmail = useStore((s) => s.companyEmail);
-  const companyTaxNumber = useStore((s) => s.companyTaxNumber);
-  const companyVatId = useStore((s) => s.companyVatId);
-  const companyManagingDirector = useStore((s) => s.companyManagingDirector);
-  const hourlyRate = useStore((s) => s.hourlyRate);
-  const vatRate = useStore((s) => s.vatRate);
-  const defaultFrequency = useStore((s) => s.defaultFrequency);
-  const pdfHeader = useStore((s) => s.pdfHeader);
-  const pdfFooter = useStore((s) => s.pdfFooter);
+  const [, params] = useRoute("/einstellungen/:bereich?");
+  const bereich = params?.bereich;
+  const isLg = useMediaQuery(MEDIA.lg);
+
+  const projects = useStore((s) => s.projects);
   const customRoomTypes = useStore((s) => s.customRoomTypes);
   const disabledWarnings = useStore((s) => s.disabledWarnings);
   const setDisabledWarnings = useStore((s) => s.setDisabledWarnings);
-  const targetMarginStore = useStore((s) => s.targetMargin);
-  const setTargetMarginAction = useStore((s) => s.setTargetMargin);
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
   const exportData = useStore((s) => s.exportData);
   const importData = useStore((s) => s.importData);
   const resetToDefaults = useStore((s) => s.resetToDefaults);
   const plan = useStore((s) => s.plan);
-  const actions = useStoreActions();
-  const { isAuthenticated } = useAuth();
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
   const companyLogo = useStore((s) => s.companyLogo);
+  const actions = useStoreActions();
+  const settings = useEconomicsSettings();
+  const { isAuthenticated } = useAuth();
+  const offline = useCloudOffline();
 
-  const [company, setCompany] = useState(companyName);
-  const [street, setStreet] = useState(companyStreet);
-  const [zip, setZip] = useState(companyZip);
-  const [city, setCity] = useState(companyCity);
-  const [phone, setPhone] = useState(companyPhone);
-  const [email, setEmail] = useState(companyEmail);
-  const [taxNumber, setTaxNumber] = useState(companyTaxNumber);
-  const [vatId, setVatId] = useState(companyVatId);
-  const [managingDirector, setManagingDirector] = useState(companyManagingDirector);
-  const [rate, setRate] = useState(hourlyRate.toString().replace(".", ","));
-  const [vat, setVat] = useState(vatRate.toString().replace(".", ","));
-  const [freq, setFreq] = useState<FrequencyKey>(defaultFrequency);
-  const [header, setHeader] = useState(pdfHeader);
-  const [footer, setFooter] = useState(pdfFooter);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const [showAddRoom, setShowAddRoom] = useState(false);
-  const [deleteRoomTypeConfirm, setDeleteRoomTypeConfirm] = useState<string | null>(null);
-  const [editingRoomType, setEditingRoomType] = useState<CustomRoomType | null>(null);
-  const [newRoomName, setNewRoomName] = useState("");
-  const [newRoomGroup, setNewRoomGroup] = useState(DEFAULT_ROOM_GROUPS[0].id);
-  const [newRoomPerf, setNewRoomPerf] = useState("");
+  const form = useSettingsForm();
+  const guard = useLeaveGuard(form.dirty, isSettingsPath);
   const [showResetDefaults, setShowResetDefaults] = useState(false);
-  const [targetMarginLocal, setTargetMarginLocal] = useState(String(targetMarginStore));
 
-  const handleSaveCompanyData = async () => {
-    setIsSaving(true);
-    try {
-      await actions.updateSettings({
-        companyName: company.trim() || "Meine Reinigungsfirma",
-        companyStreet: street.trim(),
-        companyZip: zip.trim(),
-        companyCity: city.trim(),
-        companyPhone: phone.trim(),
-        companyEmail: email.trim(),
-        companyTaxNumber: taxNumber.trim(),
-        companyVatId: vatId.trim(),
-        companyManagingDirector: managingDirector.trim(),
-      });
-      toast.success("Firmenstammdaten gespeichert");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const unknownSection = bereich !== undefined && !isSettingsSectionId(bereich);
+  const active: SettingsSectionId | null = isSettingsSectionId(bereich) ? bereich : isLg ? DEFAULT_SETTINGS_SECTION : null;
+  const activeMeta = active ? getSettingsSection(active) : null;
+
+  // Auswirkung eines geänderten Standard-Verrechnungssatzes (vor dem Speichern).
+  const rateChanged = form.changedKeys.includes("hourlyRate");
+  const newRate = form.values.hourlyRate;
+  const rateImpact = useMemo(
+    () =>
+      rateChanged && newRate !== undefined && newRate > 0
+        ? calcRateImpact(projects, settings, { ...settings, hourlyRate: newRate })
+        : null,
+    [rateChanged, newRate, projects, settings],
+  );
+
+  const errorSections = Array.from(
+    new Set((Object.keys(form.errors) as SettingsFieldKey[]).map((k) => FIELD_SECTION[k])),
+  ).filter((s) => s !== active);
 
   const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await actions.updateSettings({
-        hourlyRate: parseFloat(rate.replace(",", ".")) || 22.5,
-        vatRate: parseFloat(vat.replace(",", ".")) || 0,
-        defaultFrequency: freq,
-      });
-      toast.success("Einstellungen gespeichert");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSavePDF = async () => {
-    setIsSaving(true);
-    try {
-      await actions.updateSettings({
-        pdfHeader: header.trim(),
-        pdfFooter: footer.trim(),
-      });
-      toast.success("PDF-Einstellungen gespeichert");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    } finally {
-      setIsSaving(false);
-    }
+    const ok = await form.save();
+    if (ok) toast.success("Einstellungen gespeichert");
+    return ok;
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Bitte wählen Sie eine Bilddatei aus.");
@@ -143,68 +123,20 @@ export default function Einstellungen() {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const base64 = ev.target?.result as string;
-      actions.updateSettings({ companyLogo: base64 });
-      toast.success("Logo hochgeladen");
+      actions
+        .updateSettings({ companyLogo: base64 })
+        .then(() => toast.success("Logo hochgeladen"))
+        .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Das Logo konnte nicht gespeichert werden."));
     };
+    reader.onerror = () => toast.error("Die Datei konnte nicht gelesen werden.");
     reader.readAsDataURL(file);
-    e.target.value = "";
   };
 
   const handleRemoveLogo = () => {
-    actions.updateSettings({ companyLogo: "" });
-    toast.success("Logo entfernt");
-  };
-
-  const handleSaveRoomType = async () => {
-    const perfVal = parseFloat(newRoomPerf.replace(",", "."));
-    if (!newRoomName.trim() || !perfVal || perfVal <= 0) {
-      toast.error("Name und Leistungswert erforderlich");
-      return;
-    }
-    const group = DEFAULT_ROOM_GROUPS.find(g => g.id === newRoomGroup) || DEFAULT_ROOM_GROUPS[0];
-    try {
-      if (editingRoomType) {
-        await actions.updateCustomRoomType(editingRoomType.id, {
-          name: newRoomName.trim(),
-          groupId: group.id,
-          groupName: group.name,
-          performanceValue: perfVal,
-        });
-        toast.success("Raumart aktualisiert");
-      } else {
-        await actions.addCustomRoomType({
-          name: newRoomName.trim(),
-          groupId: group.id,
-          groupName: group.name,
-          performanceValue: perfVal,
-        });
-        toast.success("Raumart hinzugefügt");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Speichern");
-    }
-    setNewRoomName("");
-    setNewRoomPerf("");
-    setEditingRoomType(null);
-    setShowAddRoom(false);
-  };
-
-  const handleDeleteRoomType = async (id: string) => {
-    setDeleteRoomTypeConfirm(null);
-    try {
-      await actions.deleteCustomRoomType(id);
-      toast.success("Raumart entfernt");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Löschen");
-    }
-  };
-
-  const startEditRoomType = (rt: CustomRoomType) => {
-    setEditingRoomType(rt);
-    setNewRoomName(rt.name);
-    setNewRoomGroup(rt.groupId);
-    setNewRoomPerf(rt.performanceValue.toString());
-    setShowAddRoom(true);
+    actions
+      .updateSettings({ companyLogo: "" })
+      .then(() => toast.success("Logo entfernt"))
+      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : "Das Logo konnte nicht entfernt werden."));
   };
 
   const handleExport = () => {
@@ -219,43 +151,26 @@ export default function Einstellungen() {
     toast.success("Daten exportiert");
   };
 
-  const handleImport = () => {
-    fileInputRef.current?.click();
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
     if (isAuthenticated) {
       toast.error("Im Cloud-Modus ist der Datenimport nicht verfügbar.");
       return;
     }
-    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
       const text = ev.target?.result as string;
       if (importData(text)) {
+        form.reset();
         toast.success("Daten importiert");
-        const s = useStore.getState();
-        setCompany(s.companyName);
-        setStreet(s.companyStreet);
-        setZip(s.companyZip);
-        setCity(s.companyCity);
-        setPhone(s.companyPhone);
-        setEmail(s.companyEmail);
-        setTaxNumber(s.companyTaxNumber);
-        setVatId(s.companyVatId);
-        setManagingDirector(s.companyManagingDirector);
-        setRate(s.hourlyRate.toString().replace(".", ","));
-        setVat(s.vatRate.toString().replace(".", ","));
-        setFreq(s.defaultFrequency);
-        setHeader(s.pdfHeader);
-        setFooter(s.pdfFooter);
       } else {
-        toast.error("Ungültige Datei");
+        toast.error("Die Datei ist ungültig und wurde nicht importiert.");
       }
     };
+    reader.onerror = () => toast.error("Die Datei konnte nicht gelesen werden.");
     reader.readAsText(file);
-    e.target.value = "";
   };
 
   const handleResetDefaults = async () => {
@@ -280,148 +195,172 @@ export default function Einstellungen() {
       if (!isAuthenticated) {
         resetToDefaults();
       }
-      setCompany("Meine Reinigungsfirma");
-      setStreet("");
-      setZip("");
-      setCity("");
-      setPhone("");
-      setEmail("");
-      setTaxNumber("");
-      setVatId("");
-      setManagingDirector("");
-      setRate("22,5");
-      setVat("0");
-      setFreq("5x_week");
-      setHeader("");
-      setFooter("");
+      form.reset();
       toast.success("Einstellungen zurückgesetzt");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Fehler beim Zurücksetzen");
+      toast.error(err instanceof Error ? err.message : "Die Einstellungen konnten nicht zurückgesetzt werden.");
     }
   };
 
+  const renderSection = (id: SettingsSectionId) => {
+    switch (id) {
+      case "firma":
+        return (
+          <>
+            <CompanyDataSection form={form} />
+            <PdfBrandingSection
+              plan={plan}
+              companyLogo={companyLogo}
+              onLogoUpload={handleLogoUpload}
+              onRemoveLogo={handleRemoveLogo}
+              form={form}
+            />
+          </>
+        );
+      case "kalkulation":
+        return <CalculationSection form={form} rateImpact={rateImpact} />;
+      case "pruefregeln":
+        return (
+          <WarningsSection form={form} disabledWarnings={disabledWarnings} setDisabledWarnings={setDisabledWarnings} />
+        );
+      case "raumarten":
+        return <RoomTypesSection plan={plan} customRoomTypes={customRoomTypes} />;
+      case "darstellung":
+        return <AppearanceSection theme={theme} setTheme={setTheme} />;
+      case "daten":
+        return (
+          <DataBackupSection
+            isAuthenticated={isAuthenticated}
+            onExport={handleExport}
+            onFileChange={handleFileChange}
+            onRequestReset={() => setShowResetDefaults(true)}
+          />
+        );
+    }
+  };
+
+  const sectionContent = activeMeta && (
+    <section aria-labelledby="settings-section-title" className="min-w-0 space-y-4">
+      <div className={cn("space-y-1", !isLg && "sr-only")}>
+        <h2 id="settings-section-title" className="text-h2 text-foreground">
+          {activeMeta.label}
+        </h2>
+        <p className="text-sm text-muted-foreground">{activeMeta.description}</p>
+      </div>
+      {form.saveError && (
+        <Callout
+          tone="critical"
+          live
+          title="Speichern fehlgeschlagen"
+          action={
+            <Button type="button" variant="secondary" size="sm" onClick={() => void handleSave()}>
+              <RotateCcw aria-hidden="true" />
+              Erneut versuchen
+            </Button>
+          }
+        >
+          {form.saveError}
+        </Callout>
+      )}
+      {errorSections.length > 0 && (
+        <Callout tone="warning" live title="Bitte prüfen Sie Ihre Eingaben">
+          Ungültige Werte in:{" "}
+          {errorSections.map((s, i) => (
+            <span key={s}>
+              {i > 0 && ", "}
+              <Link href={settingsHref(s)} className="font-medium text-primary underline underline-offset-4">
+                {getSettingsSection(s).label}
+              </Link>
+            </span>
+          ))}
+        </Callout>
+      )}
+      {renderSection(activeMeta.id)}
+    </section>
+  );
+
+  const header =
+    !isLg && activeMeta ? (
+      <PageHeader title={activeMeta.label} back={{ href: settingsHref(), label: "Einstellungen" }} width="narrow" />
+    ) : (
+      <PageHeader title="Einstellungen" width={isLg ? "default" : "narrow"} />
+    );
+
+  let body: React.ReactNode;
+  if (unknownSection) {
+    body = (
+      <StateView
+        kind="not-found"
+        title="Bereich nicht gefunden"
+        description="Diesen Einstellungsbereich gibt es nicht."
+        action={{ label: "Zu den Einstellungen", href: settingsHref() }}
+      />
+    );
+  } else if (isLg && activeMeta) {
+    body = (
+      <div className="grid grid-cols-[13rem_minmax(0,1fr)] gap-8">
+        <div>
+          <SettingsNav active={activeMeta.id} className="sticky top-[calc(var(--safe-top)+1.5rem)]" />
+        </div>
+        <div className="min-w-0 max-w-3xl">{sectionContent}</div>
+      </div>
+    );
+  } else if (activeMeta) {
+    body = sectionContent;
+  } else {
+    body = (
+      <>
+        <SettingsSectionList />
+        <AppFooter />
+      </>
+    );
+  }
+
   return (
-    <PageTransition className="min-h-screen pb-28 md:pb-8 bg-background">
-      <div className="safe-header p-6 pb-4 bg-background/95 sticky top-0 z-40 border-b border-border/20 md:pt-6">
-        <h1 className="text-4xl font-semibold tracking-tight mt-2 max-w-5xl mx-auto">Einstellungen</h1>
-      </div>
+    <PageTransition>
+      <PageShell width={isLg ? "default" : "narrow"} header={header}>
+        {body}
+      </PageShell>
 
-      <div className="p-6 space-y-8 max-w-5xl mx-auto md:grid md:grid-cols-2 md:gap-8 md:space-y-0">
-        <CompanyDataSection
-          company={company}
-          setCompany={setCompany}
-          street={street}
-          setStreet={setStreet}
-          zip={zip}
-          setZip={setZip}
-          city={city}
-          setCity={setCity}
-          phone={phone}
-          setPhone={setPhone}
-          email={email}
-          setEmail={setEmail}
-          taxNumber={taxNumber}
-          setTaxNumber={setTaxNumber}
-          vatId={vatId}
-          setVatId={setVatId}
-          managingDirector={managingDirector}
-          setManagingDirector={setManagingDirector}
-          isSaving={isSaving}
-          onSave={handleSaveCompanyData}
-        />
-
-        <CalculationSection
-          rate={rate}
-          setRate={setRate}
-          vat={vat}
-          setVat={setVat}
-          freq={freq}
-          setFreq={setFreq}
-          isSaving={isSaving}
-          onSave={handleSave}
-          onOpenRateCalculator={() => setLocation("/stundensatz")}
-        />
-
-        <RoomTypesSection
-          plan={plan}
-          customRoomTypes={customRoomTypes}
-          showAddRoom={showAddRoom}
-          setShowAddRoom={setShowAddRoom}
-          editingRoomType={editingRoomType}
-          setEditingRoomType={setEditingRoomType}
-          newRoomName={newRoomName}
-          setNewRoomName={setNewRoomName}
-          newRoomGroup={newRoomGroup}
-          setNewRoomGroup={setNewRoomGroup}
-          newRoomPerf={newRoomPerf}
-          setNewRoomPerf={setNewRoomPerf}
-          onSaveRoomType={handleSaveRoomType}
-          onStartEditRoomType={startEditRoomType}
-          onRequestDeleteRoomType={setDeleteRoomTypeConfirm}
-          onUpgrade={() => setLocation("/upgrade")}
-        />
-
-        <WarningsSection
-          targetMarginLocal={targetMarginLocal}
-          setTargetMarginLocal={setTargetMarginLocal}
-          targetMarginStore={targetMarginStore}
-          setTargetMarginAction={setTargetMarginAction}
-          disabledWarnings={disabledWarnings}
-          setDisabledWarnings={setDisabledWarnings}
-        />
-
-        <PdfBrandingSection
-          plan={plan}
-          companyLogo={companyLogo}
-          logoInputRef={logoInputRef}
-          onLogoUpload={handleLogoUpload}
-          onRemoveLogo={handleRemoveLogo}
-          header={header}
-          setHeader={setHeader}
-          footer={footer}
-          setFooter={setFooter}
-          isSaving={isSaving}
-          onSave={handleSavePDF}
-          onUpgrade={() => setLocation("/upgrade")}
-        />
-
-        <BrandingPlaceholderSection plan={plan} onUpgrade={() => setLocation("/upgrade")} />
-
-        <AppearanceSection theme={theme} setTheme={setTheme} />
-
-        <DataBackupSection
-          isAuthenticated={isAuthenticated}
-          fileInputRef={fileInputRef}
-          onExport={handleExport}
-          onImport={handleImport}
-          onFileChange={handleFileChange}
-          onRequestReset={() => setShowResetDefaults(true)}
-        />
-      </div>
+      <SaveBar
+        dirty={form.dirty}
+        saving={form.saving}
+        onSave={() => void handleSave()}
+        onDiscard={form.reset}
+        offlineMessage={offline ? OFFLINE_MESSAGE : null}
+        width={isLg ? "default" : "narrow"}
+      />
 
       <ConfirmDialog
-        open={!!deleteRoomTypeConfirm}
-        onClose={() => setDeleteRoomTypeConfirm(null)}
-        onConfirm={() => { if (deleteRoomTypeConfirm) handleDeleteRoomType(deleteRoomTypeConfirm); }}
-        title="Raumart löschen?"
-        description="Die eigene Raumart wird unwiderruflich entfernt. Bestehende Räume, die diese Raumart verwenden, bleiben erhalten."
-        confirmLabel="Löschen"
+        open={!!guard.pendingHref}
+        onClose={guard.cancel}
+        onConfirm={() => {
+          form.reset();
+          guard.proceed();
+        }}
+        title="Änderungen verwerfen?"
+        description="Sie haben ungespeicherte Änderungen in den Einstellungen. Wenn Sie die Seite verlassen, gehen sie verloren."
+        confirmLabel="Verwerfen"
         destructive
+        cancelLabel="Weiter bearbeiten"
+        secondaryLabel={offline ? undefined : "Speichern und verlassen"}
+        onSecondary={() => {
+          void handleSave().then((ok) => {
+            if (ok) guard.proceed();
+            else guard.cancel();
+          });
+        }}
       />
 
       <ConfirmDialog
         open={showResetDefaults}
         onClose={() => setShowResetDefaults(false)}
-        onConfirm={handleResetDefaults}
+        onConfirm={() => void handleResetDefaults()}
         title="Einstellungen zurücksetzen?"
-        description="Firmenstammdaten, Verrechnungssatz, MwSt., Häufigkeit, PDF-Einstellungen und eigene Raumarten werden auf Standard zurückgesetzt. Objekte und Vorlagen bleiben erhalten."
+        description="Firmendaten, Verrechnungssatz, MwSt., Turnus, Angebots-Layout und eigene Raumarten werden auf Standard zurückgesetzt. Objekte und Vorlagen bleiben erhalten."
         confirmLabel="Zurücksetzen"
         destructive
       />
-
-      <div className="max-w-5xl mx-auto">
-        <AppFooter />
-      </div>
     </PageTransition>
   );
 }

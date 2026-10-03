@@ -1,175 +1,331 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
 
+/* `dark:` folgt ausschließlich der Klasse `.dark` auf <html> (gesetzt vom
+   ThemeApplicator), nicht der Betriebssystem-Einstellung. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Design-Tokens → Tailwind-Utilities
+   Farbwerte sind HSL-Tripel (ohne hsl()), damit `hsl(var(--x))` und
+   Opazitäts-Modifier (`bg-primary/40`) gleichermaßen funktionieren.
+   ────────────────────────────────────────────────────────────────────────── */
 @theme inline {
-  --font-sans: 'Inter', sans-serif;
-
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-surface-sunken: hsl(var(--surface-sunken));
+
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-soft: hsl(var(--primary-soft));
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
+
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-soft: hsl(var(--destructive-soft));
+  --color-destructive-border: hsl(var(--destructive-border));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-success-border: hsl(var(--success-border));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-warning-border: hsl(var(--warning-border));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+  --color-info-soft: hsl(var(--info-soft));
+  --color-info-border: hsl(var(--info-border));
+
+  --color-module-cleaning: hsl(var(--module-cleaning));
+  --color-module-cleaning-soft: hsl(var(--module-cleaning-soft));
+  --color-module-winter: hsl(var(--module-winter));
+  --color-module-winter-soft: hsl(var(--module-winter-soft));
+  --color-module-hms: hsl(var(--module-hms));
+  --color-module-hms-soft: hsl(var(--module-hms-soft));
+
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
   --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  --color-success: hsl(var(--success));
-  --color-success-foreground: hsl(var(--success-foreground));
-  --color-warning: hsl(var(--warning));
-  --color-warning-foreground: hsl(var(--warning-foreground));
-  --color-info: hsl(var(--info));
-  --color-info-foreground: hsl(var(--info-foreground));
-
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
+  /* Elevation 1–3 → shadow-surface | shadow-raised | shadow-overlay */
+  --shadow-surface: var(--elevation-1);
+  --shadow-raised: var(--elevation-2);
+  --shadow-overlay: var(--elevation-3);
 }
 
+/* Radius-Skala und semantische Typo-Skala (keine px-Werte in Komponenten). */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1rem;
+  --text-overline--letter-spacing: 0.06em;
+  --text-overline--font-weight: 600;
+
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-label--font-weight: 500;
+
+  --text-h3: 1rem;
+  --text-h3--line-height: 1.5rem;
+  --text-h3--font-weight: 600;
+
+  --text-h2: 1.125rem;
+  --text-h2--line-height: 1.625rem;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 600;
+
+  /* 24 px (Phone) … 30 px (Desktop) */
+  --text-h1: clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem);
+  --text-h1--line-height: 1.2;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 600;
+
+  --text-kpi: 1.25rem;
+  --text-kpi--line-height: 1.75rem;
+  --text-kpi--letter-spacing: -0.01em;
+  --text-kpi--font-weight: 600;
+
+  --text-money: 1.75rem;
+  --text-money--line-height: 2.25rem;
+  --text-money--letter-spacing: -0.02em;
+  --text-money--font-weight: 700;
+
+  --text-display: 2.25rem;
+  --text-display--line-height: 2.5rem;
+  --text-display--letter-spacing: -0.025em;
+  --text-display--font-weight: 700;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Light (Standard). Alle Text-/Flächen-Paare sind in
+   `src/lib/tokens.contrast.test.ts` gegen WCAG 2.x geprüft.
+   ────────────────────────────────────────────────────────────────────────── */
 :root {
   color-scheme: light;
 
-  --background: 218 33% 97%;
+  --background: 216 33% 97%;
   --foreground: 222 47% 11%;
 
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
-
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
+  --surface-sunken: 216 28% 95%;
 
-  --primary: 175 77% 26%;
+  --primary: 175 80% 25%;
   --primary-foreground: 0 0% 100%;
+  --primary-soft: 172 52% 93%;
 
-  --secondary: 216 20% 95%;
+  --secondary: 216 24% 94%;
   --secondary-foreground: 222 47% 11%;
-
-  --muted: 216 20% 95%;
-  --muted-foreground: 215 16% 47%;
-
-  --accent: 216 20% 95%;
+  --muted: 216 24% 94%;
+  --muted-foreground: 215 16% 42%;
+  --accent: 216 24% 94%;
   --accent-foreground: 222 47% 11%;
 
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 98%;
+  --destructive: 0 72% 44%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-soft: 0 86% 96%;
+  --destructive-border: 0 70% 82%;
 
-  --success: 142 71% 45%;
+  --success: 142 72% 27%;
   --success-foreground: 0 0% 100%;
+  --success-soft: 141 60% 94%;
+  --success-border: 142 45% 74%;
 
-  --warning: 32 95% 44%;
+  --warning: 28 92% 33%;
   --warning-foreground: 0 0% 100%;
+  --warning-soft: 40 90% 93%;
+  --warning-border: 38 80% 70%;
 
-  --info: 217 91% 60%;
+  --info: 221 78% 46%;
   --info-foreground: 0 0% 100%;
+  --info-soft: 214 90% 95%;
+  --info-border: 214 80% 80%;
 
-  --border: 214 20% 90%;
-  --input: 214 20% 90%;
-  --ring: 175 77% 26%;
+  /* Modulfarben: nur Identität, nie Status. */
+  --module-cleaning: 175 80% 25%;
+  --module-cleaning-soft: 172 52% 93%;
+  --module-winter: 205 85% 33%;
+  --module-winter-soft: 204 90% 94%;
+  --module-hms: 262 50% 45%;
+  --module-hms-soft: 262 70% 96%;
 
-  --radius: 1rem;
+  /* chart-1 Unterhalt · chart-2 Winterdienst · chart-3 HMS ·
+     chart-4 Rüst-/Wegezeit · chart-5 Sonstige (nie Amber/Rot). */
+  --chart-1: 175 80% 30%;
+  --chart-2: 205 80% 45%;
+  --chart-3: 262 55% 58%;
+  --chart-4: 220 14% 46%;
+  --chart-5: 215 16% 70%;
 
-  --chart-1: 175 77% 26%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 217 91% 60%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  --border: 216 20% 88%;
+  --border-strong: 215 16% 76%;
+  /* Eingabefeld-Rahmen ≥ 3:1 auf Karte */
+  --input: 215 14% 55%;
+  --ring: 175 80% 30%;
 
+  --radius: 0.75rem;
+
+  --elevation-1: 0 1px 2px 0 hsl(222 47% 11% / 0.05), 0 1px 3px 0 hsl(222 47% 11% / 0.04);
+  --elevation-2: 0 4px 12px -2px hsl(222 47% 11% / 0.08), 0 2px 4px -2px hsl(222 47% 11% / 0.05);
+  --elevation-3: 0 16px 40px -8px hsl(222 47% 11% / 0.18), 0 4px 12px -4px hsl(222 47% 11% / 0.08);
+
+  /* Veraltet (Deprecated) – nur noch für nicht migrierte Seiten. */
+  --shadow-card: var(--elevation-1);
+  --shadow-card-hover: var(--elevation-2);
+
+  /* Layout */
+  --nav-h: 4rem;
+  --rail-w: 4rem;
+  --sidebar-w: 15rem;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-
-  /* Weiche, dezente Elevation — auf den hellen Hintergrund abgestimmt (kein hartes Schwarz). */
-  --shadow-card: 0 1px 2px 0 hsl(222 47% 11% / 0.04), 0 2px 8px -2px hsl(222 47% 11% / 0.05);
-  --shadow-card-hover: 0 4px 16px -4px hsl(222 47% 11% / 0.10), 0 2px 6px -3px hsl(222 47% 11% / 0.06);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 
-.dark {
-  color-scheme: dark;
+/* Dark Mode – nur auf dem Bildschirm; der Druck ist immer hell. */
+@media screen {
+  .dark {
+    color-scheme: dark;
 
-  --background: 210 50% 5%;
-  --foreground: 210 40% 98%;
+    --background: 227 29% 6%;
+    --foreground: 216 30% 95%;
 
-  --card: 213 40% 9%;
-  --card-foreground: 210 40% 98%;
+    --card: 226 24% 10%;
+    --card-foreground: 216 30% 95%;
+    --popover: 226 24% 10%;
+    --popover-foreground: 216 30% 95%;
+    --surface-sunken: 227 26% 8%;
 
-  --popover: 213 40% 9%;
-  --popover-foreground: 210 40% 98%;
+    --primary: 172 62% 50%;
+    --primary-foreground: 175 85% 8%;
+    --primary-soft: 174 45% 14%;
 
-  --primary: 173 59% 45%;
-  --primary-foreground: 0 0% 100%;
+    --secondary: 226 20% 15%;
+    --secondary-foreground: 216 30% 95%;
+    --muted: 226 20% 15%;
+    --muted-foreground: 218 16% 70%;
+    --accent: 226 20% 17%;
+    --accent-foreground: 216 30% 95%;
 
-  --secondary: 213 30% 14%;
-  --secondary-foreground: 210 40% 98%;
+    --destructive: 0 85% 66%;
+    --destructive-foreground: 0 0% 8%;
+    --destructive-soft: 0 45% 15%;
+    --destructive-border: 0 45% 32%;
 
-  --muted: 213 30% 14%;
-  --muted-foreground: 215 20% 65%;
+    --success: 142 60% 55%;
+    --success-foreground: 145 80% 7%;
+    --success-soft: 143 40% 13%;
+    --success-border: 143 35% 28%;
 
-  --accent: 213 30% 14%;
-  --accent-foreground: 210 40% 98%;
+    --warning: 38 92% 58%;
+    --warning-foreground: 30 80% 8%;
+    --warning-soft: 36 45% 13%;
+    --warning-border: 36 45% 30%;
 
-  --destructive: 0 63% 56%;
-  --destructive-foreground: 0 0% 98%;
+    --info: 213 92% 70%;
+    --info-foreground: 222 70% 10%;
+    --info-soft: 218 45% 16%;
+    --info-border: 218 40% 34%;
 
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
+    --module-cleaning: 172 62% 50%;
+    --module-cleaning-soft: 174 45% 14%;
+    --module-winter: 200 90% 66%;
+    --module-winter-soft: 204 50% 15%;
+    --module-hms: 258 85% 78%;
+    --module-hms-soft: 260 35% 18%;
 
-  --warning: 38 92% 50%;
-  --warning-foreground: 0 0% 100%;
+    --chart-1: 172 62% 50%;
+    --chart-2: 200 90% 66%;
+    --chart-3: 258 85% 78%;
+    --chart-4: 220 12% 60%;
+    --chart-5: 220 10% 40%;
 
-  --info: 199 89% 62%;
-  --info-foreground: 0 0% 100%;
+    --border: 226 18% 19%;
+    --border-strong: 224 14% 30%;
+    --input: 222 12% 45%;
+    --ring: 172 62% 50%;
 
-  --border: 213 30% 14%;
-  --input: 213 30% 14%;
-  --ring: 173 59% 45%;
-
-  --chart-1: 173 59% 45%;
-  --chart-2: 173 58% 39%;
-  --chart-3: 199 89% 62%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
-
-  /* Im Dark Mode trennen v. a. Rahmen die Flächen; Schatten nur minimal. */
-  --shadow-card: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
-  --shadow-card-hover: 0 6px 20px -6px hsl(0 0% 0% / 0.55);
+    --elevation-1: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --elevation-2: 0 6px 16px -4px hsl(0 0% 0% / 0.5), 0 2px 4px -2px hsl(0 0% 0% / 0.4);
+    --elevation-3: 0 20px 48px -12px hsl(0 0% 0% / 0.7), 0 4px 12px -4px hsl(0 0% 0% / 0.5);
+  }
 }
 
 @layer base {
-  * {
-    @apply border-border;
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: hsl(var(--border));
   }
+
   html {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
+
   body {
-    @apply min-h-screen overflow-x-hidden;
-  }
-  
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-sans tracking-tight;
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
-  /* Sichtbarer Tastatur-Fokus für alle interaktiven Elemente.
-     Liegt im base-Layer, daher gewinnen Komponenten mit eigenem Fokus-Ring
-     (z. B. <Button>, das bewusst `outline-none` + Ring nutzt). */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    letter-spacing: -0.01em;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  /* Sichtbarer Tastatur-Fokus für alle interaktiven Elemente. Liegt im
+     base-Layer, daher gewinnen Komponenten mit eigenem Fokus-Ring. */
   a:focus-visible,
   button:focus-visible,
   summary:focus-visible,
@@ -177,13 +333,76 @@
   [tabindex]:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
-    border-radius: var(--radius-sm);
+    border-radius: 0.375rem;
   }
 }
 
-/* Respektiert die System-Einstellung „Bewegung reduzieren": deaktiviert
-   CSS-Transitions und sanftes Scrollen. Keyframe-Animationen (z. B. Spinner)
-   bleiben erhalten; Framer-Motion wird zentral via <MotionConfig> gedrosselt. */
+/* ── Z-Ebenen ─────────────────────────────────────────────────────────── */
+@utility z-sticky {
+  z-index: 30;
+}
+@utility z-nav {
+  z-index: 40;
+}
+@utility z-overlay {
+  z-index: 50;
+}
+@utility z-toast {
+  z-index: 100;
+}
+@utility z-skip {
+  z-index: 200;
+}
+
+/* ── Safe-Area ────────────────────────────────────────────────────────── */
+@utility pt-safe {
+  padding-top: var(--safe-top);
+}
+@utility pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+@utility pl-safe {
+  padding-left: var(--safe-left);
+}
+@utility pr-safe {
+  padding-right: var(--safe-right);
+}
+@utility mb-safe {
+  margin-bottom: var(--safe-bottom);
+}
+/* Veraltet: Seitenkopf mit Abstand zur Statusleiste (PageHeader nutzt pt-safe). */
+@utility safe-header {
+  padding-top: calc(var(--safe-top) + 12px);
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+/* Schmale, aber sichtbare Scrollleiste (z. B. überlaufende Tabs bei feinem Zeiger). */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border-strong)) transparent;
+}
+
+/* ── Veraltete Aliasse (bis zum Cleanup-Schritt) ──────────────────────── */
+@utility surface-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: var(--elevation-1);
+}
+@utility glass-card {
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  box-shadow: var(--elevation-1);
+}
+
+/* ── Bewegung reduzieren ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -191,59 +410,40 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  *:not(.animate-spin),
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
-@layer utilities {
-  .glass-panel {
-    @apply bg-background/95 backdrop-blur-sm border-t border-border/50;
-  }
-  
-  .glass-card {
-    @apply bg-card border border-border/40 rounded-2xl;
-    box-shadow: var(--shadow-card);
-  }
+/* ── Druck (A4, immer hell) ───────────────────────────────────────────── */
+@page {
+  size: A4;
+  margin: 16mm 14mm 18mm;
+}
 
-  .surface-elevated {
-    @apply bg-card border border-border/30;
-    box-shadow: var(--shadow-card);
-  }
-
-  .surface-subtle {
-    @apply bg-secondary/50;
-  }
-
-  /* Kanonische Karten-Fläche mit dezenter Elevation; `.card-hover` fügt einen
-     sanften Lift bei Interaktion hinzu (respektiert reduced-motion). */
-  .surface-card {
-    @apply bg-card border border-border/40 rounded-2xl;
-    box-shadow: var(--shadow-card);
-  }
-  .card-hover {
-    @apply transition-shadow duration-200;
-  }
-  .card-hover:hover {
-    box-shadow: var(--shadow-card-hover);
-  }
-
-  .pt-safe {
-    padding-top: var(--safe-top);
-  }
-
-  .pb-safe {
-    padding-bottom: var(--safe-bottom);
-  }
-
-  .safe-header {
-    padding-top: calc(var(--safe-top) + 12px);
+@media screen {
+  .print-only {
+    display: none !important;
   }
 }
 
 @media print {
-  .no-print {
-    display: none !important;
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
   }
   body {
-    background: white !important;
-    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print {
+    display: none !important;
   }
 }

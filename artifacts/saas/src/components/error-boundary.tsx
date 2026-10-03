@@ -1,5 +1,6 @@
-import { Component, type ReactNode } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { House, RotateCcw } from "lucide-react";
+import { StateView } from "@/components/ui/state-view";
 
 interface Props {
   children: ReactNode;
@@ -10,6 +11,7 @@ interface State {
   error: Error | null;
 }
 
+/** Fängt Renderfehler ab und zeigt einen ruhigen Fehlerzustand mit Wiederholen. */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -20,33 +22,38 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Unerwarteter Fehler:", error, info.componentStack);
+  }
+
   handleReset = () => {
     this.setState({ hasError: false, error: null });
+  };
+
+  handleHome = () => {
+    if (typeof window !== "undefined") window.location.hash = "#/";
+    this.handleReset();
   };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
-            <AlertTriangle size={28} className="text-destructive" />
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight mb-2 text-foreground">Etwas ist schiefgelaufen</h1>
-          <p className="text-muted-foreground mb-6 max-w-xs text-sm">
-            Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.
-          </p>
-          {this.state.error && import.meta.env.DEV && (
-            <div className="mb-6 p-3 bg-card border border-border/40 rounded-xl max-w-sm w-full">
-              <p className="text-xs text-muted-foreground font-mono break-all">{this.state.error.message}</p>
-            </div>
-          )}
-          <button
-            onClick={this.handleReset}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium text-sm hover:bg-primary/90 transition-colors"
+        <main className="flex min-h-dvh items-center justify-center bg-background px-4 pb-safe pt-safe">
+          <StateView
+            kind="error"
+            titleAs="h1"
+            title="Etwas ist schiefgelaufen"
+            description="Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut."
+            action={{ label: "Erneut versuchen", icon: RotateCcw, onClick: this.handleReset }}
+            secondaryAction={{ label: "Zur Startseite", icon: House, onClick: this.handleHome }}
           >
-            <RotateCcw size={16} /> Erneut versuchen
-          </button>
-        </div>
+            {this.state.error && import.meta.env.DEV && (
+              <pre className="max-w-sm overflow-x-auto whitespace-pre-wrap break-all rounded-md border border-border bg-surface-sunken p-3 text-left font-mono text-xs text-muted-foreground">
+                {this.state.error.message}
+              </pre>
+            )}
+          </StateView>
+        </main>
       );
     }
 

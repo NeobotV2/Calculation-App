@@ -1,450 +1,638 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import * as React from "react";
+import { CircleCheck, ChevronDown, Lock, Ruler, Search, SlidersHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Callout } from "@/components/ui/callout";
+import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
-import { DEFAULT_ROOM_TYPES, DEFAULT_ROOM_GROUPS } from "@/data/room-types";
-import { SURCHARGE_DEFINITIONS, getTotalModifier } from "@/data/surcharges";
-import { FREQUENCY_LABELS, calcRoom, getEffectivePerformance } from "@/lib/calc";
-import { formatCurrency, formatNumber } from "@/lib/utils";
-import { canOverridePerformance } from "@/lib/feature-gates";
+import { Money } from "@/components/ui/money";
+import { NumberInput } from "@/components/ui/number-input";
+import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { UpgradeModal } from "@/components/upgrade-modal";
+import { FrequencySelect } from "@/components/calc/rooms/FrequencySelect";
+import { buildRoom, roomTypeFromRoom, type RoomTypeLike } from "@/components/calc/rooms/rooms-editor-logic";
+import { DEFAULT_ROOM_GROUPS, DEFAULT_ROOM_TYPES } from "@/data/room-types";
+import {
+  SURCHARGE_DEFINITIONS,
+  getSurchargeEffectLabel,
+  getTotalModifier,
+  type SurchargeCategory,
+} from "@/data/surcharges";
+import { calcRoom, getEffectivePerformance } from "@/lib/calc";
+import { canOverridePerformance } from "@/lib/feature-gates";
+import { useMediaQuery } from "@/lib/theme";
+import { MEDIA } from "@/lib/tokens";
+import { cn, formatNumber } from "@/lib/utils";
 import { useStore, type FrequencyKey, type Room } from "@/store/use-store";
-import { X, Lock, ChevronDown, SlidersHorizontal, Search } from "lucide-react";
+
+/** Rückgabe `false` = nicht gespeichert (z. B. Raumlimit) – Eingaben bleiben stehen. */
+type SaveResult = void | boolean;
 
 interface RoomEditorSheetProps {
   open: boolean;
   onClose: () => void;
-  onSave: (room: Omit<Room, "id">) => void;
+  /**
+   * Speichern. Darf ein Promise liefern (Button zeigt dann „lädt“; bei Fehler
+   * bleibt das Sheet mit Fehlermeldung offen). Das Schließen übernimmt der Aufrufer.
+   */
+  onSave: (room: Omit<Room, "id">) => SaveResult | Promise<SaveResult>;
   editRoom?: Room;
   hourlyRate: number;
+  /**
+   * Optional (nur beim Hinzufügen): „Speichern & nächster Raum“. Der Aufrufer
+   * fügt den Raum hinzu und lässt das Sheet offen; Raumart, Turnus und
+   * Zu-/Abschläge bleiben, Bezeichnung und Fläche werden geleert.
+   */
+  onSaveAndNext?: (room: Omit<Room, "id">) => SaveResult | Promise<SaveResult>;
 }
 
-export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate }: RoomEditorSheetProps) {
-  const defaultFrequency = useStore(s => s.defaultFrequency);
-  const customRoomTypes = useStore(s => s.customRoomTypes);
-  const [name, setName] = useState("");
-  const [typeId, setTypeId] = useState(DEFAULT_ROOM_TYPES[0].id);
-  const [area, setArea] = useState("");
-  const [length, setLength] = useState("");
-  const [width, setWidth] = useState("");
-  const [freq, setFreq] = useState<FrequencyKey>(defaultFrequency);
-  const [customPerf, setCustomPerf] = useState("");
+interface FormState {
+  name: string;
+  typeId: string;
+  area: number | undefined;
+  length: number | undefined;
+  width: number | undefined;
+  frequency: FrequencyKey;
+  customPerformance: number | undefined;
+  soilingLevel: string | undefined;
+  furnishingLevel: string | undefined;
+  floorType: string | undefined;
+}
 
-  const [soilingLevel, setSoilingLevel] = useState<string | undefined>();
-  const [furnishingLevel, setFurnishingLevel] = useState<string | undefined>();
-  const [floorType, setFloorType] = useState<string | undefined>();
-  const [showSurcharges, setShowSurcharges] = useState(false);
+function initialForm(editRoom: Room | undefined, defaultFrequency: FrequencyKey): FormState {
+  if (editRoom) {
+    return {
+      name: editRoom.name,
+      typeId: editRoom.typeId,
+      area: editRoom.area,
+      length: undefined,
+      width: undefined,
+      frequency: editRoom.frequency,
+      customPerformance: editRoom.customPerformance ? editRoom.customPerformance : undefined,
+      soilingLevel: editRoom.soilingLevel,
+      furnishingLevel: editRoom.furnishingLevel,
+      floorType: editRoom.floorType,
+    };
+  }
+  return {
+    name: "",
+    typeId: DEFAULT_ROOM_TYPES[0].id,
+    area: undefined,
+    length: undefined,
+    width: undefined,
+    frequency: defaultFrequency,
+    customPerformance: undefined,
+    soilingLevel: undefined,
+    furnishingLevel: undefined,
+    floorType: undefined,
+  };
+}
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedGroupFilter, setSelectedGroupFilter] = useState<string | null>(null);
-  const typeGridRef = useRef<HTMLDivElement>(null);
+function sameForm(a: FormState, b: FormState): boolean {
+  return (Object.keys(a) as (keyof FormState)[]).every((k) => (a[k] ?? "") === (b[k] ?? ""));
+}
 
-  // Beim Bearbeiten die gewählte Raumart in der scrollbaren Liste sichtbar machen.
-  useEffect(() => {
-    if (!open || !editRoom) return;
-    const t = window.setTimeout(() => {
-      typeGridRef.current
-        ?.querySelector('[data-selected="true"]')
-        ?.scrollIntoView({ block: "nearest" });
-    }, 50);
-    return () => window.clearTimeout(t);
-  }, [open, editRoom]);
+function areaFromDims(length: number | undefined, width: number | undefined): number | undefined {
+  if (length !== undefined && width !== undefined && length > 0 && width > 0) {
+    return Number((length * width).toFixed(1));
+  }
+  return undefined;
+}
 
-  useEffect(() => {
-    if (editRoom) {
-      setName(editRoom.name);
-      setTypeId(editRoom.typeId);
-      setArea(editRoom.area.toString().replace(".", ","));
-      setLength("");
-      setWidth("");
-      setFreq(editRoom.frequency);
-      setCustomPerf(editRoom.customPerformance ? editRoom.customPerformance.toString() : "");
-      setSoilingLevel(editRoom.soilingLevel);
-      setFurnishingLevel(editRoom.furnishingLevel);
-      setFloorType(editRoom.floorType);
-      const hasSurcharges = editRoom.soilingLevel || editRoom.furnishingLevel || editRoom.floorType;
-      setShowSurcharges(!!hasSurcharges);
-    } else {
-      setName("");
-      setTypeId(DEFAULT_ROOM_TYPES[0].id);
-      setArea("");
-      setLength("");
-      setWidth("");
-      setFreq(defaultFrequency);
-      setCustomPerf("");
-      setSoilingLevel(undefined);
-      setFurnishingLevel(undefined);
-      setFloorType(undefined);
-      setShowSurcharges(false);
-    }
+/**
+ * Raum anlegen oder bearbeiten (ResponsiveSheet: Phone-Drawer, ab md rechtes
+ * Sheet). Raumart-Auswahl klappt nach der Wahl zu einer Zeile zusammen,
+ * Zu-/Abschläge zeigen ihre Zeitwirkung, die Preisvorschau rechnet live mit
+ * `calcRoom`. Ungespeicherte Eingaben werden beim Schließen abgefragt.
+ */
+export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate, onSaveAndNext }: RoomEditorSheetProps) {
+  const defaultFrequency = useStore((s) => s.defaultFrequency);
+  const customRoomTypes = useStore((s) => s.customRoomTypes);
+  const isCoarse = useMediaQuery(MEDIA.coarse);
+
+  // ── Sitzung: Formular beim Öffnen (synchron) zurücksetzen ──────────────
+  const [session, setSession] = React.useState<{ open: boolean; editRoom?: Room }>({ open: false });
+  const [form, setForm] = React.useState<FormState>(() => initialForm(editRoom, defaultFrequency));
+  const [baseline, setBaseline] = React.useState<FormState>(form);
+  const [pickerOpen, setPickerOpen] = React.useState(!editRoom);
+  const [showSurcharges, setShowSurcharges] = React.useState(false);
+  const [showDims, setShowDims] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [groupFilter, setGroupFilter] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState<null | "save" | "next">(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [areaError, setAreaError] = React.useState<string | null>(null);
+  const [addedNames, setAddedNames] = React.useState<string[]>([]);
+  const [upgradeOpen, setUpgradeOpen] = React.useState(false);
+
+  if (open && (!session.open || session.editRoom?.id !== editRoom?.id)) {
+    const next = initialForm(editRoom, defaultFrequency);
+    setSession({ open: true, editRoom });
+    setForm(next);
+    setBaseline(next);
+    setPickerOpen(!editRoom);
+    setShowSurcharges(!!(editRoom && (editRoom.soilingLevel || editRoom.furnishingLevel || editRoom.floorType)));
+    setShowDims(false);
     setSearchQuery("");
-    setSelectedGroupFilter(null);
-  }, [editRoom, open, defaultFrequency]);
+    setGroupFilter(null);
+    setSaving(null);
+    setError(null);
+    setAreaError(null);
+    setAddedNames([]);
+  } else if (!open && session.open) {
+    // editRoom der Sitzung behalten, damit Titel/Felder beim Schließen nicht springen
+    setSession((s) => ({ ...s, open: false }));
+  }
 
-  const allRoomTypes = useMemo(() => [...DEFAULT_ROOM_TYPES, ...customRoomTypes], [customRoomTypes]);
+  const formRef = React.useRef(form);
+  React.useEffect(() => {
+    formRef.current = form;
+  });
 
-  const allGroups = useMemo(() => {
-    const groupIds = new Set(allRoomTypes.map(t => t.groupId));
-    return DEFAULT_ROOM_GROUPS.filter(g => groupIds.has(g.id));
+  const isEdit = !!session.editRoom;
+  const ids = React.useId();
+  const formId = `${ids}-form`;
+  const areaRef = React.useRef<HTMLInputElement>(null);
+  const searchRef = React.useRef<HTMLInputElement>(null);
+
+  // ── Raumarten ──────────────────────────────────────────────────────────
+  const allRoomTypes = React.useMemo<RoomTypeLike[]>(
+    () => [...DEFAULT_ROOM_TYPES, ...customRoomTypes],
+    [customRoomTypes],
+  );
+  const allGroups = React.useMemo(() => {
+    const groupIds = new Set(allRoomTypes.map((t) => t.groupId));
+    return DEFAULT_ROOM_GROUPS.filter((g) => groupIds.has(g.id));
   }, [allRoomTypes]);
-
-  const filteredRoomTypes = useMemo(() => {
+  const filteredRoomTypes = React.useMemo(() => {
     let types = allRoomTypes;
-    if (selectedGroupFilter) {
-      types = types.filter(t => t.groupId === selectedGroupFilter);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      types = types.filter(t => t.name.toLowerCase().includes(q) || t.groupName.toLowerCase().includes(q));
-    }
+    if (groupFilter) types = types.filter((t) => t.groupId === groupFilter);
+    const q = searchQuery.trim().toLowerCase();
+    if (q) types = types.filter((t) => t.name.toLowerCase().includes(q) || t.groupName.toLowerCase().includes(q));
     return types;
-  }, [allRoomTypes, selectedGroupFilter, searchQuery]);
+  }, [allRoomTypes, groupFilter, searchQuery]);
 
-  const selectedType = allRoomTypes.find(t => t.id === typeId) || DEFAULT_ROOM_TYPES[0];
+  // Raumart eines bestehenden Raums bleibt erhalten, auch wenn sie nicht (mehr) im Katalog steht.
+  const editType = session.editRoom ? roomTypeFromRoom(session.editRoom) : undefined;
+  const selectedType: RoomTypeLike =
+    allRoomTypes.find((t) => t.id === form.typeId) ??
+    (editType && editType.id === form.typeId ? editType : DEFAULT_ROOM_TYPES[0]);
 
-  const areaNum = useMemo(() => {
-    const parsed = parseFloat(area.replace(",", "."));
-    return isNaN(parsed) || parsed <= 0 ? 0 : parsed;
-  }, [area]);
-
-  useEffect(() => {
-    const l = parseFloat(length.replace(",", "."));
-    const w = parseFloat(width.replace(",", "."));
-    if (l > 0 && w > 0) {
-      setArea((l * w).toFixed(1).replace(".", ","));
-    }
-  }, [length, width]);
-
-  const surcharges = useMemo(() => ({
-    soilingLevel,
-    furnishingLevel,
-    floorType,
-  }), [soilingLevel, furnishingLevel, floorType]);
-
-  const totalModifier = getTotalModifier(surcharges);
-
-  const preview = useMemo(() => {
-    if (areaNum <= 0) return null;
-    const perfVal = customPerf ? parseFloat(customPerf.replace(",", ".")) : undefined;
-    const room: Room = {
-      id: "preview",
-      name,
-      typeId,
-      typeName: selectedType.name,
-      groupId: selectedType.groupId,
-      groupName: selectedType.groupName,
-      area: areaNum,
-      frequency: freq,
-      typePerformance: selectedType.performanceValue,
-      customPerformance: perfVal && perfVal > 0 ? perfVal : undefined,
-      soilingLevel,
-      furnishingLevel,
-      floorType,
-    };
-    return calcRoom(room, hourlyRate);
-  }, [areaNum, freq, selectedType, hourlyRate, customPerf, name, typeId, soilingLevel, furnishingLevel, floorType]);
-
-  const handleSave = () => {
-    if (areaNum <= 0) return;
-    const perfVal = customPerf ? parseFloat(customPerf.replace(",", ".")) : undefined;
-
-    onSave({
-      name: name.trim() || selectedType.name,
-      typeId,
-      typeName: selectedType.name,
-      groupId: selectedType.groupId,
-      groupName: selectedType.groupName,
-      area: areaNum,
-      frequency: freq,
-      typePerformance: selectedType.performanceValue,
-      customPerformance: perfVal && perfVal > 0 ? perfVal : undefined,
-      soilingLevel: soilingLevel || undefined,
-      furnishingLevel: furnishingLevel || undefined,
-      floorType: floorType || undefined,
-    });
-    setName(""); setArea(""); setLength(""); setWidth(""); setCustomPerf("");
-    setSoilingLevel(undefined); setFurnishingLevel(undefined); setFloorType(undefined);
-  };
-
+  // ── Ableitungen ────────────────────────────────────────────────────────
+  const areaNum = form.area !== undefined && form.area > 0 ? form.area : 0;
+  const totalModifier = getTotalModifier(form);
+  const draftRoom = buildRoom({
+    name: form.name,
+    type: selectedType,
+    area: areaNum,
+    frequency: form.frequency,
+    customPerformance: form.customPerformance,
+    soilingLevel: form.soilingLevel,
+    furnishingLevel: form.furnishingLevel,
+    floorType: form.floorType,
+  });
+  const previewRoom: Room = { ...draftRoom, id: "preview" };
+  const preview = areaNum > 0 ? calcRoom(previewRoom, hourlyRate) : null;
+  const effectivePerformance = getEffectivePerformance(previewRoom);
+  const basePerformance = draftRoom.customPerformance || selectedType.performanceValue;
+  const dirty = session.open && !sameForm(form, baseline);
   const overrideGate = canOverridePerformance();
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const canSaveAndNext = !isEdit && !!onSaveAndNext;
 
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+  const update = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
 
-  const surchargeSetters: Record<string, (v: string | undefined) => void> = {
-    soilingLevel: setSoilingLevel,
-    furnishingLevel: setFurnishingLevel,
-    floorType: setFloorType,
+  const setDims = (patch: { length?: number | undefined; width?: number | undefined }) =>
+    setForm((f) => {
+      const next = { ...f, ...patch };
+      const area = areaFromDims(next.length, next.width);
+      return area !== undefined ? { ...next, area } : next;
+    });
+
+  const pickType = (id: string) => {
+    update({ typeId: id });
+    setPickerOpen(false);
   };
 
-  const surchargeValues: Record<string, string | undefined> = {
-    soilingLevel,
-    furnishingLevel,
-    floorType,
+  const openPicker = () => {
+    setPickerOpen(true);
+    window.setTimeout(() => searchRef.current?.focus(), 0);
   };
+
+  const setSurcharge = (category: SurchargeCategory, value: string | undefined) => {
+    update({ [category]: value } as Partial<FormState>);
+  };
+
+  // ── Speichern ──────────────────────────────────────────────────────────
+  const savingRef = React.useRef(false);
+  const commit = async (kind: "save" | "next") => {
+    if (savingRef.current) return;
+    if (!(areaNum > 0)) {
+      setAreaError("Bitte geben Sie eine Fläche größer als 0 m² ein.");
+      areaRef.current?.focus();
+      return;
+    }
+    const room = draftRoom;
+    savingRef.current = true;
+    setSaving(kind);
+    setError(null);
+    try {
+      const handler = kind === "next" && onSaveAndNext ? onSaveAndNext : onSave;
+      const result = await handler(room);
+      if (result === false) return;
+      if (kind === "next") {
+        const next: FormState = { ...formRef.current, name: "", area: undefined, length: undefined, width: undefined };
+        setForm(next);
+        setBaseline(next);
+        setAreaError(null);
+        setAddedNames((list) => [...list, room.name]);
+        window.setTimeout(() => areaRef.current?.focus(), 0);
+      }
+    } catch (err) {
+      setError(err instanceof Error && err.message ? err.message : "Der Raum konnte nicht gespeichert werden.");
+    } finally {
+      savingRef.current = false;
+      setSaving(null);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void commit("save");
+  };
+
+  const lastAdded = addedNames[addedNames.length - 1];
+
+  const footer = (
+    <>
+      {canSaveAndNext && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => void commit("next")}
+          loading={saving === "next"}
+          disabled={saving !== null && saving !== "next"}
+        >
+          Speichern &amp; nächster Raum
+        </Button>
+      )}
+      <Button
+        type="submit"
+        form={formId}
+        loading={saving === "save"}
+        disabled={saving !== null && saving !== "save"}
+      >
+        {isEdit ? "Änderungen speichern" : "Raum hinzufügen"}
+      </Button>
+    </>
+  );
 
   return (
     <>
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            onClick={onClose}
-            aria-hidden="true"
-          />
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="room-editor-title"
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 bg-background rounded-t-3xl border-t border-border z-50 max-h-[92vh] overflow-y-auto md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:border md:max-w-2xl md:w-full md:max-h-[85vh]"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 20px)" }}
-          >
-            <div className="sticky top-0 bg-background z-10 px-6 pt-4 pb-2 md:rounded-t-3xl">
-              <div className="w-12 h-1.5 bg-muted rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex items-center justify-between mb-2">
-                <h2 id="room-editor-title" className="text-2xl font-semibold tracking-tight">{editRoom ? "Raum bearbeiten" : "Neuer Raum"}</h2>
-                <button onClick={onClose} aria-label="Schließen" className="w-9 h-9 rounded-full bg-card border border-border/40 flex items-center justify-center">
-                  <X size={16} className="text-muted-foreground" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
+      <ResponsiveSheet
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) onClose();
+        }}
+        title={isEdit ? "Raum bearbeiten" : "Neuer Raum"}
+        description={
+          isEdit
+            ? "Raumart, Fläche, Turnus und Leistung anpassen – die Vorschau rechnet live mit."
+            : "Raumart, Fläche und Turnus erfassen – der Preis wird live berechnet."
+        }
+        size="md"
+        dirty={dirty}
+        footer={footer}
+        onOpenAutoFocus={(event) => {
+          if (isCoarse) return;
+          event.preventDefault();
+          if (isEdit || !pickerOpen) areaRef.current?.focus();
+          else searchRef.current?.focus();
+        }}
+      >
+        <form id={formId} onSubmit={handleSubmit} noValidate className="space-y-5">
+          <div role="status" aria-live="polite" className="empty:hidden">
+            {lastAdded !== undefined && (
+              <p className="flex items-center gap-2 text-sm text-success">
+                <CircleCheck aria-hidden="true" className="size-4 shrink-0" />
+                <span>
+                  „{lastAdded}“ hinzugefügt
+                  {addedNames.length > 1 ? ` (${addedNames.length} Räume in dieser Erfassung)` : ""}. Erfassen Sie
+                  den nächsten Raum.
+                </span>
+              </p>
+            )}
+          </div>
 
-            <div className="px-6 pb-6 space-y-5">
-              <div>
-                <span className="text-sm font-medium text-foreground mb-2 block">Raumart</span>
+          {error && (
+            <Callout tone="critical" title="Speichern fehlgeschlagen" live>
+              {error}
+            </Callout>
+          )}
 
-                <div className="relative mb-2">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          {/* Raumart */}
+          <fieldset className="space-y-2">
+            <legend className="mb-2 text-label text-muted-foreground">Raumart</legend>
+            {pickerOpen ? (
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  />
                   <Input
+                    ref={searchRef}
+                    type="search"
                     aria-label="Raumart suchen"
+                    placeholder="Raumart suchen …"
                     value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Raumart suchen…"
-                    className="bg-card h-10 pl-9 text-sm"
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const first = filteredRoomTypes[0];
+                        if (first) pickType(first.id);
+                      }
+                    }}
+                    className="pl-9"
                   />
                 </div>
-
-                <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2 -mx-1 px-1">
-                  <button
-                    onClick={() => setSelectedGroupFilter(null)}
-                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!selectedGroupFilter ? "bg-primary text-primary-foreground" : "bg-card border border-border/40 text-muted-foreground hover:text-foreground"}`}
-                  >
+                <ToggleGroup
+                  type="single"
+                  variant="chip"
+                  size="sm"
+                  aria-label="Raumgruppe filtern"
+                  value={groupFilter ?? "alle"}
+                  onValueChange={(v) => setGroupFilter(v && v !== "alle" ? v : null)}
+                  className="-mx-4 flex-nowrap justify-start overflow-x-auto px-4 pb-1 no-scrollbar md:-mx-6 md:px-6"
+                >
+                  <ToggleGroupItem value="alle" className="shrink-0">
                     Alle
-                  </button>
-                  {allGroups.map(g => (
-                    <button
-                      key={g.id}
-                      onClick={() => setSelectedGroupFilter(selectedGroupFilter === g.id ? null : g.id)}
-                      className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${selectedGroupFilter === g.id ? "bg-primary text-primary-foreground" : "bg-card border border-border/40 text-muted-foreground hover:text-foreground"}`}
-                    >
+                  </ToggleGroupItem>
+                  {allGroups.map((g) => (
+                    <ToggleGroupItem key={g.id} value={g.id} className="shrink-0">
                       {g.name}
-                    </button>
+                    </ToggleGroupItem>
                   ))}
-                </div>
-
-                <div ref={typeGridRef} className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto mt-2">
-                  {filteredRoomTypes.map(t => (
-                    <button
-                      key={t.id}
-                      onClick={() => setTypeId(t.id)}
-                      data-selected={typeId === t.id || undefined}
-                      aria-pressed={typeId === t.id}
-                      className={`p-3 rounded-xl border text-sm text-left transition-colors ${typeId === t.id ? "border-primary bg-primary/10 text-primary" : "border-border/40 bg-card hover:bg-secondary text-foreground"}`}
-                    >
-                      <div className="font-medium truncate">{t.name}</div>
-                      <div className="text-[11px] opacity-70 mt-0.5">{t.performanceValue} m²/h</div>
-                    </button>
-                  ))}
+                </ToggleGroup>
+                <div role="group" aria-label="Raumarten" className="grid grid-cols-2 gap-2">
+                  {filteredRoomTypes.map((t) => {
+                    const selected = t.id === form.typeId;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => pickType(t.id)}
+                        className={cn(
+                          "flex min-h-14 flex-col items-start justify-center rounded-md border px-3 py-2 text-left text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          selected
+                            ? "border-primary bg-primary-soft text-primary"
+                            : "border-border bg-card text-foreground hover:bg-muted",
+                        )}
+                      >
+                        <span className="w-full truncate font-medium">{t.name}</span>
+                        <span className="text-xs tabular-nums text-muted-foreground">{t.performanceValue} m²/h</span>
+                      </button>
+                    );
+                  })}
                   {filteredRoomTypes.length === 0 && (
-                    <div className="col-span-2 text-center py-6 text-sm text-muted-foreground">
-                      Keine Raumarten gefunden
-                    </div>
+                    <p className="col-span-2 py-6 text-center text-sm text-muted-foreground">
+                      Keine Raumart gefunden. Passen Sie Suche oder Filter an.
+                    </p>
                   )}
                 </div>
               </div>
-
-              <div>
-                <label htmlFor="room-name" className="text-sm font-medium text-foreground mb-2 block">Bezeichnung (optional)</label>
-                <Input id="room-name" value={name} onChange={e => setName(e.target.value)} placeholder={selectedType.name} className="bg-card h-12" />
-              </div>
-
-              <div>
-                <label htmlFor="room-area" className="text-sm font-medium text-foreground mb-2 block">Fläche (m²)</label>
-                <Input id="room-area" inputMode="decimal" value={area} onChange={e => setArea(e.target.value)} placeholder="0" className="text-xl font-semibold h-14 bg-card" />
-              </div>
-
-              <div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label htmlFor="room-length" className="text-xs text-muted-foreground mb-1 block">Länge (m)</label>
-                    <Input id="room-length" inputMode="decimal" value={length} onChange={e => setLength(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" aria-describedby="room-dims-hint" />
-                  </div>
-                  <div>
-                    <label htmlFor="room-width" className="text-xs text-muted-foreground mb-1 block">Breite (m)</label>
-                    <Input id="room-width" inputMode="decimal" value={width} onChange={e => setWidth(e.target.value)} placeholder="—" className="bg-card h-11 text-sm" aria-describedby="room-dims-hint" />
-                  </div>
-                </div>
-                <p id="room-dims-hint" className="text-xs text-muted-foreground mt-1.5">
-                  Optional: Länge × Breite berechnet die Fläche automatisch.
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="room-frequency" className="text-sm font-medium text-foreground mb-2 block">Häufigkeit</label>
-                <div className="relative">
-                  <select
-                    id="room-frequency"
-                    value={freq}
-                    onChange={e => setFreq(e.target.value as FrequencyKey)}
-                    className="w-full h-12 rounded-xl border border-border/40 bg-card pl-4 pr-10 text-sm font-medium text-foreground focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
-                  >
-                    {Object.entries(FREQUENCY_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" aria-hidden="true" />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="room-custom-perf" className="text-sm font-medium text-foreground mb-2 block">Leistungswert überschreiben (m²/h)</label>
-                {overrideGate.allowed ? (
-                  <Input id="room-custom-perf" inputMode="decimal" value={customPerf} onChange={e => setCustomPerf(e.target.value)} placeholder={selectedType.performanceValue.toString()} className="bg-card h-12" />
-                ) : (
-                  <button
-                    onClick={() => setUpgradeOpen(true)}
-                    className="w-full h-12 rounded-xl border border-border/40 bg-card px-4 text-sm text-muted-foreground flex items-center gap-2 hover:bg-secondary transition-colors"
-                  >
-                    <Lock size={14} aria-hidden="true" /> Pro-Feature — tippen zum Upgraden
-                  </button>
-                )}
-              </div>
-
-              <div className="border border-border/30 rounded-2xl overflow-hidden">
-                <button
-                  onClick={() => setShowSurcharges(!showSurcharges)}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-card hover:bg-secondary transition-colors"
-                >
-                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <SlidersHorizontal size={16} className="text-muted-foreground" aria-hidden="true" />
-                    Zu-/Abschläge
-                    {totalModifier !== 0 && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${totalModifier > 0 ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
-                        {totalModifier > 0 ? "+" : ""}{Math.round(totalModifier * 100)}%
-                      </span>
-                    )}
-                  </span>
-                  <ChevronDown size={16} className={`text-muted-foreground transition-transform ${showSurcharges ? "rotate-180" : ""}`} aria-hidden="true" />
-                </button>
-
-                {showSurcharges && (
-                  <div className="px-4 py-4 space-y-4 bg-card/50 border-t border-border/20">
-                    {SURCHARGE_DEFINITIONS.map(def => (
-                      <div key={def.category}>
-                        <span className="text-xs font-medium text-muted-foreground mb-1.5 block">{def.label}</span>
-                        <div className="flex gap-1.5 flex-wrap">
-                          {def.options.map(opt => {
-                            const isSelected = surchargeValues[def.category] === opt.id;
-                            const isDefault = opt.id === def.defaultId;
-                            const isActive = isSelected || (!surchargeValues[def.category] && isDefault);
-                            return (
-                              <button
-                                key={opt.id}
-                                onClick={() => {
-                                  const setter = surchargeSetters[def.category];
-                                  if (setter) {
-                                    setter(isDefault ? undefined : (isSelected ? undefined : opt.id));
-                                  }
-                                }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive ? "bg-primary text-primary-foreground" : "bg-background border border-border/40 text-muted-foreground hover:text-foreground"}`}
-                              >
-                                {opt.label}
-                                {opt.modifier !== 0 && (
-                                  <span className="ml-1 opacity-70">
-                                    ({opt.modifier > 0 ? "+" : ""}{Math.round(opt.modifier * 100)}%)
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-
-                    {preview && (
-                      <div className="pt-2 border-t border-border/20">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Basis-Leistungswert:</span>
-                          <span className="font-medium text-foreground">{customPerf ? parseFloat(customPerf.replace(",", ".")) || selectedType.performanceValue : selectedType.performanceValue} m²/h</span>
-                        </div>
-                        {totalModifier !== 0 && (
-                          <>
-                            <div className="flex items-center justify-between text-xs mt-1">
-                              <span className="text-muted-foreground">Anpassung:</span>
-                              <span className={`font-medium ${totalModifier > 0 ? "text-success" : "text-warning"}`}>
-                                {totalModifier > 0 ? "+" : ""}{Math.round(totalModifier * 100)}%
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs mt-1">
-                              <span className="text-muted-foreground">Eff. Leistungswert:</span>
-                              <span className="font-semibold text-primary">{formatNumber(preview.effectivePerformance, 0)} m²/h</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {preview && (
-                <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex justify-between items-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Kosten / Monat</p>
-                    <p className="text-2xl font-bold text-foreground mt-1">{formatCurrency(preview.monthlyCost)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">Stunden / Monat</p>
-                    <p className="text-lg font-semibold text-primary mt-1">{formatNumber(preview.monthlyHours, 1)} h</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Sticky-Footer: Hauptaktion bleibt beim Scrollen immer sichtbar. */}
-              <div className="sticky bottom-0 z-10 -mx-6 -mb-6 px-6 pt-3 pb-4 bg-background/95 backdrop-blur-sm border-t border-border/30">
-                {areaNum <= 0 && (
-                  <p id="room-save-hint" className="text-xs text-muted-foreground text-center mb-2">
-                    Geben Sie eine Fläche ein, um den Raum zu speichern.
+            ) : (
+              <div className="flex min-h-12 items-center gap-3 rounded-md border border-border bg-surface-sunken px-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">
+                    <span className="font-medium text-foreground">{selectedType.name}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {formatNumber(selectedType.performanceValue, 0)} m²/h
+                    </span>
                   </p>
-                )}
+                  {selectedType.groupName && (
+                    <p className="truncate text-xs text-muted-foreground">{selectedType.groupName}</p>
+                  )}
+                </div>
                 <Button
-                  onClick={handleSave}
-                  disabled={areaNum <= 0}
-                  aria-describedby={areaNum <= 0 ? "room-save-hint" : undefined}
-                  className="w-full h-14 text-base"
-                  size="lg"
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={openPicker}
+                  aria-label={`Raumart ändern (aktuell: ${selectedType.name})`}
                 >
-                  {editRoom ? "Änderungen speichern" : "Raum hinzufügen"}
-                  {preview && <span className="font-normal opacity-90"> · {formatCurrency(preview.monthlyCost)}/Monat</span>}
+                  ändern
+                </Button>
+              </div>
+            )}
+          </fieldset>
+
+          <FormField id={`${ids}-name`} label="Bezeichnung (optional)">
+            <Input
+              value={form.name}
+              onChange={(e) => update({ name: e.target.value })}
+              placeholder={selectedType.name}
+              autoComplete="off"
+            />
+          </FormField>
+
+          <div className="space-y-2">
+            <FormField
+              id={`${ids}-area`}
+              label="Fläche"
+              required
+              error={areaError}
+              hint={areaNum > 0 ? undefined : "Geben Sie eine Fläche ein, um den Raum zu speichern."}
+            >
+              <NumberInput
+                // nach „Speichern & nächster Raum“ neu aufbauen, damit das Feld sicher leer ist
+                key={`area-${addedNames.length}`}
+                ref={areaRef}
+                value={form.area}
+                onValueChange={(v) => {
+                  update({ area: v });
+                  if (v !== undefined && v > 0) setAreaError(null);
+                }}
+                unit="m²"
+                min={0}
+                placeholder="0"
+                inputSize="lg"
+                className="font-semibold text-h3 md:text-h3"
+              />
+            </FormField>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={showDims}
+              aria-controls={`${ids}-dims`}
+              onClick={() => setShowDims((v) => !v)}
+              className="-ml-2 text-muted-foreground"
+            >
+              <Ruler aria-hidden="true" />
+              Aus Länge × Breite berechnen
+            </Button>
+            {showDims && (
+              <div id={`${ids}-dims`} className="grid grid-cols-2 gap-3">
+                <FormField id={`${ids}-length`} label="Länge">
+                  <NumberInput key={`length-${addedNames.length}`} value={form.length} onValueChange={(v) => setDims({ length: v })} unit="m" min={0} placeholder="–" />
+                </FormField>
+                <FormField id={`${ids}-width`} label="Breite">
+                  <NumberInput key={`width-${addedNames.length}`} value={form.width} onValueChange={(v) => setDims({ width: v })} unit="m" min={0} placeholder="–" />
+                </FormField>
+                <p className="col-span-2 text-xs text-muted-foreground">Länge × Breite ergibt die Fläche (gerundet auf 0,1 m²).</p>
+              </div>
+            )}
+          </div>
+
+          <FormField id={`${ids}-frequency`} label="Turnus">
+            <FrequencySelect value={form.frequency} onValueChange={(f) => update({ frequency: f })} />
+          </FormField>
+
+          {/* Leistungswert */}
+          {overrideGate.allowed ? (
+            <FormField
+              id={`${ids}-perf`}
+              label="Eigener Leistungswert"
+              hint={`Leer lassen für den Richtwert der Raumart (${formatNumber(selectedType.performanceValue, 0)} m²/h).`}
+            >
+              <NumberInput
+                value={form.customPerformance}
+                onValueChange={(v) => update({ customPerformance: v })}
+                unit="m²/h"
+                min={0}
+                placeholder={String(selectedType.performanceValue)}
+              />
+            </FormField>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-label text-muted-foreground">Eigener Leistungswert</p>
+              <div className="flex min-h-12 items-center gap-3 rounded-md border border-border bg-surface-sunken px-3 py-2">
+                <Lock aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                <p className="min-w-0 flex-1 text-sm text-muted-foreground">
+                  {form.customPerformance
+                    ? `${formatNumber(form.customPerformance, 0)} m²/h (bleibt erhalten)`
+                    : `Richtwert ${formatNumber(selectedType.performanceValue, 0)} m²/h`}
+                </p>
+                <Badge tone="brand" size="sm">
+                  Pro
+                </Badge>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setUpgradeOpen(true)}>
+                  Freischalten
                 </Button>
               </div>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-    <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} reason={overrideGate.reason || ""} triggerReason="performance_override" />
+          )}
+
+          {/* Zu-/Abschläge */}
+          <div className="rounded-lg border border-border">
+            <button
+              type="button"
+              aria-expanded={showSurcharges}
+              aria-controls={`${ids}-surcharges`}
+              onClick={() => setShowSurcharges((v) => !v)}
+              className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg px-4 py-2 text-left text-sm font-medium text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+            >
+              <span className="flex flex-wrap items-center gap-2">
+                <SlidersHorizontal aria-hidden="true" className="size-4 text-muted-foreground" />
+                Zu-/Abschläge
+                {totalModifier !== 0 && (
+                  <Badge tone="neutral" size="sm">
+                    {getSurchargeEffectLabel(totalModifier)}
+                  </Badge>
+                )}
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className={cn("size-4 shrink-0 text-muted-foreground transition-transform", showSurcharges && "rotate-180")}
+              />
+            </button>
+            {showSurcharges && (
+              <div id={`${ids}-surcharges`} className="space-y-4 border-t border-border px-4 py-4">
+                {SURCHARGE_DEFINITIONS.map((def) => {
+                  const labelId = `${ids}-sc-${def.category}`;
+                  return (
+                    <div key={def.category} className="space-y-1.5">
+                      <p id={labelId} className="text-label text-muted-foreground">
+                        {def.label}
+                      </p>
+                      <ToggleGroup
+                        type="single"
+                        variant="chip"
+                        size="sm"
+                        aria-labelledby={labelId}
+                        className="justify-start"
+                        value={form[def.category] ?? def.defaultId}
+                        onValueChange={(v) => setSurcharge(def.category, !v || v === def.defaultId ? undefined : v)}
+                      >
+                        {def.options.map((opt) => (
+                          <ToggleGroupItem key={opt.id} value={opt.id}>
+                            {opt.label}
+                            {opt.modifier !== 0 && (
+                              <span className="font-normal text-muted-foreground">· {getSurchargeEffectLabel(opt.modifier)}</span>
+                            )}
+                          </ToggleGroupItem>
+                        ))}
+                      </ToggleGroup>
+                    </div>
+                  );
+                })}
+                <dl className="grid grid-cols-3 gap-3 border-t border-border pt-3 text-xs">
+                  <div>
+                    <dt className="text-muted-foreground">Basis</dt>
+                    <dd className="font-medium tabular-nums text-foreground">{formatNumber(basePerformance, 0)} m²/h</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Anpassung</dt>
+                    <dd className="font-medium text-foreground">{getSurchargeEffectLabel(totalModifier)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Effektiv</dt>
+                    <dd className="font-medium tabular-nums text-foreground">{formatNumber(effectivePerformance, 0)} m²/h</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+          </div>
+
+          {/* Live-Vorschau */}
+          <section aria-label="Preisvorschau" className="rounded-lg border border-border bg-surface-sunken p-4">
+            {preview ? (
+              <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="col-span-2 sm:col-span-1">
+                  <dt className="text-label text-muted-foreground">Preis / Monat</dt>
+                  <dd>
+                    <Money value={preview.monthlyCost} size="kpi" />
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-label text-muted-foreground">Std. / Monat</dt>
+                  <dd className="text-sm font-medium tabular-nums text-foreground">{formatNumber(preview.monthlyHours, 1)} h</dd>
+                </div>
+                <div>
+                  <dt className="text-label text-muted-foreground">Min. / Reinigung</dt>
+                  <dd className="text-sm font-medium tabular-nums text-foreground">
+                    {formatNumber(preview.timePerCleaning * 60, 0)} Min.
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Die Preisvorschau erscheint, sobald eine Fläche eingegeben ist.
+              </p>
+            )}
+          </section>
+        </form>
+      </ResponsiveSheet>
+      <UpgradeModal
+        open={upgradeOpen}
+        onClose={() => setUpgradeOpen(false)}
+        reason={overrideGate.reason || ""}
+        triggerReason="performance_override"
+      />
     </>
   );
 }

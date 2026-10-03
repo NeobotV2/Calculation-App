@@ -5,6 +5,9 @@ import capacitorStorage from "@/lib/capacitor-storage";
 import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
 import { type ThemeMode } from "@/lib/tokens";
 import { type PlanId } from "@/lib/billing-config";
+import type { HmsConfig, ServiceActuals, WinterdienstConfig } from "@/lib/service-modules/types";
+import { sanitizeHms, sanitizeServiceActuals, sanitizeWinterdienst } from "@/lib/service-modules/sanitize";
+import type { CalcDraft, TenderDraft } from "@/lib/drafts";
 
 export type FrequencyKey =
   | "monthly"
@@ -56,6 +59,12 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   rooms: Room[];
+  /** Winterdienst-Modul; undefined = nicht angeboten, enabled:false = pausiert. */
+  winterdienst?: WinterdienstConfig;
+  /** Hausmeisterservice-Modul; undefined = nicht angeboten, enabled:false = pausiert. */
+  hms?: HmsConfig;
+  /** Ist-Daten der Modul-Nachkalkulation (synchronisiert, Spalte service_actuals). */
+  serviceActuals?: ServiceActuals;
 }
 
 export interface Template {
@@ -116,6 +125,13 @@ interface AppState {
   templates: Template[];
   /** Nachkalkulationen je Projekt-ID (optionaler Slice, Default {}). */
   nachkalkulationen: Record<string, Nachkalkulation>;
+  /**
+   * Automatisch gesicherter Entwurf des Kalkulations-Flows (ein Slot für Neu- UND
+   * Bearbeiten-Modus). Persistiert, aber nicht Teil von exportData/importData.
+   */
+  calcDraft: CalcDraft | null;
+  /** Automatisch gesicherter Entwurf der Ausschreibungs-Kalkulation. */
+  tenderDraft: TenderDraft | null;
 
   setHasSeenSplash: () => void;
   completeOnboarding: (data: { role: string; companyName: string; hourlyRate: number; loadDemo: boolean }) => void;
@@ -137,6 +153,9 @@ interface AppState {
 
   setNachkalkulation: (projectId: string, data: { actualMonthlyHours: number; note?: string }) => void;
   removeNachkalkulation: (projectId: string) => void;
+
+  setCalcDraft: (draft: CalcDraft | null) => void;
+  setTenderDraft: (draft: TenderDraft | null) => void;
 
   addRoom: (projectId: string, room: Omit<Room, "id">) => void;
   updateRoom: (projectId: string, roomId: string, room: Partial<Room>) => void;
@@ -212,6 +231,14 @@ const DEMO_PROJECT_2: Project = {
   ],
 };
 
+/** Demo-Objekte (Onboarding „Mit Beispieldaten“); exportiert für Tests und Vergleiche. */
+export const DEMO_PROJECTS: readonly Project[] = [DEMO_PROJECT, DEMO_PROJECT_2];
+
+/** Tiefe Kopie reiner JSON-Daten (Modul-Konfigurationen). */
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -246,6 +273,8 @@ export const useStore = create<AppState>()(
       projects: [],
       templates: [],
       nachkalkulationen: {},
+      calcDraft: null,
+      tenderDraft: null,
 
       setHasSeenSplash: () => set({ hasSeenSplash: true }),
 
@@ -271,6 +300,8 @@ export const useStore = create<AppState>()(
             projects: [],
             templates: [],
             nachkalkulationen: {},
+            calcDraft: null,
+            tenderDraft: null,
             customRoomTypes: [],
             hourlyRateConfig: getDefaultConfig(),
             plan: "free" as PlanId,
@@ -366,6 +397,9 @@ export const useStore = create<AppState>()(
           return { nachkalkulationen: rest };
         }),
 
+      setCalcDraft: (draft) => set({ calcDraft: draft }),
+      setTenderDraft: (draft) => set({ tenderDraft: draft }),
+
       duplicateProject: (id) => {
         const original = get().projects.find((p) => p.id === id);
         if (!original) return "";
@@ -378,6 +412,10 @@ export const useStore = create<AppState>()(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           rooms: original.rooms.map((r) => ({ ...r, id: uuidv4() })),
+          // Modul-Planung tief kopieren (keine geteilten Referenzen); Ist-Daten gehören zum Original.
+          winterdienst: original.winterdienst ? cloneJson(original.winterdienst) : undefined,
+          hms: original.hms ? cloneJson(original.hms) : undefined,
+          serviceActuals: undefined,
         };
         set((state) => ({ projects: [dup, ...state.projects] }));
         return newId;
@@ -580,11 +618,26 @@ export const useStore = create<AppState>()(
           }
 
           // Projekte/Vorlagen — nur wohlgeformte Einträge importieren.
+          // Leistungsmodule laufen durch die Sanitizer: ein ungültiges Modul
+          // entfällt (nur dieses Feld), das Projekt bleibt erhalten.
           if (Array.isArray(data.projects)) {
-            updates.projects = data.projects.filter(
-              (p: unknown) => !!p && typeof p === "object" &&
-                isStr(obj(p).id) && isStr(obj(p).name) && Array.isArray(obj(p).rooms)
-            ) as AppState["projects"];
+            updates.projects = data.projects
+              .filter(
+                (p: unknown) => !!p && typeof p === "object" &&
+                  isStr(obj(p).id) && isStr(obj(p).name) && Array.isArray(obj(p).rooms)
+              )
+              .map((p: unknown) => {
+                const { winterdienst, hms, serviceActuals, ...rest } = obj(p);
+                const wd = sanitizeWinterdienst(winterdienst);
+                const h = sanitizeHms(hms);
+                const sa = sanitizeServiceActuals(serviceActuals);
+                return {
+                  ...rest,
+                  ...(wd ? { winterdienst: wd } : {}),
+                  ...(h ? { hms: h } : {}),
+                  ...(sa ? { serviceActuals: sa } : {}),
+                };
+              }) as AppState["projects"];
           }
           if (Array.isArray(data.templates)) {
             updates.templates = data.templates.filter(
@@ -631,6 +684,8 @@ export const useStore = create<AppState>()(
           projects: [],
           templates: [],
           nachkalkulationen: {},
+          calcDraft: null,
+          tenderDraft: null,
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
           disabledWarnings: [],

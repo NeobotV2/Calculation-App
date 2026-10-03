@@ -1,7 +1,9 @@
 import { Calculator } from "lucide-react";
-import { formatEuro } from "@/lib/utils";
+import { FormField } from "@/components/ui/form-field";
+import { Money } from "@/components/ui/money";
 import type { HourlyRateConfig, HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
-import { Section } from "../Section";
+import { markupToRevenueMargin } from "@/lib/price-strategy";
+import { CalcResultRow, Section } from "../Section";
 import { NumberInput } from "../NumberInput";
 import { fmtPct } from "../constants";
 
@@ -20,31 +22,23 @@ export function GewinnmargeSection({
 }) {
   return (
     <Section
-      title="Gewinnmarge"
+      title="Gewinnaufschlag"
       icon={Calculator}
       open={open}
       onToggle={onToggle}
       badge={`${fmtPct(config.gewinnmarge)} %`}
-      tooltip="Der Aufschlag auf die Vollkosten, der den tatsächlichen Unternehmensgewinn ausmacht. Branchenüblich: 8–15%."
+      tooltip="Der Aufschlag auf die Vollkosten, der den tatsächlichen Unternehmensgewinn ausmacht. Branchenüblich: 8–15 %."
     >
-      <div>
-        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">
-          Gewinnaufschlag
-        </label>
-        <NumberInput
-          value={config.gewinnmarge}
-          onChange={(v) => updateConfig({ gewinnmarge: v })}
-          suffix="%"
-        />
-      </div>
-      <div className="flex items-center justify-between bg-background rounded-xl p-3 border border-border/30">
-        <span className="text-sm font-medium text-foreground">
-          Gewinn pro Stunde
-        </span>
-        <span className="text-sm font-bold text-primary">
-          {formatEuro(breakdown.gewinnBetrag)} €
-        </span>
-      </div>
+      <FormField
+        id="rate-gewinn"
+        label="Gewinnaufschlag auf Vollkosten (%)"
+        hint={`entspricht ${fmtPct(markupToRevenueMargin(config.gewinnmarge))} % Marge vom Umsatz`}
+      >
+        <NumberInput value={config.gewinnmarge} onChange={(v) => updateConfig({ gewinnmarge: v })} suffix="%" />
+      </FormField>
+      <CalcResultRow label="Gewinn pro Stunde" emphasis>
+        <Money value={breakdown.gewinnBetrag} period="hour" />
+      </CalcResultRow>
     </Section>
   );
 }

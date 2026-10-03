@@ -73,7 +73,9 @@ export default defineConfig({
           if (id.includes("/node_modules/framer-motion/")) return "framer";
           if (id.includes("/node_modules/@supabase/")) return "supabase";
           if (id.includes("/node_modules/lucide-react/")) return "icons";
-          if (id.includes("/node_modules/@radix-ui/")) return "radix";
+          // vaul (Drawer) baut auf @radix-ui/react-dialog auf; im selben Chunk,
+          // sonst entsteht ein Zirkel radix → vendor → radix.
+          if (/\/node_modules\/(@radix-ui\/|vaul\/)/.test(id)) return "radix";
           return "vendor";
         },
       },

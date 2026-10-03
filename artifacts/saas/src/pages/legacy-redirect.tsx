@@ -1,27 +1,28 @@
 import { useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
+import { useLocation } from "wouter";
 
+/** Leitet sofort (ohne History-Eintrag) auf `to` weiter. */
+function useReplaceRedirect(to: string) {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [navigate, to]);
+}
+
+/** `/kalkulation` → Flow „Neue Kalkulation". */
 export function KalkulationListRedirect() {
-  const [, navigate] = useLocation();
-  useEffect(() => {
-    navigate("/kalkulation/neu", { replace: true });
-  }, [navigate]);
+  useReplaceRedirect("/kalkulation/neu");
   return null;
 }
 
-export function KalkulationDetailRedirect() {
-  const [, params] = useRoute("/kalkulation/:id");
-  const [, navigate] = useLocation();
-  useEffect(() => {
-    navigate(`/objekte/${params?.id || ""}`, { replace: true });
-  }, [params?.id, navigate]);
+/** `/objekte/neu` (alter Objekt-Assistent) → Flow „Neue Kalkulation". */
+export function ObjekteNeuRedirect() {
+  useReplaceRedirect("/kalkulation/neu");
   return null;
 }
 
+/** `/stundensatz` (alter Name) → Verrechnungssatz-Rechner. */
 export function StundensatzRedirect() {
-  const [, navigate] = useLocation();
-  useEffect(() => {
-    navigate("/kalkulation/neu", { replace: true });
-  }, [navigate]);
+  useReplaceRedirect("/verrechnungssatz");
   return null;
 }

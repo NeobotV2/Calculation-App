@@ -1,51 +1,62 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+/** Platzhalter für Listen (Form wie `DataTable` mobil / `ListRow`). */
 export function ListSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="space-y-3">
+    <div
+      role="status"
+      aria-label="Lädt"
+      className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card shadow-surface"
+    >
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="bg-card border border-border/20 rounded-2xl p-4 flex items-center gap-4">
-          <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+        <div key={i} className="flex min-h-14 items-center gap-3 px-4 py-3">
+          <Skeleton className="size-8 shrink-0 rounded-md" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/3" />
           </div>
-          <Skeleton className="h-5 w-16" />
+          <Skeleton className="h-4 w-16" />
         </div>
       ))}
     </div>
   );
 }
 
+/** Platzhalter für Kennzahlen (Form wie `KpiGroup`). */
 export function CardSkeleton({ count = 3 }: { count?: number }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div
+      role="status"
+      aria-label="Lädt"
+      className="grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-surface"
+    >
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-card border border-border/30 rounded-2xl p-4 text-center space-y-2">
-          <Skeleton className="h-7 w-12 mx-auto" />
-          <Skeleton className="h-3 w-16 mx-auto" />
+        <div key={i} className="space-y-2 bg-card p-4">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-6 w-20" />
         </div>
       ))}
     </div>
   );
 }
 
+/** Platzhalter für Detailseiten (Kopf, Kennzahlen, Karte, Liste). */
 export function DetailSkeleton() {
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div role="status" aria-label="Lädt" className="space-y-6">
       <div className="space-y-2">
         <Skeleton className="h-8 w-3/4" />
         <Skeleton className="h-4 w-1/2" />
       </div>
-      <div className="flex gap-3 overflow-hidden pb-2">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border shadow-surface lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="bg-card border border-border/30 rounded-2xl p-4 w-32 shrink-0 space-y-2">
+          <div key={i} className="space-y-2 bg-card p-4">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="h-6 w-20" />
           </div>
         ))}
       </div>
-      <div className="bg-card border border-border/20 rounded-2xl p-5 space-y-4">
+      <div className="space-y-4 rounded-lg border border-border bg-card p-5 shadow-surface">
         <Skeleton className="h-4 w-24" />
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (

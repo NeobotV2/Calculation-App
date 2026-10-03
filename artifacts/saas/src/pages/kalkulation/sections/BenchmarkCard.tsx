@@ -1,5 +1,8 @@
-import { formatEuro } from "@/lib/utils";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Money } from "@/components/ui/money";
+import { StatusBadge } from "@/components/ui/status-badge";
 import type { HourlyRateConfig, HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
+import type { Tone } from "@/lib/status";
 import { fmtPct } from "../constants";
 
 export function BenchmarkCard({
@@ -9,49 +12,44 @@ export function BenchmarkCard({
   config: HourlyRateConfig;
   breakdown: HourlyRateBreakdown;
 }) {
+  const rows: { key: string; tone: Tone; label: string; value: number; note: string }[] = [
+    {
+      key: "kritisch",
+      tone: "critical",
+      label: "Kritisch",
+      value: breakdown.vollkosten * 0.9,
+      note: "Unter den Selbstkosten – Verlustzone",
+    },
+    {
+      key: "mindest",
+      tone: "warning",
+      label: "Mindestsatz",
+      value: breakdown.vollkosten,
+      note: "Vollkostendeckung, 0 % Gewinn",
+    },
+    {
+      key: "empfohlen",
+      tone: "success",
+      label: "Empfohlen",
+      value: breakdown.stundenverrechnungssatz,
+      note: `Ihr kalkulierter Satz inkl. ${fmtPct(config.gewinnmarge)} % Gewinnaufschlag`,
+    },
+  ];
+
   return (
-    <div className="bg-card border border-border/40 rounded-2xl p-5">
-      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-        Branchen-Benchmark
-      </h4>
-      <div className="space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-destructive" />
-            <span className="text-sm text-foreground">Kritisch</span>
-          </div>
-          <span className="text-sm font-semibold text-destructive">
-            {formatEuro(breakdown.vollkosten * 0.9)} €/h
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
-          Unter den Selbstkosten — Verlustzone
-        </p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-warning" />
-            <span className="text-sm text-foreground">Mindest</span>
-          </div>
-          <span className="text-sm font-semibold text-warning">
-            {formatEuro(breakdown.vollkosten)} €/h
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
-          Vollkostendeckung, 0% Gewinn
-        </p>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-success" />
-            <span className="text-sm text-foreground">Empfohlen</span>
-          </div>
-          <span className="text-sm font-semibold text-success">
-            {formatEuro(breakdown.stundenverrechnungssatz)} €/h
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground ml-[18px] -mt-1">
-          Ihr kalkulierter Satz inkl. {fmtPct(config.gewinnmarge)}% Gewinn
-        </p>
-      </div>
-    </div>
+    <Card as="section" aria-labelledby="benchmark-title">
+      <CardHeader title={<span id="benchmark-title">Einordnung Ihres Satzes</span>} titleAs="h2" />
+      <ul className="divide-y divide-border">
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
+            <div className="min-w-0 space-y-1">
+              <StatusBadge tone={r.tone} label={r.label} size="sm" />
+              <p className="text-xs text-muted-foreground">{r.note}</p>
+            </div>
+            <Money value={r.value} period="hour" className="font-semibold" />
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
