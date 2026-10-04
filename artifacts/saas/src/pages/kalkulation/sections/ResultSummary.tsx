@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
-import type { HourlyRateConfig, HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
+import { adoptedRate, type HourlyRateConfig, type HourlyRateBreakdown } from "@/lib/hourly-rate-calc";
 import { fmtPct } from "../constants";
 
 export interface RechenwegStep {
@@ -48,6 +48,9 @@ export function ResultSummary({
 }) {
   const steps = buildRechenweg(config, breakdown);
   const vollkostenIndex = steps.findIndex((s) => s.key === "gemein");
+  // Übernommen (und gespeichert) wird der auf den Cent aufgerundete Satz.
+  const rate = adoptedRate(breakdown);
+  const roundedUp = Math.round(breakdown.stundenverrechnungssatz * 100) !== Math.round(rate * 100);
 
   return (
     <Card as="section" aria-labelledby="rechenweg-title">
@@ -96,8 +99,11 @@ export function ResultSummary({
       </table>
       <div className="mt-3 flex items-baseline justify-between gap-3 border-t-2 border-border-strong pt-3">
         <span className="text-sm font-semibold text-foreground">Verrechnungssatz</span>
-        <Money value={breakdown.stundenverrechnungssatz} size="money" tone="brand" period="hour" />
+        <Money value={rate} size="money" tone="brand" period="hour" />
       </div>
+      {roundedUp && (
+        <p className="mt-1 text-right text-xs text-muted-foreground">Auf den vollen Cent aufgerundet – so wird die Zielmarge erreicht.</p>
+      )}
       {savedRate !== undefined && (
         <p className="mt-1 text-right text-xs text-muted-foreground">
           Aktuell gespeichert: <Money value={savedRate} size="sm" period="hour" />

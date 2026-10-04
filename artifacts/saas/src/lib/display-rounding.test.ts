@@ -82,6 +82,16 @@ describe("allocateRounded", () => {
     expect(sumCents(pair)).toBe(1);
   });
 
+  it("a whole-cent value with float noise keeps its amount; the cent goes to a rounded row", () => {
+    // 3 × 32,91 = 98,72999999999999 (exakt 98,73 €), zwei gleiche Zeilen à 10,006.
+    const shown = allocateRounded([3 * 32.91, 10.006, 10.006]);
+    expect(shown[0]).toBe(98.73);
+    expect(sumCents(shown)).toBe(cents(roundDisplay(3 * 32.91 + 2 * 10.006)));
+    shown.forEach((v, i) => expect(Math.abs(v - [3 * 32.91, 10.006, 10.006][i])).toBeLessThan(0.01));
+    const small = allocateRounded([0.29, 10.006, 10.006]);
+    expect(small[0]).toBe(0.29);
+  });
+
   it("reaches a target that differs from the sum", () => {
     expect(sumCents(allocateRounded([1, 1, 1], 3.05))).toBe(305);
     expect(allocateRounded([], 5)).toEqual([]);

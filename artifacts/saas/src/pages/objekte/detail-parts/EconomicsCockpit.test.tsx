@@ -51,6 +51,11 @@ describe("EconomicsCockpit · je Leistung", () => {
     expect(sumDisplay([shown.rooms, shown.setup])).toBe(shown.unterhalt);
   });
 
+  it("long service names can break (soft hyphens) so the table fits the 20rem rail", () => {
+    const { text } = render(project);
+    expect(text).toContain("Hausmeister\u00ADservice");
+  });
+
   it("uses the display amount where a leftover cent moves a component (not the raw value)", () => {
     // Erstes Objekt, bei dem Räume oder Rüst-/Wegezeit nicht ihr eigener gerundeter Betrag sind.
     const raw = (r: ReturnType<typeof render>, key: "reinigung" | "ruest_wege") =>

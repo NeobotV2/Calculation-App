@@ -13,7 +13,7 @@ import { buildOfferPositions } from "@/lib/offer-positions";
 import type { NextStep } from "@/lib/offer-readiness";
 import type { RiskLevel } from "@/lib/risk-score";
 import { TONE_CLASSES, marginStatusLabel, marginTone, riskLabel, riskTone, strategyLabel, strategyTone } from "@/lib/status";
-import { cn, formatDate, formatNumber } from "@/lib/utils";
+import { cn, formatDate, formatNumber, softHyphenate } from "@/lib/utils";
 import type { Project } from "@/store/use-store";
 import { NextStepCard } from "./NextStepCard";
 import { useNachkalkulationSummary } from "./NachkalkulationSheet";
@@ -132,8 +132,11 @@ function ComponentTable({ project, economics }: { project: Project; economics: O
             const margin = c.priceMonthly > 0 ? ((c.priceMonthly - c.costMonthly) / c.priceMonthly) * 100 : 0;
             return (
               <tr key={c.key} className="border-b border-border last:border-0">
-                <th scope="row" className="py-1.5 pr-2 text-left font-normal text-foreground">{c.label}</th>
-                <td className="py-1.5 pr-2 text-right">
+                {/* Weiche Trennstellen: „Unterhalts-reinigung“ bricht, die Tabelle passt in die Rail (20rem). */}
+                <th scope="row" className="hyphens-manual break-words py-1.5 pr-2 text-left font-normal text-foreground">
+                  {softHyphenate(c.label)}
+                </th>
+                <td className="whitespace-nowrap py-1.5 pr-2 text-right">
                   <Money value={row.priceMonthly} />
                 </td>
                 <td className="py-1.5 text-right">

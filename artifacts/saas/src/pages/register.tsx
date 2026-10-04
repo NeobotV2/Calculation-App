@@ -72,9 +72,11 @@ export default function Register() {
       return;
     }
 
+    // Eigene Daten (auch geänderte Beispielobjekte, Raumarten) nie ungefragt
+    // verwerfen; nur unveränderte Beispieldaten entfallen ohne Rückfrage.
     if (hasDemoData()) {
       const data = getDemoData();
-      if (data && (data.projects.length > 0 || data.templates.length > 0)) {
+      if (data) {
         setMigrationData(data);
         setShowMigration(true);
         return;

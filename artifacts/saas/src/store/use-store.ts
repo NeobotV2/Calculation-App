@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import capacitorStorage from "@/lib/capacitor-storage";
-import { type HourlyRateConfig, adoptedRate, getDefaultConfig, calcHourlyRate, isDefaultRateSetting, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
+import { type HourlyRateConfig, adoptedRate, getDefaultConfig, calcHourlyRate, isDefaultRateSetting, suggestedDefaultRate, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
 import { type ThemeMode } from "@/lib/tokens";
 import { type PlanId } from "@/lib/billing-config";
 import type { HmsConfig, ServiceActuals, WinterdienstConfig } from "@/lib/service-modules/types";
@@ -242,18 +242,50 @@ const DEMO_PROJECT_2: Project = {
 /** Demo-Objekte (Onboarding „Mit Beispieldaten“); exportiert für Tests und Vergleiche. */
 export const DEMO_PROJECTS: readonly Project[] = [DEMO_PROJECT, DEMO_PROJECT_2];
 
-const DEMO_PROJECT_BY_ID: ReadonlyMap<string, Project> = new Map(DEMO_PROJECTS.map((p) => [p.id, p]));
+/** JSON mit sortierten Schlüsseln; leere Angaben (undefined, null, "") entfallen. */
+function canonicalJson(value: unknown): string {
+  const norm = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(norm);
+    if (v && typeof v === "object") {
+      const out: Record<string, unknown> = {};
+      for (const key of Object.keys(v).sort()) {
+        const x = (v as Record<string, unknown>)[key];
+        if (x === undefined || x === null || x === "") continue;
+        out[key] = norm(x);
+      }
+      return out;
+    }
+    return v;
+  };
+  return JSON.stringify(norm(value));
+}
 
 /**
- * Beispielobjekt aus dem Onboarding („Mit Beispieldaten erkunden“): zählt nicht
- * zum Objektlimit und wird beim Anmelden nicht in die Cloud übernommen. Wer es
- * umbenennt oder einem Kunden zuordnet, nutzt es als eigenes Objekt — dann
- * zählt es wie jedes andere.
+ * Inhalt eines Objekts für den Vergleich mit dem Beispiel: ohne ID,
+ * Zeitstempel, Status und Raum-IDs; Rüst-/Wegezeit 0 wie nicht gesetzt.
  */
-export function isDemoProject(p: Pick<Project, "id"> & Partial<Pick<Project, "name" | "customer">>): boolean {
-  const sample = DEMO_PROJECT_BY_ID.get(p.id);
-  if (!sample) return false;
-  return (p.name ?? sample.name) === sample.name && (p.customer ?? "") === (sample.customer ?? "");
+function sampleContentKey(p: Project): string {
+  const { id: _id, createdAt: _c, updatedAt: _u, status: _s, rooms, ruestzeit, wegezeit, ...fields } = p;
+  return canonicalJson({
+    ...fields,
+    ruestzeit: ruestzeit || undefined,
+    wegezeit: wegezeit || undefined,
+    rooms: (rooms ?? []).map(({ id: _roomId, ...room }) => room),
+  });
+}
+
+const DEMO_CONTENT_BY_ID: ReadonlyMap<string, string> = new Map(DEMO_PROJECTS.map((p) => [p.id, sampleContentKey(p)]));
+
+/**
+ * Unverändertes Beispielobjekt aus dem Onboarding („Mit Beispieldaten
+ * erkunden“): zählt nicht zum Objektlimit und wird beim Anmelden nicht in die
+ * Cloud übernommen. Jede inhaltliche Änderung (Name, Kunde, Räume, Module,
+ * Satz, Notizen, Ist-Daten …) macht es zum eigenen Objekt — dann zählt es wie
+ * jedes andere und wird übernommen, damit keine Arbeit verloren geht.
+ */
+export function isDemoProject(p: Project): boolean {
+  const sample = DEMO_CONTENT_BY_ID.get(p.id);
+  return sample !== undefined && sample === sampleContentKey(p);
 }
 
 /** Import-Grenzen der Raum-Nachkalkulation (Ist-Stunden je Monat, Notizlänge). */
@@ -287,7 +319,7 @@ export const useStore = create<AppState>()(
       companyTaxNumber: "",
       companyVatId: "",
       companyManagingDirector: "",
-      hourlyRate: 22.50,
+      hourlyRate: suggestedDefaultRate(),
       vatRate: 0,
       defaultFrequency: "5x_week" as FrequencyKey,
       pdfHeader: "",
@@ -357,7 +389,7 @@ export const useStore = create<AppState>()(
             companyTaxNumber: "",
             companyVatId: "",
             companyManagingDirector: "",
-            hourlyRate: 22.50,
+            hourlyRate: suggestedDefaultRate(),
             vatRate: 0,
             defaultFrequency: "5x_week" as FrequencyKey,
             pdfHeader: "",
@@ -734,7 +766,7 @@ export const useStore = create<AppState>()(
           companyTaxNumber: "",
           companyVatId: "",
           companyManagingDirector: "",
-          hourlyRate: 22.50,
+          hourlyRate: suggestedDefaultRate(),
           vatRate: 0,
           defaultFrequency: "5x_week" as FrequencyKey,
           pdfHeader: "",
@@ -773,7 +805,7 @@ export const useStore = create<AppState>()(
           companyTaxNumber: "",
           companyVatId: "",
           companyManagingDirector: "",
-          hourlyRate: 22.50,
+          hourlyRate: suggestedDefaultRate(),
           vatRate: 0,
           defaultFrequency: "5x_week" as FrequencyKey,
           pdfHeader: "",

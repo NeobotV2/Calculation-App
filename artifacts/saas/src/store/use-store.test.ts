@@ -53,7 +53,7 @@ vi.mock("@/lib/supabase", () => {
 });
 
 import { useStore, DEMO_PROJECTS, isDemoProject, type Project } from "./use-store";
-import { canAddProject, canRestoreProject, countLimitedProjects } from "@/lib/feature-gates";
+import { PlanLimitError, applyWithinObjectLimit, canAddProject, canRestoreProject, countLimitedProjects } from "@/lib/feature-gates";
 import { dbObjectToProject, updateObject, duplicateObject, type DbObject } from "@/services/object-service";
 import { getDemoData, hasDemoData, migrateDemoData } from "@/services/migration-service";
 import { adoptedRate, calcHourlyRate, getDefaultConfig, suggestedDefaultRate } from "@/lib/hourly-rate-calc";
@@ -384,6 +384,24 @@ describe("store — Verrechnungssatz", () => {
     expect(useStore.getState().hourlyRate).toBeGreaterThanOrEqual(calcHourlyRate(cfg).stundenverrechnungssatz);
   });
 
+  it("every reset uses the calculator's default rate (covers Vollkosten), never 22,50 €", () => {
+    const vollkosten = calcHourlyRate(getDefaultConfig()).vollkosten;
+    expect(suggestedDefaultRate()).toBeGreaterThan(vollkosten);
+    const resets: Array<() => void> = [
+      () => useStore.getState().resetToDefaults(),
+      () => useStore.getState().resetAll(),
+      () => {
+        useStore.setState({ isDemo: false });
+        useStore.getState().clearSession();
+      },
+    ];
+    for (const reset of resets) {
+      useStore.getState().updateSettings({ hourlyRate: 41 });
+      reset();
+      expect(useStore.getState().hourlyRate).toBe(suggestedDefaultRate());
+    }
+  });
+
   it("confirmHourlyRate is kept, exported and cleared by the resets", () => {
     useStore.getState().confirmHourlyRate(suggestedDefaultRate());
     expect(useStore.getState().confirmedHourlyRate).toBe(suggestedDefaultRate());
@@ -440,6 +458,102 @@ describe("store — sample objects and the Basic limit", () => {
     expect(getDemoData()).toBeNull();
     const own = seedProject({ name: "Eigenes Objekt" });
     expect(getDemoData()?.projects.map((p) => p.id)).toEqual([own]);
+  });
+
+  it("a sample with edited rooms, modules or notes is own data: counted and migrated (no data loss)", async () => {
+    useStore.setState({ plan: "free" });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    useStore.getState().addRoom("demo-1", {
+      name: "Lagerhalle Nord", typeId: "t1", typeName: "Großraumbüro", groupId: "g1", groupName: "Büro & Verwaltung",
+      area: 1200, frequency: "5x_week", typePerformance: 250,
+    });
+    useStore.getState().updateProject("demo-2", { winterdienst: WD_REF });
+    expect(isDemoProject(byId("demo-1"))).toBe(false);
+    expect(isDemoProject(byId("demo-2"))).toBe(false);
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(2);
+    expect(hasDemoData()).toBe(true);
+    const data = getDemoData()!;
+    expect(data.projects.map((p) => p.id).sort()).toEqual(["demo-1", "demo-2"]);
+    const roomCount = data.projects.reduce((n, p) => n + p.rooms.length, 0);
+    expect(roomCount).toBe(5 + 3);
+    await migrateDemoData(data);
+    const inserts = dbCalls.filter((c) => c.table === "cleaning_objects" && c.op === "insert");
+    expect(inserts).toHaveLength(2);
+    expect(dbCalls.filter((c) => c.table === "rooms" && c.op === "insert")).toHaveLength(roomCount);
+  });
+
+  it("each kind of content change makes a sample own data; no-op saves keep it a sample", () => {
+    const changes: Partial<Project>[] = [
+      { location: "Hamburg" }, { notes: "Echtes Angebot" }, { hourlyRate: 35 }, { objectType: "Büro" },
+      { ruestzeit: 10 }, { hms: HMS_REF }, { serviceActuals: ACTUALS }, { rpiContactName: "Frau Meier" },
+    ];
+    for (const change of changes) {
+      useStore.getState().resetAll();
+      useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+      useStore.getState().updateProject("demo-1", change);
+      expect(isDemoProject(byId("demo-1")), JSON.stringify(change)).toBe(false);
+    }
+    useStore.getState().resetAll();
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    const sample = byId("demo-1");
+    // Was Flow und Objektdaten-Sheet bei unveränderten Angaben schreiben.
+    useStore.getState().updateProject("demo-1", {
+      name: sample.name, customer: sample.customer, location: sample.location, notes: "", objectType: undefined,
+      hourlyRate: null as unknown as undefined, ruestzeit: 0, wegezeit: 0,
+    });
+    useStore.getState().archiveProject("demo-1");
+    useStore.getState().restoreProject("demo-1");
+    useStore.setState((s) => ({
+      projects: s.projects.map((p) => (p.id === "demo-1" ? { ...p, rooms: p.rooms.map((r) => ({ ...r, id: `${r.id}-neu` })) } : p)),
+    }));
+    expect(isDemoProject(byId("demo-1"))).toBe(true);
+    // Raum geändert und wieder entfernt: wieder das unveränderte Beispiel.
+    useStore.getState().updateRoom("demo-1", byId("demo-1").rooms[0].id, { area: 251 });
+    expect(isDemoProject(byId("demo-1"))).toBe(false);
+    useStore.getState().updateRoom("demo-1", byId("demo-1").rooms[0].id, { area: 250 });
+    expect(isDemoProject(byId("demo-1"))).toBe(true);
+  });
+
+  it("editing a sample over the Basic limit is rejected and rolled back", () => {
+    useStore.setState({ plan: "free" });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    seedProject({ name: "Eigenes Objekt" });
+    expect(canAddProject().allowed).toBe(false);
+    const before = byId("demo-1");
+    const rename = () => applyWithinObjectLimit("demo-1", () => useStore.getState().updateProject("demo-1", { name: "Kunde B Bürohaus" }));
+    expect(rename).toThrow(PlanLimitError);
+    try {
+      rename();
+    } catch (err) {
+      expect((err as PlanLimitError).gate.trigger).toBe("second_object");
+      expect((err as PlanLimitError).message).toContain("Beispielobjekt");
+    }
+    expect(byId("demo-1")).toEqual(before);
+    expect(() =>
+      applyWithinObjectLimit("demo-1", () =>
+        useStore.getState().addRoom("demo-1", { ...before.rooms[0], name: "Neu" }),
+      ),
+    ).toThrow(PlanLimitError);
+    expect(byId("demo-1").rooms).toHaveLength(before.rooms.length);
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(1);
+    // Ohne inhaltliche Änderung (gleicher Name) bleibt es frei.
+    expect(() => applyWithinObjectLimit("demo-1", () => useStore.getState().updateProject("demo-1", { name: before.name }))).not.toThrow();
+    // Pro: keine Grenze.
+    useStore.setState({ plan: "pro_monthly" });
+    expect(rename).not.toThrow();
+    expect(byId("demo-1").name).toBe("Kunde B Bürohaus");
+  });
+
+  it("below the limit a sample may become an own object; then it counts", () => {
+    useStore.setState({ plan: "free" });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    applyWithinObjectLimit("demo-1", () => useStore.getState().updateProject("demo-1", { name: "Kunde B Bürohaus" }));
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(1);
+    expect(canAddProject().allowed).toBe(false);
+    expect(() =>
+      applyWithinObjectLimit("demo-2", () => useStore.getState().updateProject("demo-2", { customer: "Kunde C" })),
+    ).toThrow(PlanLimitError);
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(1);
   });
 
   it("restoring from the archive respects the object limit", () => {

@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { useStore, type Project } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
-import { canAddProject, type GateResult } from "@/lib/feature-gates";
+import { PlanLimitError, canAddProject, type GateResult } from "@/lib/feature-gates";
 import type { CalcDraft } from "@/lib/drafts";
 import { stripRoomId } from "@/components/calc/rooms/rooms-editor-logic";
 import {
@@ -145,7 +145,9 @@ export function useFlowSave({ draft, mode, onGateBlocked, onSaved }: UseFlowSave
         if (opts?.navigate !== false) navigate(`/objekte/${id}`);
         return id;
       } catch (err) {
-        setError(err instanceof Error && err.message ? err.message : "Unbekannter Fehler");
+        // Geändertes Beispielobjekt über dem Objektlimit: UpgradeModal statt Fehlermeldung.
+        if (err instanceof PlanLimitError) onGateBlocked(err.gate);
+        else setError(err instanceof Error && err.message ? err.message : "Unbekannter Fehler");
         return null;
       } finally {
         savingRef.current = false;

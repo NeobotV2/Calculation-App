@@ -90,9 +90,23 @@ export function ResponsiveSheetFooterRow({ children }: { children: React.ReactNo
   return <div className="flex gap-2 *:min-w-0 *:flex-1 sm:contents">{children}</div>;
 }
 
+/** Offenes Menü, Popover oder Auswahlliste (Radix) über dem Sheet. */
+const OPEN_POPUP_LAYER =
+  '[role="menu"][data-state="open"], [role="listbox"][data-state="open"], [data-radix-popper-content-wrapper] [role="dialog"][data-state="open"]';
+
+/** „Zurück“ schließt zuerst die oberste Ebene (Escape wie per Tastatur); true = geschlossen. */
+export function closeOpenPopupLayer(): boolean {
+  if (typeof document === "undefined") return false;
+  const layer = document.querySelector(OPEN_POPUP_LAYER);
+  if (!layer) return false;
+  layer.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+  return true;
+}
+
 /**
  * Browser-/Android-Zurück bei ungespeicherten Änderungen: erst nachfragen
  * („Änderungen verwerfen?“), statt Seite und Eingaben zu verlassen (§ Sheets).
+ * Ist im Sheet ein Menü oder Popover offen, schließt „Zurück“ nur dieses.
  */
 function useBackRequestsClose(active: boolean, requestClose: () => void) {
   const requestRef = React.useRef(requestClose);
@@ -102,7 +116,7 @@ function useBackRequestsClose(active: boolean, requestClose: () => void) {
   React.useEffect(() => {
     if (!active || typeof window === "undefined" || !window.history) return undefined;
     const guard = createBackGuard(window, () => {
-      requestRef.current();
+      if (!closeOpenPopupLayer()) requestRef.current();
       setRound((r) => r + 1);
     });
     guard.arm();

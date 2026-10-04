@@ -245,7 +245,7 @@ export default function Kalkulation() {
           <Card className="lg:hidden">
             <Kpi
               label="Ihr Verrechnungssatz"
-              value={breakdown.stundenverrechnungssatz}
+              value={newRate}
               format="currency"
               period="hour"
               emphasis="hero"

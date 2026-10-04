@@ -14,6 +14,12 @@ export interface NumberInputProps
   unit?: string;
   /** Maximale Nachkommastellen (Anzeige und Rundung beim Verlassen). */
   decimals?: number;
+  /**
+   * „1.200“ als Tausendergruppierung lesen. Standard: nur bei `decimals` < 3
+   * (Beträge, Flächen, Anzahlen). Längen (m, lfm) setzen `false`: Ein Punkt
+   * ist dort immer Dezimaltrennzeichen („4.375“ vom Laser-Messgerät = 4,375).
+   */
+  thousandsDot?: boolean;
   min?: number;
   max?: number;
   inputSize?: InputSize;
@@ -30,6 +36,16 @@ function toText(value: number | undefined, decimals?: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals ?? 4,
   });
+}
+
+/**
+ * Eingabetext lesen wie das Feld: „1.200“ ist eine Tausendergruppierung nur
+ * mit `thousandsDot` (Standard: bei `decimals` < 3); sonst ist ein einzelner
+ * Punkt das Dezimaltrennzeichen (Längen: „4.375“ = 4,375).
+ */
+export function readNumberInput(raw: string, opts: { decimals?: number; thousandsDot?: boolean } = {}): number | undefined {
+  const groupDots = opts.thousandsDot ?? (opts.decimals !== undefined && opts.decimals < 3);
+  return parseDecimal(raw, { thousandsDot: groupDots });
 }
 
 function roundTo(value: number, decimals?: number): number {
@@ -51,6 +67,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       onValueChange,
       unit,
       decimals,
+      thousandsDot,
       min,
       max,
       inputSize,
@@ -76,9 +93,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     }, [value, decimals, focused]);
 
     const inRange = (n: number) => (min === undefined || n >= min) && (max === undefined || n <= max);
-    // „1.200“ als Tausender nur, wo drei Nachkommastellen keine gültige Eingabe sind
-    // (Beträge, Flächen, Anzahlen); Felder mit mehr Stellen (Länge in m) lesen „4.375“ als 4,375.
-    const parse = (raw: string) => parseDecimal(raw, { thousandsDot: decimals !== undefined && decimals < 3 });
+    const parse = (raw: string) => readNumberInput(raw, { decimals, thousandsDot });
 
     const commit = () => {
       const trimmed = text.trim();

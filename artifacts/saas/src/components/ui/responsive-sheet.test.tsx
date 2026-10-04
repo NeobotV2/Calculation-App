@@ -4,7 +4,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ResponsiveSheet, ResponsiveSheetCancel, useResponsiveSheet } from "./responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel, closeOpenPopupLayer, useResponsiveSheet } from "./responsive-sheet";
 
 type ClickProps = { children?: React.ReactNode; onClick?: () => void; disabled?: boolean; label?: string };
 const clicks = vi.hoisted(() => ({ buttons: [] as ClickProps[], iconButtons: [] as ClickProps[] }));
@@ -138,5 +138,38 @@ describe("dirty editor sheets", () => {
       .filter((path) => /Abbrechen\s*<\/Button>/.test(readFileSync(path, "utf8")))
       .map((p) => relative(SRC, p));
     expect(offenders).toEqual([]);
+  });
+});
+
+describe("Zurück mit offenem Menü im Sheet", () => {
+  it("closes the open menu/popover first (Escape on the layer), otherwise reports nothing open", () => {
+    const dispatched: { type: string; key?: string }[] = [];
+    let open = true;
+    const layer = { dispatchEvent: (e: Event & { key?: string }) => dispatched.push({ type: e.type, key: e.key }) };
+    const selectors: string[] = [];
+    class FakeKeyboardEvent extends Event {
+      key: string;
+      constructor(type: string, init: KeyboardEventInit) {
+        super(type, init);
+        this.key = init.key ?? "";
+      }
+    }
+    vi.stubGlobal("KeyboardEvent", FakeKeyboardEvent);
+    vi.stubGlobal("document", {
+      querySelector: (sel: string) => {
+        selectors.push(sel);
+        return open ? layer : null;
+      },
+    });
+    try {
+      expect(closeOpenPopupLayer()).toBe(true);
+      expect(dispatched).toEqual([{ type: "keydown", key: "Escape" }]);
+      expect(selectors[0]).toContain('[role="menu"][data-state="open"]');
+      open = false;
+      expect(closeOpenPopupLayer()).toBe(false);
+      expect(dispatched).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

@@ -9,6 +9,7 @@ import * as planService from "@/services/plan-service";
 import { getProfile } from "@/services/profile-service";
 import { getCompany } from "@/services/company-service";
 import type { PlanId } from "@/lib/billing-config";
+import { suggestedDefaultRate } from "@/lib/hourly-rate-calc";
 import {
   getSyncStatus,
   markSyncError,
@@ -102,7 +103,7 @@ async function fetchAndApply(user: SyncUser): Promise<void> {
       companyTaxNumber: settings?.company_tax_number ?? "",
       companyVatId: settings?.company_vat_id ?? "",
       companyManagingDirector: settings?.company_managing_director ?? "",
-      hourlyRate: settings?.hourly_rate ?? 22.5,
+      hourlyRate: settings?.hourly_rate ?? suggestedDefaultRate(),
       vatRate: settings?.vat_rate ?? 0,
       defaultFrequency: settings?.default_frequency ?? "5x_week",
       pdfHeader: settings?.pdf_header ?? "",

@@ -12,7 +12,7 @@ function getPlan(): PlanId {
 }
 
 /** Objekte, die zum Objektlimit zählen: aktive eigene Objekte (ohne Archiv und ohne unveränderte Beispielobjekte). */
-export function countLimitedProjects(projects: readonly Pick<Project, "id" | "status" | "name" | "customer">[]): number {
+export function countLimitedProjects(projects: readonly Project[]): number {
   return projects.filter((p) => p.status !== "archived" && !isDemoProject(p)).length;
 }
 
@@ -40,6 +40,38 @@ export function canRestoreProject(projectId: string): GateResult {
   const project = useStore.getState().projects.find((p) => p.id === projectId);
   if (!project || project.status !== "archived" || isDemoProject(project)) return { allowed: true };
   return canAddProject();
+}
+
+/** Eine Änderung wurde wegen des Objektlimits abgelehnt (UpgradeModal mit `gate`). */
+export class PlanLimitError extends Error {
+  readonly gate: GateResult;
+  constructor(gate: GateResult) {
+    super(gate.reason ?? "Im Basic-Plan ist das Objektlimit erreicht.");
+    this.name = "PlanLimitError";
+    this.gate = gate;
+  }
+}
+
+/**
+ * Lokale Änderung an einem Objekt (Demo-Modus). Ein unverändertes
+ * Beispielobjekt zählt nicht zum Objektlimit; macht die Änderung es zum
+ * eigenen Objekt, gilt dieselbe Grenze wie für ein neues Objekt. Ist sie
+ * erreicht, wird die Änderung zurückgenommen und `PlanLimitError` geworfen.
+ */
+export function applyWithinObjectLimit(projectId: string, mutate: () => void): void {
+  const before = useStore.getState().projects;
+  const project = before.find((p) => p.id === projectId);
+  const gate: GateResult =
+    project && project.status !== "archived" && isDemoProject(project) ? canAddProject() : { allowed: true };
+  mutate();
+  if (gate.allowed) return;
+  const after = useStore.getState().projects.find((p) => p.id === projectId);
+  if (!after || isDemoProject(after)) return;
+  useStore.setState({ projects: before });
+  throw new PlanLimitError({
+    ...gate,
+    reason: `Ein geändertes Beispielobjekt zählt als eigenes Objekt. ${gate.reason ?? ""}`.trim(),
+  });
 }
 
 export function canAddRoom(projectId: string): GateResult {

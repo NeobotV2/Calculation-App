@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useMediaQuery } from "@/lib/theme";
 import { MEDIA } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
+import { suggestedDefaultRate } from "@/lib/hourly-rate-calc";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageShell } from "@/components/layout/PageShell";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -185,7 +186,8 @@ export default function Einstellungen() {
         companyTaxNumber: "",
         companyVatId: "",
         companyManagingDirector: "",
-        hourlyRate: 22.5,
+        // Standard = Ergebnis des Verrechnungssatz-Rechners mit Standardwerten (deckt Vollkosten und Zielmarge).
+        hourlyRate: suggestedDefaultRate(),
         vatRate: 0,
         defaultFrequency: "5x_week",
         pdfHeader: "",

@@ -200,14 +200,14 @@ export function AreaSheet({ open, onOpenChange, area, isNew, config, onSave }: A
           {helperOpen && (
             <div id={`${uid}-helper`} className="grid grid-cols-2 gap-3 rounded-md bg-surface-sunken p-3">
               <FormField id={`${uid}-len`} label="Länge">
-                <NumberInput value={length} onValueChange={(v) => applyHelper(v, width)} decimals={2} min={0} unit="lfm" />
+                <NumberInput value={length} onValueChange={(v) => applyHelper(v, width)} decimals={2} thousandsDot={false} min={0} unit="lfm" />
               </FormField>
               <FormField
                 id={`${uid}-wid`}
                 label="Breite"
                 hint={draft.type === "gehweg" ? `Richtwert Gehweg ${formatCount(WD_GEHWEG_DEFAULT_WIDTH_M, 2)} m` : undefined}
               >
-                <NumberInput value={width} onValueChange={(v) => applyHelper(length, v)} decimals={2} min={0} unit="m" />
+                <NumberInput value={width} onValueChange={(v) => applyHelper(length, v)} decimals={2} thousandsDot={false} min={0} unit="m" />
               </FormField>
             </div>
           )}

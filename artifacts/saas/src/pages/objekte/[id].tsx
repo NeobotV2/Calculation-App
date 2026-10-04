@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DetailSkeleton } from "@/components/list-skeleton";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { Button } from "@/components/ui/button";
+import { whenHistorySettled } from "@/components/ui/back-guard";
 import { MODULE_META, type ServiceModule } from "@/components/ui/module-badge";
 import { StateView } from "@/components/ui/state-view";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +22,7 @@ import { OfferPreviewDialog } from "@/components/offer/OfferPreviewDialog";
 import { useOfferAction } from "@/components/offer/use-offer-action";
 import { createDefaultWinterdienst } from "@/data/winterdienst";
 import { createDefaultHms } from "@/data/hausmeisterservice";
-import { canAddProject, canRestoreProject, canUseTemplates, type GateResult } from "@/lib/feature-gates";
+import { PlanLimitError, canAddProject, canRestoreProject, canUseTemplates, type GateResult } from "@/lib/feature-gates";
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import { getNextStep, getObjectStatus } from "@/lib/offer-readiness";
 import type { HmsConfig, WinterdienstConfig } from "@/lib/service-modules/types";
@@ -107,9 +108,24 @@ export default function ObjektDetail() {
   const [editorOpen, setEditorOpen] = useState(false);
   const roomsEditorRef = useRef<RoomsEditorHandle>(null);
 
+  // Objekt, dessen Arbeitsbereich gerade angezeigt wird (für verzögerte Tab-Wechsel).
+  const shownIdRef = useRef<string | undefined>(id);
+  useEffect(() => {
+    shownIdRef.current = id;
+    return () => {
+      shownIdRef.current = undefined;
+    };
+  }, [id]);
+
+  // Tab-Wechsel ersetzt den Seiteneintrag — erst, wenn ein offenes Sheet seinen
+  // „Zurück“-Eintrag zurückgenommen hat (sonst ersetzte er diesen, und „Zurück“
+  // führte auf denselben Arbeitsbereich statt zur vorigen Seite).
   const goTab = useCallback(
     (next: WorkspaceTab) => {
-      if (id) navigate(tabHref(id, next), { replace: true });
+      if (!id) return;
+      whenHistorySettled(() => {
+        if (shownIdRef.current === id) navigate(tabHref(id, next), { replace: true });
+      });
     },
     [id, navigate],
   );
@@ -132,6 +148,19 @@ export default function ObjektDetail() {
   const showUpgrade = useCallback((gate: GateResult) => {
     setUpgrade({ open: true, reason: gate.reason, trigger: gate.trigger });
   }, []);
+
+  /** Speichern aus einem Sheet: Objektlimit (geändertes Beispielobjekt) ⇒ UpgradeModal; Fehler bleibt im Sheet sichtbar. */
+  const withUpgradePrompt = useCallback(
+    async (op: () => Promise<void>) => {
+      try {
+        await op();
+      } catch (err) {
+        if (err instanceof PlanLimitError) showUpgrade(err.gate);
+        throw err;
+      }
+    },
+    [showUpgrade],
+  );
 
   // ── Laden / nicht gefunden ──
   if (!project || !econ) {
@@ -182,24 +211,26 @@ export default function ObjektDetail() {
 
   const handleRename = async (name: string) => {
     try {
-      await actions.updateProject(projectId, { name });
+      await withUpgradePrompt(() => actions.updateProject(projectId, { name }));
       toast.success("Objekt umbenannt");
     } catch (err) {
-      toast.error(errorMessage(err, "Der Name konnte nicht gespeichert werden."));
+      if (!(err instanceof PlanLimitError)) toast.error(errorMessage(err, "Der Name konnte nicht gespeichert werden."));
       throw err;
     }
   };
 
   const handleSaveInfo = async (v: InfoSheetValues) => {
-    await actions.updateProject(projectId, {
-      name: v.name,
-      customer: v.customer,
-      location: v.location,
-      objectType: v.objectType,
-      rpiContactName: v.contactName,
-      hourlyRate: v.hourlyRate,
-      notes: v.notes,
-    });
+    await withUpgradePrompt(() =>
+      actions.updateProject(projectId, {
+        name: v.name,
+        customer: v.customer,
+        location: v.location,
+        objectType: v.objectType,
+        rpiContactName: v.contactName,
+        hourlyRate: v.hourlyRate,
+        notes: v.notes,
+      }),
+    );
     toast.success("Objektdaten gespeichert");
   };
 
@@ -301,13 +332,13 @@ export default function ObjektDetail() {
   };
 
   const saveWinterdienst = async (next: WinterdienstConfig, isNew: boolean) => {
-    await actions.updateProject(projectId, { winterdienst: next });
+    await withUpgradePrompt(() => actions.updateProject(projectId, { winterdienst: next }));
     toast.success(isNew ? "Winterdienst hinzugefügt" : "Winterdienst gespeichert");
     if (isNew) goTab("winterdienst");
   };
 
   const saveHms = async (next: HmsConfig, isNew: boolean) => {
-    await actions.updateProject(projectId, { hms: next });
+    await withUpgradePrompt(() => actions.updateProject(projectId, { hms: next }));
     toast.success(isNew ? "Hausmeisterservice hinzugefügt" : "Hausmeisterservice gespeichert");
     if (isNew) goTab("hms");
   };

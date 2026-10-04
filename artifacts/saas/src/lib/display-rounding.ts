@@ -52,7 +52,11 @@ export function allocateRounded(values: readonly number[], target?: number, digi
   if (diff !== 0) {
     const step = diff > 0 ? 1 : -1;
     // Fehler in Zielrichtung: beim Aufrunden zuerst die am stärksten abgerundeten Werte.
-    const err = (i: number) => (exact[i] - units[i]) * step;
+    // Gleitkomma-Rauschen (3 × 32,91 = 98,72999…) zählt nicht: ganze Cent-Beträge bleiben stehen.
+    const err = (i: number) => {
+      const e = (exact[i] - units[i]) * step;
+      return Math.abs(e) < 1e-6 ? 0 : e;
+    };
     const order = values
       .map((_, i) => i)
       .sort((a, b) => {

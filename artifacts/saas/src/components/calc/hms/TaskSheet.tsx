@@ -151,6 +151,8 @@ export function TaskSheet({ open, onOpenChange, task, isNew, onSave }: TaskSheet
               value={draft.quantity > 0 ? draft.quantity : undefined}
               onValueChange={(v) => update({ ...draft, quantity: v ?? 0 })}
               decimals={2}
+              // Laufende Meter sind eine Länge: „4.375“ = 4,375 lfm (wie im Raum-Editor).
+              thousandsDot={draft.unit !== "lfm"}
               min={HMS_LIMITS.quantity.min}
               max={HMS_LIMITS.quantity.max}
               unit={HMS_UNIT_LABELS[draft.unit]?.short}

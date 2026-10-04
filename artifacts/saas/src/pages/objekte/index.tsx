@@ -15,7 +15,7 @@ import { StateView } from "@/components/ui/state-view";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { canAddProject, canRestoreProject, countLimitedProjects, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
+import { PlanLimitError, canAddProject, canRestoreProject, countLimitedProjects, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import type { CompanyInfo } from "@/lib/offer-readiness";
 import { trackFreeLimitReached } from "@/services/analytics-service";
@@ -350,7 +350,13 @@ export default function ObjekteList() {
         initialName={renameRow?.project.name ?? ""}
         onSave={async (name) => {
           if (!renameRow) return;
-          await actions.updateProject(renameRow.project.id, { name });
+          try {
+            await actions.updateProject(renameRow.project.id, { name });
+          } catch (err) {
+            // Umbenanntes Beispielobjekt zählt zum Objektlimit.
+            if (err instanceof PlanLimitError) showUpgrade(err.gate);
+            throw err;
+          }
           toast.success("Objekt umbenannt");
         }}
       />

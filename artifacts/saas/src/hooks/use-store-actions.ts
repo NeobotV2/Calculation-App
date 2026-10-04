@@ -7,6 +7,7 @@ import * as customRoomTypeService from "@/services/custom-room-type-service";
 import * as settingsService from "@/services/settings-service";
 import { updateCompanyName } from "@/services/company-service";
 import { useSupabaseSync } from "@/hooks/use-supabase-sync";
+import { applyWithinObjectLimit } from "@/lib/feature-gates";
 
 export function useStoreActions() {
   const { isAuthenticated } = useAuth();
@@ -31,7 +32,7 @@ export function useStoreActions() {
       await reload();
       return;
     }
-    useStore.getState().updateProject(id, data);
+    applyWithinObjectLimit(id, () => useStore.getState().updateProject(id, data));
   }, [isAuthenticated, reload]);
 
   const deleteProject = useCallback(async (id: string): Promise<void> => {
@@ -83,7 +84,7 @@ export function useStoreActions() {
       await reload();
       return;
     }
-    useStore.getState().addRoom(projectId, room);
+    applyWithinObjectLimit(projectId, () => useStore.getState().addRoom(projectId, room));
   }, [isAuthenticated, reload]);
 
   const updateRoom = useCallback(async (projectId: string, roomId: string, roomData: Partial<Room>): Promise<void> => {
@@ -93,7 +94,7 @@ export function useStoreActions() {
       await reload();
       return;
     }
-    useStore.getState().updateRoom(projectId, roomId, roomData);
+    applyWithinObjectLimit(projectId, () => useStore.getState().updateRoom(projectId, roomId, roomData));
   }, [isAuthenticated, reload]);
 
   const deleteRoom = useCallback(async (projectId: string, roomId: string): Promise<void> => {
@@ -103,13 +104,14 @@ export function useStoreActions() {
       await reload();
       return;
     }
-    useStore.getState().deleteRoom(projectId, roomId);
+    applyWithinObjectLimit(projectId, () => useStore.getState().deleteRoom(projectId, roomId));
   }, [isAuthenticated, reload]);
 
   /**
    * Raumreihenfolge ändern — nur im Demo-/Lokalmodus (in der Cloud gibt es keine
    * Sortierspalte). Gibt false im Cloud-Modus sowie bei unbekanntem Objekt oder
-   * ungültigen Indizes zurück (dann ohne Änderung); sonst true.
+   * ungültigen Indizes zurück (dann ohne Änderung); sonst true. Wirft
+   * `PlanLimitError`, wenn ein Beispielobjekt das Objektlimit überschritte.
    */
   const reorderRooms = useCallback((projectId: string, from: number, to: number): boolean => {
     if (isAuthenticated) return false;
@@ -120,7 +122,7 @@ export function useStoreActions() {
     const valid = (i: number) => Number.isInteger(i) && i >= 0 && i < n;
     if (!valid(from) || !valid(to)) return false;
     if (from === to) return true;
-    store.reorderRooms(projectId, from, to);
+    applyWithinObjectLimit(projectId, () => store.reorderRooms(projectId, from, to));
     return true;
   }, [isAuthenticated]);
 

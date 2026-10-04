@@ -9,7 +9,7 @@ import { useEconomicsSettings } from "@/hooks/use-object-economics";
 import { useStoreActions } from "@/hooks/use-store-actions";
 import { useAuth } from "@/lib/auth-context";
 import { FREQUENCY_LABELS } from "@/lib/calc";
-import { canAddRoom, type GateResult } from "@/lib/feature-gates";
+import { PlanLimitError, canAddRoom, type GateResult } from "@/lib/feature-gates";
 import type { ObjectEconomics } from "@/lib/object-economics";
 import type { FrequencyKey, Project, Room } from "@/store/use-store";
 import { frequencyChangePreview, type FrequencyChangePreview } from "./workspace-tabs";
@@ -43,7 +43,19 @@ export function CleaningTab({ project, economics, readOnly = false, editorRef, o
 
   /* ── Räume ── */
 
-  const handleAdd = useCallback((room: Omit<Room, "id">) => actions.addRoom(projectId, room), [actions, projectId]);
+  /** Geändertes Beispielobjekt über dem Objektlimit ⇒ UpgradeModal (Fehler bleibt zusätzlich inline). */
+  const promptOnLimit = useCallback(
+    (err: unknown): never => {
+      if (err instanceof PlanLimitError) onGateBlocked(err.gate);
+      throw err;
+    },
+    [onGateBlocked],
+  );
+
+  const handleAdd = useCallback(
+    (room: Omit<Room, "id">) => actions.addRoom(projectId, room).catch(promptOnLimit),
+    [actions, projectId, promptOnLimit],
+  );
 
   // Sheet-Speichern wartet auf das Promise (Fehler erscheinen dort inline);
   // der Turnus-Chip ruft es ohne await auf ⇒ Fehler zusätzlich als Toast,
@@ -51,13 +63,13 @@ export function CleaningTab({ project, economics, readOnly = false, editorRef, o
   const handleUpdate = useCallback(
     (id: string, room: Omit<Room, "id">) => {
       const p = actions.updateRoom(projectId, id, room).catch((err: unknown) => {
-        toast.error(errorMessage(err, "Der Raum konnte nicht gespeichert werden."));
-        throw err;
+        if (!(err instanceof PlanLimitError)) toast.error(errorMessage(err, "Der Raum konnte nicht gespeichert werden."));
+        return promptOnLimit(err);
       });
       p.catch(() => undefined);
       return p;
     },
-    [actions, projectId],
+    [actions, projectId, promptOnLimit],
   );
 
   const handleDelete = useCallback(
@@ -88,7 +100,11 @@ export function CleaningTab({ project, economics, readOnly = false, editorRef, o
 
   const handleReorder = useCallback(
     (from: number, to: number) => {
-      actions.reorderRooms(projectId, from, to);
+      try {
+        actions.reorderRooms(projectId, from, to);
+      } catch (err) {
+        toast.error(errorMessage(err, "Die Reihenfolge konnte nicht geändert werden."));
+      }
     },
     [actions, projectId],
   );
