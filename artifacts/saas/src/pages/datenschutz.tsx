@@ -13,7 +13,7 @@ export default function Datenschutz() {
 
   return (
     <PageTransition>
-      <PageShell width="narrow" chrome="focus" header={<PageHeader title="Datenschutz" width="narrow" back={back} />}>
+      <PageShell as="main" width="narrow" chrome="focus" header={<PageHeader title="Datenschutz" width="narrow" back={back} />}>
         <Card as="article" padding="lg" className="space-y-6">
           <section className="space-y-2">
             <h2 className="text-h3 text-foreground">1. Datenschutz auf einen Blick</h2>

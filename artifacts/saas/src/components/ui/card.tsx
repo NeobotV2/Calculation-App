@@ -85,8 +85,9 @@ const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
         {...props}
       >
         {hasSlots && (
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 space-y-1">
+          // Schmal (Phone): die Aktion rutscht unter den Titel, statt ihn zu überdecken.
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <div className="min-w-[min(100%,12rem)] flex-1 space-y-1">
               {title != null && <CardTitle as={titleAs}>{title}</CardTitle>}
               {description != null && <CardDescription>{description}</CardDescription>}
             </div>
@@ -106,7 +107,7 @@ const CardTitle = React.forwardRef<
 >(({ className, as: Tag = "h3", ...props }, ref) => (
   <Tag
     ref={ref}
-    className={cn("text-h3 text-foreground", className)}
+    className={cn("hyphens-auto break-words text-h3 text-foreground", className)}
     {...props}
   />
 ))

@@ -13,6 +13,7 @@ import { Money } from "@/components/ui/money";
 import { NumberInput } from "@/components/ui/number-input";
 import { PriceRangeBar } from "@/components/ui/price-range-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { displayComponents, displayOfferGroups, type DisplayComponentRow } from "@/lib/display-rounding";
 import type { ObjectComponent } from "@/lib/object-totals";
 import { marginTone, strategyLabel, strategyTone } from "@/lib/status";
 import { formatNumber, parseDecimal } from "@/lib/utils";
@@ -31,7 +32,7 @@ function ComponentLabel({ c }: { c: ObjectComponent }) {
         <Clock aria-hidden="true" className="size-3.5" />
       </span>
     ) : (
-      <ModuleIcon module={c.key === "reinigung" ? "unterhalt" : c.key} size="sm" />
+      <ModuleIcon module={c.key === "reinigung" ? "unterhalt" : c.key} size="sm" decorative />
     );
   return (
     <span className="flex min-w-0 items-center gap-2">
@@ -42,7 +43,7 @@ function ComponentLabel({ c }: { c: ObjectComponent }) {
 }
 
 /** Schritt 6 · Preis & Wirtschaftlichkeit (§6.4). Alle Urteile: strategy.marginPct vs. strategy.targetMarginPct. */
-export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowStepProps) {
+export function StepPreis({ draft, dispatch, econ, settings, positions, goToStep }: FlowStepProps) {
   const uid = React.useId();
   const { strategy, totals, breakdown } = econ;
   const target = strategy.targetMarginPct;
@@ -58,24 +59,32 @@ export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowSte
   const wdCfg = draft.modules.winterdienst ? draft.winterdienst : undefined;
   const hmsCfg = draft.modules.hms ? draft.hms : undefined;
 
-  const columns: Column<ObjectComponent>[] = [
-    { id: "label", header: "Leistung", cell: (c) => <ComponentLabel c={c} />, footer: "Gesamt" },
+  // Anzeige: Preise wie Prüfschritt und Angebot, Kosten mit Restverteilung, DB = Preis − Kosten (Σ Zeilen = Gesamt).
+  const shown = React.useMemo(
+    () => displayComponents(totals.components, displayOfferGroups(positions, totals.priceMonthly), totals.costMonthly),
+    [totals, positions],
+  );
+  const marginOf = (c: DisplayComponentRow) =>
+    c.exact.priceMonthly > 0 ? ((c.exact.priceMonthly - c.exact.costMonthly) / c.exact.priceMonthly) * 100 : 0;
+
+  const columns: Column<DisplayComponentRow>[] = [
+    { id: "label", header: "Leistung", cell: (c) => <ComponentLabel c={c.exact} />, footer: "Gesamt" },
     {
       id: "hours", header: "Std./Mo", numeric: true, hideBelow: "lg",
-      cell: (c) => fmtHours(c.hoursMonthly), footer: fmtHours(totals.laborHoursMonthly),
+      cell: (c) => fmtHours(c.hoursMonthly), footer: fmtHours(shown.total.hoursMonthly),
     },
-    { id: "price", header: "Preis/Mo", numeric: true, cell: (c) => <Money value={c.priceMonthly} />, footer: <Money value={totals.priceMonthly} /> },
-    { id: "cost", header: "Kosten/Mo", numeric: true, cell: (c) => <Money value={c.costMonthly} />, footer: <Money value={totals.costMonthly} /> },
+    { id: "price", header: "Preis/Mo", numeric: true, cell: (c) => <Money value={c.priceMonthly} />, footer: <Money value={shown.total.priceMonthly} /> },
+    { id: "cost", header: "Kosten/Mo", numeric: true, hideBelow: "lg", cell: (c) => <Money value={c.costMonthly} />, footer: <Money value={shown.total.costMonthly} /> },
     {
       id: "db", header: "DB/Mo", numeric: true,
-      cell: (c) => <Money value={c.priceMonthly - c.costMonthly} signed />,
-      footer: <Money value={totals.contributionMonthly} signed />,
+      cell: (c) => <Money value={c.contributionMonthly} signed />,
+      footer: <Money value={shown.total.contributionMonthly} signed />,
     },
     {
       id: "margin", header: "Marge", align: "end",
       cell: (c) => {
-        const m = c.priceMonthly > 0 ? ((c.priceMonthly - c.costMonthly) / c.priceMonthly) * 100 : 0;
-        return <StatusBadge size="sm" tone={c.priceMonthly > 0 ? marginTone(m, target) : "neutral"} label={fmtPct(m)} />;
+        const m = marginOf(c);
+        return <StatusBadge size="sm" tone={c.exact.priceMonthly > 0 ? marginTone(m, target) : "neutral"} label={fmtPct(m)} />;
       },
       footer: <StatusBadge size="sm" tone={hasPrice ? marginTone(totals.marginPct, target) : "neutral"} label={fmtPct(totals.marginPct)} />,
     },
@@ -161,7 +170,7 @@ export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowSte
           <ul className="mt-2 space-y-2 border-t border-border pt-4 text-sm" aria-label="Sätze der Zusatzleistungen">
             {wdCfg && (
               <li className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <ModuleIcon module="winterdienst" size="sm" />
+                <ModuleIcon module="winterdienst" size="sm" decorative />
                 <span className="text-foreground">
                   {wdCfg.rateOverride && wdCfg.rateOverride > 0
                     ? `Winterdienst: eigener Satz ${fmtRate(wdCfg.rateOverride)}`
@@ -174,7 +183,7 @@ export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowSte
             )}
             {hmsCfg && (
               <li className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <ModuleIcon module="hms" size="sm" />
+                <ModuleIcon module="hms" size="sm" decorative />
                 <span className="text-foreground">
                   {hmsCfg.rateOverride && hmsCfg.rateOverride > 0
                     ? `Hausmeisterservice: eigener Satz ${fmtRate(hmsCfg.rateOverride)}`
@@ -196,7 +205,7 @@ export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowSte
         <DataTable
           caption="Preis, Kosten, Deckungsbeitrag und Marge je Leistung pro Monat"
           columns={columns}
-          rows={totals.components}
+          rows={shown.rows}
           getRowId={(c) => c.key}
           density="compact"
           empty={
@@ -205,19 +214,19 @@ export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowSte
             </p>
           }
           mobile={(c) => {
-            const m = c.priceMonthly > 0 ? ((c.priceMonthly - c.costMonthly) / c.priceMonthly) * 100 : 0;
+            const m = marginOf(c);
             return (
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0 space-y-1">
-                  <ComponentLabel c={c} />
+                  <ComponentLabel c={c.exact} />
                   <p className="text-xs text-muted-foreground">
-                    Kosten <Money value={c.costMonthly} size="sm" /> · DB <Money value={c.priceMonthly - c.costMonthly} size="sm" signed />
+                    Kosten <Money value={c.costMonthly} size="sm" /> · DB <Money value={c.contributionMonthly} size="sm" signed />
                   </p>
                 </div>
                 <div className="shrink-0 space-y-1 text-right">
                   <Money value={c.priceMonthly} className="font-medium" />
                   <div>
-                    <StatusBadge size="sm" tone={c.priceMonthly > 0 ? marginTone(m, target) : "neutral"} label={fmtPct(m)} />
+                    <StatusBadge size="sm" tone={c.exact.priceMonthly > 0 ? marginTone(m, target) : "neutral"} label={fmtPct(m)} />
                   </div>
                 </div>
               </div>
@@ -226,7 +235,7 @@ export function StepPreis({ draft, dispatch, econ, settings, goToStep }: FlowSte
           mobileFooter={
             <div className="flex items-center justify-between gap-3">
               <span>Gesamt</span>
-              <Money value={totals.priceMonthly} period="month" />
+              <Money value={shown.total.priceMonthly} period="month" />
             </div>
           }
         />

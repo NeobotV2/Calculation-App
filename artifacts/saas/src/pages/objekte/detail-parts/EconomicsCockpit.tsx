@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import { useId, useMemo, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ClipboardCheck, ShieldAlert, TrendingDown } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -7,7 +7,9 @@ import { Card } from "@/components/ui/card";
 import { Money } from "@/components/ui/money";
 import { PriceRangeBar } from "@/components/ui/price-range-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { displayComponents, displayOfferGroups } from "@/lib/display-rounding";
 import type { ObjectEconomics } from "@/lib/object-economics";
+import { buildOfferPositions } from "@/lib/offer-positions";
 import type { NextStep } from "@/lib/offer-readiness";
 import type { RiskLevel } from "@/lib/risk-score";
 import { TONE_CLASSES, marginStatusLabel, marginTone, riskLabel, riskTone, strategyLabel, strategyTone } from "@/lib/status";
@@ -99,8 +101,18 @@ function FactGrid({ economics }: { economics: ObjectEconomics }) {
   );
 }
 
-function ComponentTable({ economics }: { economics: ObjectEconomics }) {
+function ComponentTable({ project, economics }: { project: Project; economics: ObjectEconomics }) {
   const { totals, strategy } = economics;
+  // Preise als Anzeigewerte — dieselbe Rundung wie Modulkarten, Prüfschritt und Angebot.
+  const shown = useMemo(
+    () =>
+      displayComponents(
+        totals.components,
+        displayOfferGroups(buildOfferPositions(project, totals, economics.effectiveRate), totals.priceMonthly),
+        totals.costMonthly,
+      ),
+    [project, totals, economics.effectiveRate],
+  );
   if (totals.components.length < 2) return null;
   return (
     <div className="space-y-2">
@@ -115,13 +127,14 @@ function ComponentTable({ economics }: { economics: ObjectEconomics }) {
           </tr>
         </thead>
         <tbody>
-          {totals.components.map((c) => {
+          {shown.rows.map((row) => {
+            const c = row.exact;
             const margin = c.priceMonthly > 0 ? ((c.priceMonthly - c.costMonthly) / c.priceMonthly) * 100 : 0;
             return (
               <tr key={c.key} className="border-b border-border last:border-0">
                 <th scope="row" className="py-1.5 pr-2 text-left font-normal text-foreground">{c.label}</th>
                 <td className="py-1.5 pr-2 text-right">
-                  <Money value={c.priceMonthly} />
+                  <Money value={row.priceMonthly} />
                 </td>
                 <td className="py-1.5 text-right">
                   {/* Status nie nur über Farbe: Icon (Form) + Statuswort für Screenreader. */}
@@ -256,7 +269,7 @@ export function EconomicsCockpit({
             <AccordionContent className="space-y-5">
               <FactGrid economics={economics} />
               {verdict}
-              <ComponentTable economics={economics} />
+              <ComponentTable project={project} economics={economics} />
               <div className="space-y-2">
                 <h3 className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <TrendingDown aria-hidden="true" className="size-4 text-muted-foreground" />
@@ -286,7 +299,7 @@ export function EconomicsCockpit({
         {priceBar}
         <FactGrid economics={economics} />
         {verdict}
-        <ComponentTable economics={economics} />
+        <ComponentTable project={project} economics={economics} />
         <Accordion type="multiple">
           <AccordionItem value="sensitivity">
             <AccordionTrigger className="py-3">

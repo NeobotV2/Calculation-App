@@ -69,17 +69,34 @@ describe("buildOfferPositions — rooms only", () => {
 
   it("room rows equal calcRoom().monthlyCost", () => {
     const roomRows = groups[0].positions.filter((x) => x.kind === "room");
-    expect(roomRows.map((x) => x.id)).toEqual(["r1", "r2", "r3"]);
-    rooms.forEach((r, i) => {
+    // Reihenfolge des Raum-Editors: r3 gehört wie r1 zur Gruppe g1.
+    expect(roomRows.map((x) => x.id)).toEqual(["r1", "r3", "r2"]);
+    rooms.forEach((r) => {
+      const row = roomRows.find((x) => x.id === r.id)!;
       const rc = calcRoom(r, 30);
-      expect(roomRows[i].priceMonthly).toBe(rc.monthlyCost);
-      expect(roomRows[i].hoursMonthly).toBe(rc.monthlyHours);
-      expect(roomRows[i].performanceM2h).toBe(rc.effectivePerformance);
-      expect(roomRows[i].quantity).toEqual({ value: r.area, unit: "m²" });
-      expect(roomRows[i].frequencyLabel).toBe(FREQUENCY_LABELS[r.frequency]);
+      expect(row.priceMonthly).toBe(rc.monthlyCost);
+      expect(row.hoursMonthly).toBe(rc.monthlyHours);
+      expect(row.performanceM2h).toBe(rc.effectivePerformance);
+      expect(row.quantity).toEqual({ value: r.area, unit: "m²" });
+      expect(row.frequencyLabel).toBe(FREQUENCY_LABELS[r.frequency]);
     });
-    expect(roomRows[2].label).toBe("Teeküche");
-    expect(roomRows[1].groupName).toBe("Sanitär");
+    expect(roomRows[1].label).toBe("Teeküche");
+    expect(roomRows[2].groupName).toBe("Sanitär");
+  });
+
+  it("lists rooms grouped like the room editor: groups by first room, input order within a group", () => {
+    const interleaved = [
+      makeRoom({ id: "eg-buero", groupId: "g1", groupName: "Büro" }),
+      makeRoom({ id: "eg-wc", groupId: "g2", groupName: "Sanitär" }),
+      makeRoom({ id: "og-buero", groupId: "g1", groupName: "Büro" }),
+      makeRoom({ id: "flur", groupId: "", groupName: "" }),
+      makeRoom({ id: "og-wc", groupId: "g2", groupName: "Sanitär" }),
+    ];
+    const ip = makeProject({ rooms: interleaved });
+    const { totals: t, groups: g } = build(ip);
+    const ids = g[0].positions.filter((x) => x.kind === "room").map((x) => x.id);
+    expect(ids).toEqual(["eg-buero", "og-buero", "eg-wc", "og-wc", "flur"]);
+    expect(Math.abs(sumPositions(g) - t.priceMonthly)).toBeLessThan(1e-9);
   });
 
   it("Rüstzeit and Wegezeit rows are hours × rate", () => {

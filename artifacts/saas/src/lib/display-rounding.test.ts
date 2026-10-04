@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { allocateRounded, displayTotals, roundDisplay, roundGroupsForDisplay, sumDisplay } from "./display-rounding";
+import {
+  allocateNested,
+  allocateRounded,
+  displayComponents,
+  displayModuleAmounts,
+  displayOfferGroups,
+  displayTotals,
+  roundDisplay,
+  roundGroupsForDisplay,
+  sumDisplay,
+} from "./display-rounding";
 import { buildOfferPositions, type OfferPositionGroup } from "./offer-positions";
 import { calcObjectTotals, calcOfferPresentation } from "./object-totals";
 import type { HmsConfig, ModuleRates, WinterdienstConfig } from "./service-modules/types";
@@ -59,9 +69,36 @@ describe("allocateRounded", () => {
     }
   });
 
+  it("equal inputs show equal values when another row can take the remainder", () => {
+    // Zwei gleiche Räume (195,075) und ein dritter Wert: der Rest-Cent geht nicht an nur einen der beiden.
+    const shown = allocateRounded([195.074, 195.074, 30.004]);
+    expect(shown[0]).toBe(shown[1]);
+    expect(sumCents(shown)).toBe(cents(roundDisplay(195.074 * 2 + 30.004)));
+    const hours = allocateRounded([17.333, 17.333, 0.833], undefined, 1);
+    expect(hours[0]).toBe(hours[1]);
+    expect(hours.reduce((s, v) => s + tenths(v), 0)).toBe(tenths(roundDisplay(17.333 * 2 + 0.833, 1)));
+    // Ohne anderen Wert bleibt nur die ungleiche Verteilung, damit die Summe aufgeht.
+    const pair = allocateRounded([0.005, 0.005], 0.01);
+    expect(sumCents(pair)).toBe(1);
+  });
+
   it("reaches a target that differs from the sum", () => {
     expect(sumCents(allocateRounded([1, 1, 1], 3.05))).toBe(305);
     expect(allocateRounded([], 5)).toEqual([]);
+  });
+});
+
+describe("allocateNested", () => {
+  it("keeps each part at its own rounded sum unless the total forces a cent", () => {
+    // Räume 2,004 + 2,004 = 4,008 → 4,01; Fußzeile 0,333 → 0,33; Summe 4,341 → 4,34.
+    const [rooms, footer] = allocateNested([[2.004, 2.004], [0.333]]);
+    expect(sumCents(rooms)).toBe(401);
+    expect(footer).toEqual([0.33]);
+    // Ohne Fußzeile dieselben Raumzeilen.
+    expect(allocateNested([[2.004, 2.004]])[0]).toEqual(rooms);
+    // Erzwungener Cent: 0,005 + 0,005 → je 0,01 einzeln, Summe 0,01.
+    const forced = allocateNested([[0.005], [0.005]]);
+    expect(sumCents(forced.flat())).toBe(1);
   });
 });
 
@@ -146,6 +183,77 @@ describe("roundGroupsForDisplay", () => {
     expect(fixedSum).toBe(cents(roundDisplay(op.fixedMonthly)));
   });
 
+  it("ignores a cluster target that is not the sum of its rows (never shifts euros)", () => {
+    const p = project({ winterdienst: { ...WD, billingMode: "pauschale_12", capEinsaetze: 40 }, hms: HMS });
+    const totals = calcObjectTotals(p, R);
+    const op = calcOfferPresentation(totals, p);
+    const exact = buildOfferPositions(p, totals, R.rate);
+    // „Monatlich netto“ enthält hier P/12 des Winterdienstes — als Ziel für Reinigung + HMS falsch.
+    const shown = roundGroupsForDisplay(exact, {
+      totalMonthly: totals.priceMonthly,
+      fixed: { modules: ["unterhalt", "hms"], totalMonthly: op.fixedMonthly },
+    });
+    expectAddsUp(shown, totals.priceMonthly);
+    shown.forEach((g, gi) =>
+      g.positions.forEach((sp, i) => expect(Math.abs(sp.priceMonthly - exact[gi].positions[i].priceMonthly)).toBeLessThan(0.02)),
+    );
+  });
+
+  it("module subtotals stay their own rounded amounts (two-level allocation)", () => {
+    // Reinigung 20,70 € und HMS 32,50 € sind exakt ganze Cent — die Rest-Cents
+    // der Raumzeilen dürfen nicht in die HMS-Summe wandern (vorher 20,68 / 32,52).
+    const areas = [10.1, 10.5, 10.9, 11.3, 11.7, 12.1, 12.5, 12.9];
+    const p = project({
+      ruestzeit: 0,
+      wegezeit: 0,
+      rooms: areas.map((a, i) => room({ id: `r${i}`, area: a, frequency: "monthly", typePerformance: 100 })),
+      hms: {
+        ...HMS,
+        travelMinutesPerVisitDay: 0,
+        materialMarkupPct: 0,
+        tasks: [1, 3, 7, 9].map((m, i) => ({
+          id: `t${i}`, label: `Aufgabe ${i + 1}`, unit: "pauschal" as const, quantity: 1, minutesPerUnit: m, frequencyPerYear: 52, enabled: true,
+        })),
+      },
+    });
+    const totals = calcObjectTotals(p, R);
+    expect(roundDisplay(totals.cleaning.cost)).toBe(20.7);
+    expect(roundDisplay(totals.hms!.revenueMonthly)).toBe(32.5);
+    const m = displayModuleAmounts(displayOfferGroups(buildOfferPositions(p, totals, R.rate), totals.priceMonthly));
+    expect(m.unterhalt).toBe(20.7);
+    expect(m.hms).toBe(32.5);
+    expect(m.total).toBe(53.2);
+  });
+
+  it("a subtotal moves only when the module roundings cannot add up to the total", () => {
+    let seed = 7;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const mk = (module: OfferPositionGroup["module"], values: number[]): OfferPositionGroup => ({
+      module, label: module, details: [], subtotalMonthly: values.reduce((s, v) => s + v, 0), hoursMonthly: 0,
+      positions: values.map((v, i) => ({ id: `${module}${i}`, module, kind: module === "hms" ? "hms_task" : "room", label: "x", hoursMonthly: 0, priceMonthly: v })),
+    });
+    for (let run = 0; run < 500; run++) {
+      const groups = [
+        mk("unterhalt", Array.from({ length: 1 + Math.floor(rnd() * 8) }, () => rnd() * 300)),
+        mk("hms", Array.from({ length: 1 + Math.floor(rnd() * 4) }, () => rnd() * 100)),
+      ];
+      const total = groups.reduce((s, g) => s + g.subtotalMonthly, 0);
+      const shown = roundGroupsForDisplay(groups, { totalMonthly: total });
+      expectAddsUp(shown, total);
+      const own = groups.map((g) => cents(roundDisplay(g.subtotalMonthly)));
+      const forced = own[0] + own[1] !== cents(roundDisplay(total));
+      const moved = shown.filter((g, i) => cents(g.subtotalMonthly) !== own[i]).length;
+      expect(moved).toBe(forced ? 1 : 0);
+      // Zeilen einer Gruppe = eigene Verteilung auf die Gruppensumme.
+      shown.forEach((g, i) =>
+        expect(g.positions.map((x) => x.priceMonthly)).toEqual(allocateRounded(groups[i].positions.map((x) => x.priceMonthly), g.subtotalMonthly)),
+      );
+    }
+  });
+
   it("is stable for a single group without fixed subset", () => {
     const p = project({ rooms: [], hms: HMS });
     const totals = calcObjectTotals(p, R);
@@ -154,7 +262,61 @@ describe("roundGroupsForDisplay", () => {
   });
 });
 
+describe("displayOfferGroups (Saisonpauschale in 12 Monatsraten mit Deckelung)", () => {
+  const p = project({
+    winterdienst: { ...WD, billingMode: "pauschale_12", expectedEinsaetze: 45, capEinsaetze: 40 },
+    hms: HMS,
+  });
+  const totals = calcObjectTotals(p, R);
+  const op = calcOfferPresentation(totals, p);
+  const exact = buildOfferPositions(p, totals, R.rate);
+  const shown = displayOfferGroups(exact, totals.priceMonthly);
+
+  it("keeps every position within a cent of its exact price", () => {
+    // Gedeckelte Pauschale: „Monatlich netto“ (inkl. P/12) ≠ Ø-Monatspreis.
+    expect(Math.abs(op.fixedMonthly - totals.priceMonthly)).toBeGreaterThan(0.005);
+    expectAddsUp(shown, totals.priceMonthly);
+    shown.forEach((g, gi) =>
+      g.positions.forEach((sp, i) => {
+        expect(sp.priceMonthly).toBeGreaterThanOrEqual(0);
+        expect(Math.abs(sp.priceMonthly - exact[gi].positions[i].priceMonthly)).toBeLessThanOrEqual(0.01 + 1e-9);
+      }),
+    );
+  });
+
+  it("shows module subtotals as the rounded module amounts", () => {
+    const m = displayModuleAmounts(shown);
+    expect(Math.abs(m.unterhalt + m.hms - (totals.cleaning.cost + totals.hms!.revenueMonthly))).toBeLessThanOrEqual(0.005 + 1e-9);
+    expect(Math.abs(m.winterdienst - totals.winterdienst!.revenueMonthly)).toBeLessThanOrEqual(0.01 + 1e-9);
+    expect(cents(m.total)).toBe(cents(roundDisplay(totals.priceMonthly)));
+    expect(cents(m.rooms) + cents(m.setup)).toBe(cents(m.unterhalt));
+  });
+
+  it("component rows use the same amounts; DB = shown price − shown cost", () => {
+    const c = displayComponents(totals.components, shown, totals.costMonthly);
+    const m = displayModuleAmounts(shown);
+    expect(c.rows.find((r) => r.key === "hms")?.priceMonthly).toBe(m.hms);
+    expect(c.rows.find((r) => r.key === "winterdienst")?.priceMonthly).toBe(m.winterdienst);
+    expect(c.total.priceMonthly).toBe(m.total);
+    expect(sumCents(c.rows.map((r) => r.costMonthly))).toBe(cents(roundDisplay(totals.costMonthly)));
+    c.rows.forEach((r) => expect(cents(r.contributionMonthly)).toBe(cents(r.priceMonthly) - cents(r.costMonthly)));
+    expect(sumCents(c.rows.map((r) => r.contributionMonthly))).toBe(cents(c.total.contributionMonthly));
+  });
+});
+
 describe("displayTotals", () => {
+  it("annual values from the unrounded annual value (priceAnnual), like the workspace", () => {
+    const d = displayTotals({ fixedMonthly: 50.254166, averageMonthly: 50.254166, vatRatePct: 19, annualNet: 603.05 });
+    expect(d.netMonthly).toBe(50.25);
+    expect(d.annualNet).toBe(603.05);
+    expect(d.annualGross).toBe(roundDisplay(603.05 * 1.19));
+    expect(cents(d.annualNet) + cents(d.annualVat)).toBe(cents(d.annualGross));
+    // Baseline-Fall: Kita 1036,2175 €/Monat → 12.434,61 € netto, (Kosten + USt) × 12 brutto.
+    const k = displayTotals({ fixedMonthly: 1036.2175, averageMonthly: 1036.2175, vatRatePct: 19, annualNet: 1036.2175 * 12 });
+    expect(k.annualNet).toBe(12434.61);
+    expect(k.annualGross).toBe(roundDisplay(1036.2175 * 1.19 * 12));
+  });
+
   it("VAT on the rounded net; annual values from the displayed month", () => {
     const d = displayTotals({ fixedMonthly: 766.8149, averageMonthly: 766.8149, vatRatePct: 19 });
     expect(d.netMonthly).toBe(766.81);

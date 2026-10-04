@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel } from "@/components/ui/responsive-sheet";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -66,9 +66,7 @@ export function RenameSheet({ open, onOpenChange, title, label, initialName, onS
       dirty={dirty && !saving}
       footer={
         <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving}>
-            Abbrechen
-          </Button>
+          <ResponsiveSheetCancel disabled={saving} />
           <Button type="submit" form={formId} loading={saving}>
             Speichern
           </Button>

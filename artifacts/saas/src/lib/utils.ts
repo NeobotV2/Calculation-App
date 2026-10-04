@@ -22,20 +22,62 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Negative Zahlen mit typografischem Minus (U+2212) wie `formatMoney`;
+ * ein auf null gerundeter Wert verliert das Vorzeichen („-0,0" → „0,0").
+ */
+export function withMinusSign(formatted: string): string {
+  if (!formatted.startsWith("-")) return formatted;
+  const abs = formatted.slice(1);
+  return /[1-9]/.test(abs) ? `\u2212${abs}` : abs;
+}
+
+/** Lange Komposita der Oberfläche mit Trennstelle (Präfix, Rest). */
+const SOFT_HYPHEN_BREAKS: ReadonlyArray<readonly [string, string]> = [
+  ["Unterhalts", "reinigung"],
+  ["Hausmeister", "service"],
+  ["Verhandlungs", "spielraum"],
+  ["Wohnungs", "wirtschaft"],
+  ["Nach", "kalkulation"],
+  ["Wirtschaft", "lichkeit"],
+  ["Deckungs", "beitrag"],
+  ["Verrechnungs", "satz"],
+  ["Jahres", "mittel"],
+  ["Gesundheits", "wesen"],
+];
+
+/**
+ * Setzt weiche Trennstellen (U+00AD) in bekannte lange Wörter: Ohne deutsches
+ * Silbentrennungswörterbuch bricht `hyphens: auto` sonst mitten im Wort ohne
+ * Bindestrich („Hausmeisterservi|ce"). Nur für sichtbaren Text, nicht für
+ * Vergleiche oder zugängliche Namen.
+ */
+export function softHyphenate(text: string): string {
+  let out = text;
+  for (const [head, tail] of SOFT_HYPHEN_BREAKS) {
+    out = out.replace(new RegExp(`(${head})(${tail})`, "gi"), "$1\u00AD$2");
+  }
+  return out;
+}
+
 export function formatCurrency(amount: number): string {
-  return amount.toLocaleString("de-DE", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return withMinusSign(
+    amount.toLocaleString("de-DE", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }),
+  );
 }
 
 export function formatNumber(amount: number, decimals: number = 2): string {
-  return amount.toLocaleString("de-DE", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
+  return withMinusSign(
+    amount.toLocaleString("de-DE", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }),
+  );
 }
 
 /**
@@ -67,11 +109,16 @@ export function formatDate(dateStr: string): string {
  * - Kommen „," und „." vor, ist das zuletzt stehende Zeichen das
  *   Dezimaltrennzeichen, das andere die Tausendergruppierung.
  * - Nur „,": Dezimaltrennzeichen (mehrfach → ungültig).
- * - Nur „.": mehrfach oder „1.234" (genau 3 Ziffern nach jedem Punkt bei
- *   mehreren Gruppen) gilt als Gruppierung; ein einzelner Punkt ist das
- *   Dezimaltrennzeichen („1234.5", „0.5").
+ * - Nur „.": deutsche Tausendergruppierung, wenn jede Gruppe nach einem Punkt
+ *   genau 3 Ziffern hat und vorne 1–3 Ziffern ohne führende Null stehen
+ *   („1.200" → 1200, „1.234.567"); sonst ist ein einzelner Punkt das
+ *   Dezimaltrennzeichen („1234.5", „0.5", „1.25").
+ * - `thousandsDot: false` (Felder mit 3+ Nachkommastellen, z. B. Länge in m
+ *   vom Laser-Messgerät): ein einzelner Punkt ist immer Dezimaltrennzeichen
+ *   („4.375" → 4,375).
  */
-export function parseDecimal(input: string): number | undefined {
+export function parseDecimal(input: string, options: { thousandsDot?: boolean } = {}): number | undefined {
+  const thousandsDot = options.thousandsDot ?? true;
   if (typeof input !== "string") return undefined;
   let s = input.replace(/[\s  ]/g, "").replace(/−/g, "-");
   if (s.startsWith("+")) s = s.slice(1);
@@ -98,7 +145,7 @@ export function parseDecimal(input: string): number | undefined {
       if (!/^-?\d{1,3}(\.\d{3})+$/.test(s)) return undefined;
       normalized = parts.join("");
     } else {
-      normalized = s;
+      normalized = thousandsDot && /^-?[1-9]\d{0,2}\.\d{3}$/.test(s) ? parts.join("") : s;
     }
   } else {
     normalized = s;

@@ -15,6 +15,7 @@ import {
   buildCreatePlan,
   buildEditUpdates,
   diffRooms,
+  mayClearStoredDraft,
   mergeEditDraft,
   roomsToSave,
   type FlowMode,
@@ -139,7 +140,7 @@ export function useFlowSave({ draft, mode, onGateBlocked, onSaved }: UseFlowSave
 
         mergeTheirsRef.current = null;
         onSaved?.(id);
-        setCalcDraft(null);
+        if (mayClearStoredDraft(useStore.getState().calcDraft, d)) setCalcDraft(null);
         toast.success(isCreate ? "Objekt erstellt" : "Kalkulation gespeichert");
         if (opts?.navigate !== false) navigate(`/objekte/${id}`);
         return id;

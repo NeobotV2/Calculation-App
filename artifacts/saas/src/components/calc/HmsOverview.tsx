@@ -73,7 +73,7 @@ export function HmsOverview({
         titleAs="h2"
         title={
           <span id={`${uid}-title`} className="flex flex-wrap items-center gap-2">
-            <ModuleIcon module="hms" size="sm" />
+            <ModuleIcon module="hms" size="sm" decorative />
             Hausmeisterservice
             {paused && <Badge tone="neutral">Pausiert</Badge>}
           </span>

@@ -14,7 +14,6 @@ const COOKIE_KEY = "cleancalc-cookie-consent";
 export function CookieNotice() {
   const [visible, setVisible] = useState(false);
   const [location] = useLocation();
-  const titleId = useId();
   const shellMode = getShellMode(location);
   const aboveNav = shellMode === "app";
   // Im Kalkulations-Flow (eigene Fußleiste) erst nach Verlassen anzeigen.
@@ -58,32 +57,40 @@ export function CookieNotice() {
               : "bottom-[var(--safe-bottom)]",
           )}
         >
-          <section
-            aria-labelledby={titleId}
-            className="mx-auto max-w-md rounded-lg border border-border bg-card p-4 text-card-foreground shadow-overlay"
-          >
-            <h2 id={titleId} className="text-sm font-semibold text-foreground">
-              Cookies & Datenschutz
-            </h2>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Diese App speichert Daten lokal auf Ihrem Gerät. Bei Nutzung eines Accounts werden Daten verschlüsselt
-              in der Cloud gespeichert. Mehr dazu in der{" "}
-              <Link href="/datenschutz" className="text-primary underline-offset-4 hover:underline">
-                Datenschutzerklärung
-              </Link>
-              .
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => persist("declined")} className="flex-1">
-                Nur notwendige
-              </Button>
-              <Button size="sm" onClick={() => persist("accepted")} className="flex-1">
-                Akzeptieren
-              </Button>
-            </div>
-          </section>
+          <CookieNoticePanel onDecline={() => persist("declined")} onAccept={() => persist("accepted")} />
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+/** Inhalt des Hinweises (ohne Einblendung und Positionierung). */
+export function CookieNoticePanel({ onDecline, onAccept }: { onDecline: () => void; onAccept: () => void }) {
+  const titleId = useId();
+  return (
+    <section
+      aria-labelledby={titleId}
+      className="mx-auto max-w-md rounded-lg border border-border bg-card p-4 text-card-foreground shadow-overlay"
+    >
+      <h2 id={titleId} className="text-sm font-semibold text-foreground">
+        Cookies & Datenschutz
+      </h2>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Diese App speichert Daten lokal auf Ihrem Gerät. Bei Nutzung eines Accounts werden Daten verschlüsselt in der
+        Cloud gespeichert. Mehr dazu in der{" "}
+        <Link href="/datenschutz" className="text-primary underline underline-offset-4">
+          Datenschutzerklärung
+        </Link>
+        .
+      </p>
+      <div className="mt-4 flex gap-2">
+        <Button variant="secondary" size="sm" onClick={onDecline} className="flex-1">
+          Nur notwendige
+        </Button>
+        <Button size="sm" onClick={onAccept} className="flex-1">
+          Akzeptieren
+        </Button>
+      </div>
+    </section>
   );
 }

@@ -9,15 +9,21 @@ const TOP_OFFSET = "calc(var(--safe-top) + 0.75rem)";
 /** Abstand unten auf Phones: über der BottomNav. */
 const BOTTOM_OFFSET_MOBILE = "calc(var(--nav-h) + var(--safe-bottom) + 0.75rem)";
 
+/** Abstand unten ab md: über einer fixierten Aktionsleiste (`--sticky-bar-h`, StickyActionBar). */
+const BOTTOM_OFFSET_DESKTOP = "calc(var(--sticky-bar-h, 0px) + 1.5rem)";
+
 /**
  * Toasts folgen dem App-Theme (nicht dem OS). Position: unter `md` oben mittig,
- * ab `md` unten rechts. Ein explizit übergebenes `position` hat Vorrang.
+ * ab `md` unten rechts — oberhalb einer StickyActionBar, damit „Weiter“ &
+ * Co. klickbar bleiben. Ein explizit übergebenes `position` hat Vorrang.
  */
 const Toaster = ({ position, style, ...props }: ToasterProps) => {
   const theme = useResolvedTheme();
   const isMdUp = useMediaQuery(MEDIA.md, true);
   const resolvedPosition = position ?? (isMdUp ? "bottom-right" : "top-center");
-  const offset = isMdUp ? "1.5rem" : { top: TOP_OFFSET, bottom: BOTTOM_OFFSET_MOBILE, left: "1rem", right: "1rem" };
+  const offset = isMdUp
+    ? { top: "1.5rem", bottom: BOTTOM_OFFSET_DESKTOP, left: "1.5rem", right: "1.5rem" }
+    : { top: TOP_OFFSET, bottom: BOTTOM_OFFSET_MOBILE, left: "1rem", right: "1rem" };
 
   return (
     <Sonner

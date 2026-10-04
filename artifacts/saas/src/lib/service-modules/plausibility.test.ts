@@ -4,6 +4,9 @@ import { calcWinterdienst } from "./winterdienst";
 import type { HmsConfig, ModuleRates, WinterdienstConfig } from "./types";
 import { calcObjectTotals } from "@/lib/object-totals";
 import { markupToRevenueMargin } from "@/lib/price-strategy";
+import { getWarningTypeKey } from "@/lib/warnings";
+import { fixForWarningSuffix } from "@/lib/offer-readiness";
+import { isHmsFinding } from "@/components/calc/hms/hms-ui";
 import type { Project, Room } from "@/store/use-store";
 
 const R: ModuleRates = { rate: 30, vollkosten: 24 };
@@ -83,6 +86,7 @@ describe("evaluateModuleFindings (T11)", () => {
     const f = findings(makeProject({ winterdienst: { ...WD_REF, expectedEinsaetze: 30 } }));
     expect(ids(f)).toEqual(["wd_harsh", "wd_einsaetze_low", "wd_splitt"]);
     expect(f[1].message).toContain("nur bis ca. 39 Einsätze");
+    expect([f[1].title, f[1].severity, f[1].riskPoints]).toEqual(["Einsatzannahme zu niedrig", "warning", 12]);
     expect(calcWinterdienst({ ...WD_REF, expectedEinsaetze: 30 }, R).billing.lossAboveEinsaetze as number).toBeCloseTo(39.042645, 6);
   });
 
@@ -138,5 +142,140 @@ describe("evaluateModuleFindings (T11)", () => {
   it("returns nothing for paused or missing modules", () => {
     expect(findings(makeProject())).toEqual([]);
     expect(findings(makeProject({ winterdienst: { ...WD_REF, enabled: false }, hms: { ...HMS_REF, enabled: false } }))).toEqual([]);
+  });
+});
+
+describe("evaluateModuleFindings — Pauschale below a typical winter", () => {
+  const byId = (fs: ModuleFinding[], id: string) => fs.find((x) => x.idSuffix === id);
+
+  it("blames the price, not the assumption, when the Einsätze are typical", () => {
+    const loss: WinterdienstConfig = { ...WD_REF, rateOverride: 15, vollkostenOverride: 24 };
+    expect(calcWinterdienst(loss, R).billing.lossAboveEinsaetze as number).toBeCloseTo(2309.96375 / 58.982917, 5);
+    const f = findings(makeProject({ winterdienst: loss }));
+    expect(byId(f, "below_cost_wd")?.riskPoints).toBe(12);
+    // Normalwinter (45) schon im Verlust: keine Deckelung bei 39 vorschlagen, die wd_cap auslösen würde.
+    expect(byId(f, "wd_harsh")?.action).toBe("Deckelung vereinbaren und darüber je Einsatz abrechnen – oder Abrechnung pro Einsatz anbieten.");
+    const low = byId(f, "wd_einsaetze_low");
+    expect(low).toMatchObject({ title: "Pauschale deckt typischen Winter nicht", severity: "warning", riskPoints: 0,
+      message: "Die Pauschale ist nur bis ca. 39 Einsätze kostendeckend; ein typischer Winter in der Region Hügelland / Mittelgebirge hat 45." });
+    expect(low?.action).toContain("Einsatzpreis, Bereitschaftspauschale oder Zuschläge anheben");
+  });
+
+  it("still flags a very high assumption when the price is the problem", () => {
+    const cheap: WinterdienstConfig = { ...WD_REF, rateOverride: 5, vollkostenOverride: 24, machineRatePerHour: 0, expectedEinsaetze: 80 };
+    expect(calcWinterdienst(cheap, R).billing.lossAboveEinsaetze as number).toBeLessThan(45);
+    const f = findings(makeProject({ winterdienst: cheap }));
+    expect(byId(f, "wd_einsaetze_low")?.title).toBe("Pauschale deckt typischen Winter nicht");
+    expect(byId(f, "wd_einsaetze_high")).toBeDefined();
+  });
+
+  it("does not quote a cap or threshold of 0 Einsätze", () => {
+    const noVar: WinterdienstConfig = { ...WD_REF, areas: [], travelMinutesPerEinsatz: 0, documentationMinutesPerEinsatz: 0,
+      seasonSetupHours: 0, standbyFeeMonthly: 0, standbyCostMonthly: 20 };
+    const f = findings(makeProject({ winterdienst: noVar }));
+    expect(byId(f, "wd_harsh")?.action).toBe("Deckelung vereinbaren und darüber je Einsatz abrechnen – oder Abrechnung pro Einsatz anbieten.");
+    expect(byId(f, "wd_einsaetze_low")?.message).toBe("Die Pauschale ist bei keiner Einsatzzahl kostendeckend; ein typischer Winter in der Region Hügelland / Mittelgebirge hat 45.");
+  });
+});
+
+describe("evaluateModuleFindings — capped Pauschale that recovers above the cap", () => {
+  const byId = (fs: ModuleFinding[], id: string) => fs.find((x) => x.idSuffix === id);
+  const R2: ModuleRates = { rate: 22.5, vollkosten: 18 };
+  const capped: WinterdienstConfig = {
+    ...WD_REF, region: "flachland", expectedEinsaetze: 30, clearingSharePct: 35, capEinsaetze: 8,
+    areas: [{ id: "a1", label: "Gehweg", type: "gehweg", areaM2: 120, method: "manuell", clear: true, spread: true, material: "splitt" }],
+    material: "splitt", standbyFeeMonthly: 0, standbyCostMonthly: 20,
+  };
+  const evalWith = (cfg: WinterdienstConfig) => {
+    const p = makeProject({ rooms: [], winterdienst: cfg });
+    return evaluateModuleFindings(p, calcObjectTotals(p, R2), TARGET);
+  };
+  /** Saisonergebnis bei e Einsätzen (W18). */
+  const resultAt = (cfg: WinterdienstConfig, e: number) => {
+    const wd = calcWinterdienst(cfg, R2);
+    const b = wd.billing;
+    return b.pauschaleSeason! + Math.max(0, e - b.capEinsaetze!) * b.pricePerEinsatz - (wd.fixedCostSeason + e * wd.perEinsatz.cost);
+  };
+
+  it("no 'Pauschale deckt typischen Winter nicht' when a typical winter is profitable", () => {
+    const wd = calcWinterdienst(capped, R2);
+    // Verlustschwelle unter dem Deckel, aber über dem Deckel holt die Abrechnung je Einsatz auf.
+    expect(wd.billing.lossAboveEinsaetze as number).toBeLessThan(8);
+    expect(wd.billing.pricePerEinsatz).toBeGreaterThan(wd.perEinsatz.cost);
+    expect(resultAt(capped, 25)).toBeGreaterThan(0);
+    expect(byId(evalWith(capped), "wd_einsaetze_low")).toBeUndefined();
+  });
+
+  it("names the loss window instead of 'nur bis ca. X' when the typical winter falls inside it", () => {
+    // Höhere Bereitschaftskosten: der typische Winter (25) liegt im Verlustfenster unter der Aufholschwelle.
+    const window: WinterdienstConfig = { ...capped, standbyCostMonthly: 30 };
+    expect(calcWinterdienst(window, R2).billing.lossAboveEinsaetze as number).toBeGreaterThan(1);
+    expect(resultAt(window, 25)).toBeLessThan(0);
+    const low = byId(evalWith(window), "wd_einsaetze_low");
+    expect(low?.title).toBe("Pauschale deckt typischen Winter nicht");
+    const m = /^Die Pauschale ist zwischen ca\. (\d+) und (\d+) Einsätzen nicht kostendeckend; ein typischer Winter in der Region .+ hat 25\.$/.exec(low?.message ?? "");
+    expect(m).not.toBeNull();
+    const [lo, hi] = [Number(m![1]), Number(m![2])];
+    expect(resultAt(window, lo + 1)).toBeLessThan(0);
+    expect(resultAt(window, hi)).toBeGreaterThanOrEqual(0);
+    expect(resultAt(window, hi - 1)).toBeLessThan(0);
+  });
+
+  it("says from which Einsatzzahl it pays when the loss starts at 0", () => {
+    const late: WinterdienstConfig = { ...capped, standbyCostMonthly: 40 };
+    expect(calcWinterdienst(late, R2).billing.lossAboveEinsaetze).toBe(0);
+    const low = byId(evalWith(late), "wd_einsaetze_low");
+    expect(low?.message).toMatch(/^Die Pauschale ist erst ab ca\. \d+ Einsätzen kostendeckend; ein typischer Winter/);
+  });
+});
+
+describe("evaluateModuleFindings — HMS travel for contingents", () => {
+  const contingentOnly: HmsConfig = { ...HMS_REF, rateOverride: 38, vollkostenOverride: 28, travelMinutesPerVisitDay: 20,
+    tasks: HMS_REF.tasks.filter((t) => t.unit === "kontingent") };
+
+  it("hints that contingent call-outs carry no travel", () => {
+    const f = findings(makeProject({ wegezeit: 10, hms: contingentOnly }));
+    expect(ids(f)).toEqual(["hms_contingent", "hms_travel_contingent"]);
+    expect(f[1]).toMatchObject({ severity: "info", riskPoints: 0, title: "Keine Anfahrt für das Kontingent",
+      action: "Einsatztage/Jahr für die erwarteten Abrufe angeben." });
+  });
+
+  it("maps like every other HMS finding", () => {
+    expect(getWarningTypeKey("p1_hms_travel_contingent")).toBe("hms");
+    expect(fixForWarningSuffix("hms_travel_contingent")).toEqual({ kind: "flow", step: "hms" });
+    expect(isHmsFinding({ idSuffix: "hms_travel_contingent" })).toBe(true);
+  });
+
+  it("asks for the travel time as well when it is missing", () => {
+    const f = findings(makeProject({ hms: { ...contingentOnly, travelMinutesPerVisitDay: 0 } }));
+    expect(f.find((x) => x.idSuffix === "hms_travel_contingent")?.action)
+      .toBe("Einsatztage/Jahr für die erwarteten Abrufe und die Anfahrt je Einsatztag erfassen.");
+  });
+
+  it("stays silent once visit days are set, and never reports double travel without HMS travel", () => {
+    const withDays = findings(makeProject({ wegezeit: 10, hms: { ...contingentOnly, visitDaysPerYear: 12 } }));
+    expect(ids(withDays)).toEqual(["hms_contingent", "hms_travel"]);
+    expect(withDays[1].title).toBe("Anfahrt doppelt?");
+    const zeroDays = findings(makeProject({ wegezeit: 10, hms: { ...HMS_REF, rateOverride: 38, vollkostenOverride: 28,
+      tasks: HMS_REF.tasks.filter((t) => t.unit !== "kontingent"), visitDaysPerYear: 0 } }));
+    expect(ids(zeroDays)).toEqual([]);
+  });
+});
+
+describe("finding copy", () => {
+  it("Deckelung: whole Einsatz counts without „,0“", () => {
+    const f = findings(makeProject({ winterdienst: { ...WD_REF, capEinsaetze: 40 } })).find((x) => x.idSuffix === "wd_cap");
+    expect(f?.message).toBe("Die Pauschale umfasst 40 Einsätze, erwartet werden 45.");
+  });
+
+  it("salt hint names the switch exactly as labelled in the editor", () => {
+    const gehwegMitSalz = { ...WD_REF, areas: [{ ...WD_REF.areas[0], material: "salz" as const }] };
+    const f = findings(makeProject({ winterdienst: gehwegMitSalz })).find((x) => x.idSuffix === "wd_salt");
+    expect(f?.action).toContain("„Ortssatzung schränkt Auftausalz ein“");
+  });
+
+  it("negative contributions use the typographic minus", () => {
+    const f = findings(makeProject({ hms: { ...HMS_REF, rateOverride: 10 } })).find((x) => x.message.includes("Deckungsbeitrag pro Jahr"));
+    expect(f?.message).toMatch(/erzielt −\d/);
   });
 });

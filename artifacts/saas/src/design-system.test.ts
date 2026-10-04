@@ -166,4 +166,9 @@ describe("layout guardrails", () => {
     const offenders = files.filter((rel) => /<table\b[^>]*\bsr-only\b/.test(readFileSync(join(SRC, rel), "utf8")));
     expect(offenders).toEqual([]);
   });
+
+  it("lets fieldsets shrink to their container (no min-content width from chip rows)", () => {
+    const css = readFileSync(join(SRC, "index.css"), "utf8");
+    expect(css).toMatch(/fieldset\s*\{\s*min-inline-size:\s*0;?\s*\}/);
+  });
 });

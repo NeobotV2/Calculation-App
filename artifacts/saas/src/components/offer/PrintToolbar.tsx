@@ -25,7 +25,7 @@ import {
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { OfferCheckDialog } from "./OfferCheckDialog";
-import { OFFER_DETAIL_LABELS, readinessLabel, readinessTone, type OfferDetail } from "./offer-meta";
+import { OFFER_DETAIL_LABELS, offerStatusChip, type OfferDetail } from "./offer-meta";
 
 export type PrintToolbarVariant = "customer" | "internal";
 
@@ -62,9 +62,8 @@ export function PrintToolbar({ project, economics, readiness, variant, detail = 
   const [upgradeReason, setUpgradeReason] = useState("");
   const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeTrigger | undefined>(undefined);
 
-  const tone = readinessTone(readiness);
-  const statusLabel = readinessLabel(readiness);
-  const StatusIcon = TONE_ICON[tone];
+  const status = offerStatusChip(project, readiness);
+  const StatusIcon = TONE_ICON[status.tone];
   const backLabel = `Zurück zu ${project.name?.trim() || "Objekt"}`;
 
   const doPrint = (delayed = false) => {
@@ -139,10 +138,10 @@ export function PrintToolbar({ project, economics, readiness, variant, detail = 
             variant="secondary"
             size="sm"
             onClick={() => setCheckOpen(true)}
-            aria-label={`Angebotsstatus: ${statusLabel}. Details anzeigen`}
+            aria-label={`Angebotsstatus: ${status.spokenLabel}. Details anzeigen`}
           >
-            <StatusIcon aria-hidden="true" strokeWidth={2} className={TONE_CLASSES[tone].icon} />
-            <span className="max-w-40 truncate">{statusLabel}</span>
+            <StatusIcon aria-hidden="true" strokeWidth={2} className={TONE_CLASSES[status.tone].icon} />
+            <span className="max-w-40 truncate">{status.label}</span>
           </Button>
         </div>
 
@@ -154,7 +153,7 @@ export function PrintToolbar({ project, economics, readiness, variant, detail = 
             <PrintIcon aria-hidden="true" />
             {printLabel}
             {locked && (
-              <span className="rounded-xs bg-primary-foreground/20 px-1.5 text-xs font-semibold">Pro</span>
+              <span className="rounded-xs bg-primary-foreground px-1.5 text-xs font-semibold text-primary">Pro</span>
             )}
           </Button>
           {locked && (

@@ -183,7 +183,7 @@ export function ObjectHeader({
               </>
             ) : (
               <div className="flex min-w-0 items-center gap-1">
-                <h1 className="min-w-0 truncate text-h1 text-foreground md:whitespace-normal md:break-words">
+                <h1 className="line-clamp-2 min-w-0 break-words text-h1 text-foreground md:line-clamp-none">
                   {project.name || "Unbenanntes Objekt"}
                 </h1>
                 {!archived && (

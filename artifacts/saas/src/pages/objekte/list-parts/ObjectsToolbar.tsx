@@ -62,7 +62,7 @@ export function ObjectsToolbar({ filter, onFilterChange, counts, sort, onSortCha
             role="searchbox"
             enterKeyHint="search"
             aria-label="Objekte suchen"
-            placeholder="Name, Kunde oder Standort suchen…"
+            placeholder="Name, Kunde, Standort …"
             value={filter.search}
             onChange={(e) => set({ search: e.target.value })}
             className="pl-9 pr-10"

@@ -1,4 +1,4 @@
-import { useStore } from "@/store/use-store";
+import { isDemoProject, useStore, type Project } from "@/store/use-store";
 import { type PlanId, type UpgradeTrigger, getPlanLimits, isPaidPlan } from "@/lib/billing-config";
 
 export interface GateResult {
@@ -11,12 +11,17 @@ function getPlan(): PlanId {
   return useStore.getState().plan;
 }
 
+/** Objekte, die zum Objektlimit zählen: aktive eigene Objekte (ohne Archiv und ohne unveränderte Beispielobjekte). */
+export function countLimitedProjects(projects: readonly Pick<Project, "id" | "status" | "name" | "customer">[]): number {
+  return projects.filter((p) => p.status !== "archived" && !isDemoProject(p)).length;
+}
+
 export function canAddProject(): GateResult {
   const plan = getPlan();
   if (isPaidPlan(plan)) return { allowed: true };
   const limits = getPlanLimits(plan);
   const { projects } = useStore.getState();
-  const activeCount = projects.filter(p => p.status !== "archived").length;
+  const activeCount = countLimitedProjects(projects);
   if (activeCount >= limits.maxObjects) {
     return {
       allowed: false,
@@ -25,6 +30,16 @@ export function canAddProject(): GateResult {
     };
   }
   return { allowed: true };
+}
+
+/**
+ * Wiederherstellen aus dem Archiv: das Objekt zählt danach wieder zum
+ * Objektlimit — gleiche Grenze wie ein neues Objekt (Beispielobjekte frei).
+ */
+export function canRestoreProject(projectId: string): GateResult {
+  const project = useStore.getState().projects.find((p) => p.id === projectId);
+  if (!project || project.status !== "archived" || isDemoProject(project)) return { allowed: true };
+  return canAddProject();
 }
 
 export function canAddRoom(projectId: string): GateResult {
@@ -101,9 +116,9 @@ export function canOverridePerformance(): GateResult {
   };
 }
 
+/** Objekte, die zum Objektlimit zählen (wie `canAddProject`: ohne Archiv und Beispielobjekte). */
 export function getActiveObjectCount(): number {
-  const { projects } = useStore.getState();
-  return projects.filter(p => p.status !== "archived").length;
+  return countLimitedProjects(useStore.getState().projects);
 }
 
 export function getObjectLimit(): number {

@@ -200,3 +200,14 @@ export function verdictTone(verdict: Verdict): Tone {
 export function verdictLabel(verdict: Verdict): string {
   return VERDICT_LABEL[verdict] ?? "Unbekannt";
 }
+
+/**
+ * Badge einer Nachkalkulation — EINE Regel für alle Karten und das Portfolio:
+ * „Über Plan“ mit negativer Ist-Marge ist „Kritisch – Verlust“.
+ */
+export function nachkalkulationBadge(result: { verdict: Verdict; actualMarginPct: number }): { tone: Tone; label: string; loss: boolean } {
+  if (result.verdict === "schlechter" && result.actualMarginPct < 0) {
+    return { tone: "critical", label: "Kritisch – Verlust", loss: true };
+  }
+  return { tone: verdictTone(result.verdict), label: verdictLabel(result.verdict), loss: false };
+}

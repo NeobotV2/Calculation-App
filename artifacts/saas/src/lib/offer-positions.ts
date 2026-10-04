@@ -6,6 +6,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 import { calcRoom, FREQUENCY_FACTORS, FREQUENCY_LABELS } from "@/lib/calc";
 import type { ObjectTotals } from "@/lib/object-totals";
+import { orderRoomsByGroup } from "@/lib/room-groups";
 import { effectiveMethod } from "@/lib/service-modules/winterdienst";
 import { contingentScopeText, formatSeason, hmsTaskFrequencyText } from "@/lib/service-modules/util";
 import type { HmsUnit, SpreadMaterial, WinterArea } from "@/lib/service-modules/types";
@@ -115,7 +116,7 @@ export function buildOfferPositions(project: Project, totals: ObjectTotals, rate
 
   /* ── Unterhaltsreinigung ── */
   if (project.rooms.length > 0) {
-    const positions: OfferPosition[] = project.rooms.map((room) => {
+    const positions: OfferPosition[] = orderRoomsByGroup(project.rooms).map((room) => {
       const rc = calcRoom(room, rate);
       const label = room.name || room.typeName;
       return {

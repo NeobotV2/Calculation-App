@@ -178,6 +178,13 @@ describe("resolveAuthGuard", () => {
     expect(resolveAuthGuard("/", onboarded)).toEqual({ kind: "resume" });
     expect(resolveAuthGuard("/objekte", onboarded)).toEqual({ kind: "allow" });
   });
+
+  it("onboarded or signed-in users cannot run the onboarding again (it would overwrite their data)", () => {
+    expect(resolveAuthGuard("/onboarding", onboarded)).toEqual({ kind: "redirect", to: "/", remember: false });
+    expect(resolveAuthGuard("/onboarding", loggedInFreshDevice)).toEqual({ kind: "redirect", to: "/", remember: false });
+    // Die Landing-Page bleibt erreichbar.
+    expect(resolveAuthGuard("/willkommen", onboarded)).toEqual({ kind: "allow" });
+  });
 });
 
 describe("intended path", () => {

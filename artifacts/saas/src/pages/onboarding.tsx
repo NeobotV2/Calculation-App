@@ -10,12 +10,17 @@ import { PageTransition } from "@/components/layout/PageTransition";
 import { consumeIntendedPath } from "@/components/layout/nav-config";
 import { useStore } from "@/store/use-store";
 import { DEFAULT_COMPANY_NAME } from "@/lib/offer-readiness";
-import { cn } from "@/lib/utils";
+import { suggestedDefaultRate } from "@/lib/object-economics";
+import { cn, formatNumber } from "@/lib/utils";
 import { trackOnboardingStarted, trackOnboardingCompleted, trackOnboardingSkipped } from "@/services/analytics-service";
 
 const ROLES = ["Inhaber / GF", "Vertrieb", "Objektleitung", "Kalkulation"];
 const TOTAL_STEPS = 5;
-const DEFAULT_RATE = 22.5;
+/**
+ * Vorschlag: Ergebnis des Verrechnungssatz-Rechners mit Standardwerten — deckt
+ * Vollkosten und Gewinn (der alte Platzhalter 22,50 € lag unter den Vollkosten).
+ */
+const DEFAULT_RATE = suggestedDefaultRate();
 
 /** Große Auswahlkachel (Rolle, Startart, Account). */
 function ChoiceButton({
@@ -129,7 +134,11 @@ export default function Onboarding() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <div className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-[calc(var(--safe-top)+1.5rem)]">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 pb-[calc(var(--safe-bottom)+1.5rem)] pt-[calc(var(--safe-top)+1.5rem)] outline-none"
+      >
         <div className="mb-8 flex items-center gap-3">
           {step > 1 ? (
             <Button type="button" variant="ghost" size="icon-sm" onClick={back} aria-label="Zurück">
@@ -245,7 +254,7 @@ export default function Onboarding() {
                       decimals={2}
                       min={0}
                       inputSize="lg"
-                      placeholder="22,50"
+                      placeholder={formatNumber(DEFAULT_RATE, 2)}
                     />
                   </FormField>
                 </div>
@@ -324,7 +333,7 @@ export default function Onboarding() {
             </PageTransition>
           )}
         </AnimatePresence>
-      </div>
+      </main>
     </div>
   );
 }

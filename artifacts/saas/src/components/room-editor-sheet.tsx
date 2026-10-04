@@ -331,7 +331,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate, o
           )}
 
           {/* Raumart */}
-          <fieldset className="space-y-2">
+          <fieldset className="min-w-0 space-y-2">
             <legend className="mb-2 text-label text-muted-foreground">Raumart</legend>
             {pickerOpen ? (
               <div className="space-y-3">
@@ -457,6 +457,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate, o
                   if (v !== undefined && v > 0) setAreaError(null);
                 }}
                 unit="m²"
+                decimals={2}
                 min={0}
                 placeholder="0"
                 inputSize="lg"
@@ -503,6 +504,7 @@ export function RoomEditorSheet({ open, onClose, onSave, editRoom, hourlyRate, o
                 value={form.customPerformance}
                 onValueChange={(v) => update({ customPerformance: v })}
                 unit="m²/h"
+                decimals={1}
                 min={0}
                 placeholder={String(selectedType.performanceValue)}
               />

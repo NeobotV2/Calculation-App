@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { FREQUENCY_FACTORS, calcProjectTotals, calcRoom } from "@/lib/calc";
+import { roundGroupsForDisplay } from "@/lib/display-rounding";
+import { calcObjectTotals } from "@/lib/object-totals";
+import { buildOfferPositions } from "@/lib/offer-positions";
+import { orderRoomsByGroup } from "@/lib/room-groups";
 import { DEFAULT_ROOM_TYPES } from "@/data/room-types";
 import { FREQUENCY_OPTIONS } from "@/data/frequencies";
 import type { FrequencyKey, Project, Room } from "@/store/use-store";
@@ -58,6 +62,7 @@ const ROOMS: Room[] = [
 ];
 
 const RATE = 31.4;
+const RATES = { rate: RATE, vollkosten: 20 };
 
 describe("groupRooms", () => {
   it("keeps the insertion order of groups and of rooms within a group", () => {
@@ -226,6 +231,23 @@ describe("moveRoom / groupMove", () => {
     expect(groupOrder(afterWc)).toEqual(["g1", "g2", "g3"]);
   });
 
+  it("the printed order (offer, LV) follows the editor groups and every move", () => {
+    const printed = (rs: Room[]) => {
+      const p = makeProject({ rooms: rs });
+      return buildOfferPositions(p, calcObjectTotals(p, RATES), RATE)[0].positions.map((x) => x.id);
+    };
+    const shown = (rs: Room[]) => groupRooms(rs, RATE).flatMap((g) => g.rooms.map((r) => r.id));
+
+    expect(shown(ROOMS)).toEqual(["a", "c", "b", "e", "d"]);
+    expect(printed(ROOMS)).toEqual(shown(ROOMS));
+    expect(orderRoomsByGroup(ROOMS).map((r) => r.id)).toEqual(shown(ROOMS));
+
+    const wcUp = groupMove(ROOMS, "e", "up")!;
+    const afterWc = moveRoom(ROOMS, wcUp.from, wcUp.to);
+    expect(printed(afterWc)).toEqual(["a", "c", "e", "b", "d"]);
+    expect(printed(afterWc)).toEqual(shown(afterWc));
+  });
+
   it("returns null at the edges of a group or for unknown rooms", () => {
     expect(groupMove(ROOMS, "a", "up")).toBeNull();
     expect(groupMove(ROOMS, "c", "down")).toBeNull();
@@ -352,6 +374,26 @@ describe("roundRoomsForDisplay", () => {
         expect(Math.abs(r.priceMonthly - calcRoom(r.room, RATE).monthlyCost)).toBeLessThanOrEqual(0.01 + 1e-9);
       }
     }
+  });
+
+  it("Raumzeilen und Rüst-/Wegezeit zeigen dieselben Cent-Beträge wie das Angebot", () => {
+    const p = makeProject({ rooms: ROOMS, ruestzeit: 13, wegezeit: 7 });
+    const totals = calcObjectTotals(p, RATES);
+    const offer = roundGroupsForDisplay(buildOfferPositions(p, totals, RATE), { totalMonthly: totals.priceMonthly })[0].positions;
+    const setup = setupTimeTotals({ ruestzeit: 13, wegezeit: 7 }, ROOMS, RATE);
+    const shown = roundRoomsForDisplay(groupRooms(ROOMS, RATE), [
+      { key: "ruestzeit", hoursMonthly: setup.ruestzeitHours, priceMonthly: setup.ruestzeitHours * RATE },
+      { key: "wegezeit", hoursMonthly: setup.wegezeitHours, priceMonthly: setup.wegezeitHours * RATE },
+    ]);
+    const tableRows = [
+      ...shown.groups.flatMap((g) => g.rows.map((r) => ({ id: r.room.id, priceMonthly: r.priceMonthly, hoursMonthly: r.hoursMonthly }))),
+      ...[...shown.footer].map(([id, f]) => ({ id, ...f })),
+    ];
+    expect(tableRows.map((r) => r.id)).toEqual(offer.map((x) => x.id));
+    tableRows.forEach((r, i) => {
+      expect(cents(r.priceMonthly)).toBe(cents(offer[i].priceMonthly));
+      expect(tenths(r.hoursMonthly)).toBe(tenths(offer[i].hoursMonthly));
+    });
   });
 
   it("ohne Fußzeilen und ohne Räume", () => {

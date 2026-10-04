@@ -81,7 +81,7 @@ export const PLAN_META: Record<PlanId, PlanMeta> = {
   free: { id: "free", label: "Free", shortLabel: "Free", isPaid: false, isFounder: false },
   pro_monthly: { id: "pro_monthly", label: "Pro Monatlich", shortLabel: "Pro", isPaid: true, isFounder: false },
   pro_annual: { id: "pro_annual", label: "Pro Jährlich", shortLabel: "Pro", isPaid: true, isFounder: false },
-  founding_annual: { id: "founding_annual", label: "Founding Member", shortLabel: "Founding", isPaid: true, isFounder: true },
+  founding_annual: { id: "founding_annual", label: "Gründer-Tarif", shortLabel: "Gründer", isPaid: true, isFounder: true },
   business: { id: "business", label: "Business", shortLabel: "Business", isPaid: true, isFounder: false },
 };
 

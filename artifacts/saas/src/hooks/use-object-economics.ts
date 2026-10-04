@@ -9,9 +9,10 @@ export function useEconomicsSettings(): EconomicsSettings {
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const targetMargin = useStore((s) => s.targetMargin);
   const disabledWarnings = useStore((s) => s.disabledWarnings);
+  const confirmedHourlyRate = useStore((s) => s.confirmedHourlyRate);
   return useMemo(
-    () => ({ hourlyRate, hourlyRateConfig, targetMargin, disabledWarnings }),
-    [hourlyRate, hourlyRateConfig, targetMargin, disabledWarnings],
+    () => ({ hourlyRate, hourlyRateConfig, targetMargin, disabledWarnings, confirmedHourlyRate }),
+    [hourlyRate, hourlyRateConfig, targetMargin, disabledWarnings, confirmedHourlyRate],
   );
 }
 

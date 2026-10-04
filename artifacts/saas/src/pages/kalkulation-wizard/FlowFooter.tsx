@@ -24,7 +24,7 @@ export interface FlowFooterProps {
   saveDisabled: boolean;
   /** z. B. „Bitte beheben Sie zuerst: …“ oder der Offline-Hinweis. */
   saveHint?: string | null;
-  /** Zusammenfassung (unter lg): Monatspreis und Status. */
+  /** Zusammenfassung (unter xl): Monatspreis und Status. */
   priceMonthly: number;
   status: { tone: Tone; label: string };
   /** Inhalt des Sheets „Details“ (LiveSummary); `close` schließt das Sheet. */
@@ -33,7 +33,8 @@ export interface FlowFooterProps {
 
 /**
  * Fixierte Fußleiste des Flows (`chrome="focus"`, ohne BottomNav):
- * unter lg eine Preiszeile (öffnet „Details“), darunter Zurück / Weiter
+ * unter xl (ohne Live-Kalkulation in der rechten Spalte) eine Preiszeile
+ * (öffnet „Details“), darunter Zurück / Weiter
  * bzw. im letzten Schritt Speichern.
  */
 export function FlowFooter({
@@ -64,16 +65,19 @@ export function FlowFooter({
             type="button"
             onClick={() => setDetailsOpen(true)}
             aria-haspopup="dialog"
-            className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-md px-2 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-md px-2 py-1 text-left outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring xl:hidden"
           >
-            <span className="flex min-w-0 items-baseline gap-2">
+            {/* Unter sm zweizeilig: Preis und Status überlappen sonst auf schmalen Telefonen. */}
+            <span className="flex min-w-0 flex-col sm:flex-row sm:items-baseline sm:gap-2">
               <span className="text-label text-muted-foreground">Monatspreis</span>
-              <Money value={priceMonthly} period="month" className="font-semibold text-foreground" />
+              <Money value={priceMonthly} period="month" className="whitespace-nowrap font-semibold text-foreground" />
             </span>
-            <span className="flex shrink-0 items-center gap-2">
+            <span className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
               <StatusBadge size="sm" tone={status.tone} label={status.label} />
-              <span className="text-xs font-medium text-primary">Details</span>
-              <ChevronUp aria-hidden="true" className="size-4 text-primary" />
+              <span className="flex items-center gap-1 text-xs font-medium text-primary">
+                Details
+                <ChevronUp aria-hidden="true" className="size-4" />
+              </span>
             </span>
           </button>
         )}

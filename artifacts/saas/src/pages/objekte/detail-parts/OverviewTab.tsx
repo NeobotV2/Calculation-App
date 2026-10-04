@@ -11,12 +11,12 @@ import { einsaetzeText } from "@/components/calc/winterdienst/winterdienst-ui";
 import type { ObjectEconomics } from "@/lib/object-economics";
 import type { NextStep } from "@/lib/offer-readiness";
 import { formatSeason } from "@/lib/service-modules/util";
-import { formatDate, formatNumber } from "@/lib/utils";
+import { formatDate, formatNumber, softHyphenate } from "@/lib/utils";
 import type { Project } from "@/store/use-store";
 import { FindingsPanel } from "./FindingsPanel";
 import { NextStepCard } from "./NextStepCard";
 import { useNachkalkulationSummary } from "./NachkalkulationSheet";
-import { isCleaningTabVisible, moduleShares, type WorkspaceModule, type WorkspaceTab } from "./workspace-tabs";
+import { displayedModuleShares, isCleaningTabVisible, type WorkspaceModule, type WorkspaceTab } from "./workspace-tabs";
 
 export interface OverviewTabProps {
   project: Project;
@@ -46,7 +46,7 @@ interface ModuleCardData {
 }
 
 function moduleCards(project: Project, economics: ObjectEconomics, forceCleaning: boolean): ModuleCardData[] {
-  const shares = new Map(moduleShares(economics.totals).map((s) => [s.module, s]));
+  const shares = new Map(displayedModuleShares(project, economics).map((s) => [s.module, s]));
   const cards: ModuleCardData[] = [];
   const cleaning = economics.totals.cleaning;
   if (isCleaningTabVisible(project, { forceCleaning })) {
@@ -92,10 +92,10 @@ function ModuleCard({ data, onOpen }: { data: ModuleCardData; onOpen: () => void
   return (
     <Card as="li" padding="sm" aria-labelledby={titleId} className="flex flex-col gap-3">
       <div className="flex items-start gap-3">
-        <ModuleIcon module={data.module} aria-hidden="true" role={undefined} aria-label={undefined} />
+        <ModuleIcon module={data.module} decorative />
         <div className="min-w-0 flex-1">
-          <h3 id={titleId} className="text-h3 text-foreground">
-            {meta.label}
+          <h3 id={titleId} className="hyphens-auto break-words text-h3 text-foreground">
+            {softHyphenate(meta.label)}
           </h3>
           <p className="text-xs text-muted-foreground">{data.figure}</p>
         </div>
@@ -270,7 +270,7 @@ export function OverviewTab({
 
       <FindingsPanel project={project} warnings={economics.warnings} readOnly={readOnly} />
 
-      {nextStep && !readOnly && <NextStepCard step={nextStep} onOffer={onOffer} titleAs="h2" className="lg:hidden" />}
+      {nextStep && !readOnly && <NextStepCard step={nextStep} onOffer={onOffer} titleAs="h2" className="xl:hidden" />}
 
       <div className="grid gap-6 xl:grid-cols-2">
         <ObjectDataCard project={project} economics={economics} onEdit={onEditInfo} readOnly={readOnly} />

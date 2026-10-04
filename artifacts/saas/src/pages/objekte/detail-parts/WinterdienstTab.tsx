@@ -1,9 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Callout } from "@/components/ui/callout";
-import { Money } from "@/components/ui/money";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel } from "@/components/ui/responsive-sheet";
 import { WinterdienstEditor } from "@/components/calc/WinterdienstEditor";
 import { WinterdienstOverview } from "@/components/calc/WinterdienstOverview";
 import { WinterNachkalkulationCard } from "@/components/controlling/WinterNachkalkulationCard";
@@ -12,6 +10,7 @@ import { computeObjectEconomics, type ObjectEconomics } from "@/lib/object-econo
 import { calcWinterdienst } from "@/lib/service-modules/winterdienst";
 import type { WinterdienstConfig } from "@/lib/service-modules/types";
 import type { Project } from "@/store/use-store";
+import { MonthlyPriceChange } from "./MonthlyPriceChange";
 
 /* ── Gemeinsamer Rahmen für Modul-Editoren (Winterdienst, Hausmeisterservice) ── */
 
@@ -57,7 +56,6 @@ export function ModuleEditorSheet<T extends { enabled: boolean }>({
   const toSave = useMemo<T>(() => (isNew ? { ...draft, enabled: true } : draft), [draft, isNew]);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initial), [draft, initial]);
   const after = useMemo(() => priceAfter(toSave), [priceAfter, toSave]);
-  const delta = after - priceBefore;
 
   const save = async () => {
     setSaving(true);
@@ -84,20 +82,11 @@ export function ModuleEditorSheet<T extends { enabled: boolean }>({
       dirty={dirty}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving}>
-            Abbrechen
-          </Button>
+          <ResponsiveSheetCancel disabled={saving} />
           <Button type="button" onClick={() => void save()} loading={saving}>
             Speichern
           </Button>
-          <p className="flex flex-wrap items-center gap-x-2 text-sm text-muted-foreground sm:order-first sm:mr-auto">
-            <span>Monatspreis netto</span>
-            <Money value={priceBefore} className="text-foreground" />
-            <ArrowRight aria-hidden="true" className="size-4" />
-            <span className="sr-only">neu</span>
-            <Money value={after} className="font-semibold text-foreground" />
-            {Math.abs(delta) >= 0.005 && <Money value={delta} size="sm" signed className="text-muted-foreground" />}
-          </p>
+          <MonthlyPriceChange before={priceBefore} after={after} />
         </>
       }
       bodyClassName="space-y-4"

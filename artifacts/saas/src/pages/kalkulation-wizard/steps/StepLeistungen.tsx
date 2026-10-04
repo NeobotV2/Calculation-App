@@ -8,7 +8,7 @@ import { ModuleIcon, type ServiceModule } from "@/components/ui/module-badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { CalcModuleKey } from "@/lib/drafts";
-import { cn } from "@/lib/utils";
+import { cn, softHyphenate } from "@/lib/utils";
 import { STEP_BLOCK_MESSAGES, hasAnyModule } from "../flow-state";
 import type { FlowStepProps } from "../flow-steps";
 
@@ -119,7 +119,7 @@ export function StepLeistungen({
                   onChange={(e) => toggle(m.key, e.target.checked)}
                 />
                 <span className="flex items-start justify-between gap-3">
-                  <ModuleIcon module={m.key} size="md" />
+                  <ModuleIcon module={m.key} size="md" decorative />
                   <span
                     aria-hidden="true"
                     className={cn(
@@ -130,7 +130,7 @@ export function StepLeistungen({
                     {checked && <Check className="size-3.5" strokeWidth={2.5} />}
                   </span>
                 </span>
-                <span className="text-h3 text-foreground">{m.title}</span>
+                <span className="hyphens-auto break-words text-h3 text-foreground">{softHyphenate(m.title)}</span>
                 <span id={descId} className="text-sm text-muted-foreground">
                   {m.description}
                   <span className="mt-2 block text-xs">Abrechnung: {m.billing}</span>

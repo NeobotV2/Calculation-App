@@ -19,7 +19,8 @@ vi.mock("@/lib/capacitor-storage", () => {
 import { calcProjectTotals, calcRoom } from "@/lib/calc";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
 import { computeObjectEconomics, type EconomicsSettings, type ObjectEconomics } from "@/lib/object-economics";
-import type { HmsConfig, WinterdienstConfig } from "@/lib/service-modules/types";
+import { compareHmsNachkalkulation, compareWinterNachkalkulation } from "@/lib/service-modules/nachkalkulation";
+import type { HmsActual, HmsConfig, WinterdienstActual, WinterdienstConfig } from "@/lib/service-modules/types";
 import { DEMO_PROJECTS, type Project } from "@/store/use-store";
 import {
   aggregatePortfolio,
@@ -27,8 +28,11 @@ import {
   filterPortfolioRows,
   groupSliceColor,
   hoursByObject,
+  moduleSliceDisplayValues,
   objectRevenueSlices,
+  objectSliceDisplayValues,
   portfolioModules,
+  portfolioNachkalkulationVerdict,
   revenueByGroup,
   revenueByModule,
   roomGroupBreakdown,
@@ -37,6 +41,8 @@ import {
   sumSlices,
   type PortfolioRow,
 } from "./portfolio";
+import { displayModuleAmounts, displayOfferGroups, roundDisplay, sumDisplay } from "@/lib/display-rounding";
+import { buildOfferPositions } from "@/lib/offer-positions";
 
 const SETTINGS: EconomicsSettings = {
   hourlyRate: 22.5,
@@ -285,6 +291,89 @@ describe("roomNachkalkulationVerdict", () => {
   });
 });
 
+describe("portfolioNachkalkulationVerdict", () => {
+  const wdSeason = (season: string, einsaetze: number, laborHours?: number, recordedAt = "2026-04-01T00:00:00.000Z"): WinterdienstActual => ({
+    id: `wd-${season}-${recordedAt}`, season, einsaetze, ...(laborHours !== undefined ? { laborHours } : {}), recordedAt,
+  });
+  const hmsYear = (year: number, laborHours: number): HmsActual => ({ id: `hms-${year}`, year, laborHours, recordedAt: `${year + 1}-01-15T00:00:00.000Z` });
+  const roomEntry = (econ: ObjectEconomics, factor: number) => ({ actualMonthlyHours: econ.totals.cleaning.hours * factor, recordedAt: "2026-01-01" });
+
+  it("is null without any actuals", () => {
+    const p: Project = { ...demo()[0], winterdienst: WD_REF, hms: HMS_REF };
+    expect(portfolioNachkalkulationVerdict(p, computeObjectEconomics(p, SETTINGS), undefined)).toBeNull();
+  });
+
+  it("reflects the latest Winterdienst season of a module-only object (like WinterNachkalkulationCard)", () => {
+    const p: Project = {
+      ...demo()[0],
+      rooms: [],
+      winterdienst: WD_REF,
+      serviceActuals: { winterdienst: [wdSeason("2025/26", 45), wdSeason("2024/25", 45, 45 * 10)] },
+    };
+    const econ = computeObjectEconomics(p, SETTINGS);
+    const v = portfolioNachkalkulationVerdict(p, econ, undefined);
+    expect(v).toMatchObject({ source: "winterdienst", verdict: "im_plan", label: "Im Plan", tone: "success" });
+    expect(v!.result).toEqual(compareWinterNachkalkulation(econ.totals.winterdienst!, p.serviceActuals!.winterdienst![0]));
+  });
+
+  it("reflects the latest HMS year with the configured overage billing (like HmsNachkalkulationCard)", () => {
+    const base: Project = { ...demo()[0], rooms: [], hms: HMS_REF };
+    const plan = computeObjectEconomics(base, SETTINGS).totals.hms!;
+    const p: Project = { ...base, serviceActuals: { hms: [hmsYear(2024, plan.laborHoursAnnual * 2), hmsYear(2025, plan.laborHoursAnnual * 0.9)] } };
+    const econ = computeObjectEconomics(p, SETTINGS);
+    const v = portfolioNachkalkulationVerdict(p, econ, undefined);
+    expect(v).toMatchObject({ source: "hms", verdict: "besser", label: "Besser als geplant" });
+    expect(v!.result).toEqual(compareHmsNachkalkulation(plan, p.serviceActuals!.hms![1], HMS_REF.contingentOverageBilled));
+  });
+
+  it("shows the worst verdict across Unterhalt and modules", () => {
+    const base: Project = { ...demo()[0], winterdienst: WD_REF, hms: HMS_REF };
+    const econ0 = computeObjectEconomics(base, SETTINGS);
+    const wdPlan = econ0.totals.winterdienst!;
+    const hmsPlan = econ0.totals.hms!;
+    const p: Project = {
+      ...base,
+      serviceActuals: {
+        winterdienst: [wdSeason("2025/26", 45, 45 * wdPlan.perEinsatz.laborHours * 1.5)],
+        hms: [hmsYear(2025, hmsPlan.laborHoursAnnual)],
+      },
+    };
+    const econ = computeObjectEconomics(p, SETTINGS);
+
+    const overWinter = portfolioNachkalkulationVerdict(p, econ, roomEntry(econ, 1));
+    expect(overWinter).toMatchObject({ source: "winterdienst", verdict: "schlechter" });
+
+    const roomLoss = portfolioNachkalkulationVerdict(p, econ, roomEntry(econ, 3));
+    expect(roomLoss).toMatchObject({ source: "unterhalt", tone: "critical", label: "Kritisch – Verlust" });
+
+    const wdLoss: Project = { ...p, serviceActuals: { ...p.serviceActuals, winterdienst: [wdSeason("2025/26", 45, 45 * wdPlan.perEinsatz.laborHours * 6)] } };
+    const loss = portfolioNachkalkulationVerdict(wdLoss, computeObjectEconomics(wdLoss, SETTINGS), roomEntry(econ, 1));
+    expect(loss).toMatchObject({ source: "winterdienst", tone: "critical", label: "Kritisch – Verlust", severity: 3 });
+    expect(loss!.result.actualMarginPct).toBeLessThan(0);
+  });
+
+  it("ranks severity for sorting: besser < im_plan < Über Plan < Kritisch – Verlust", () => {
+    // Eigener Satz 40 €/h: +10 % Stunden bleiben profitabel („Über Plan“), das Dreifache nicht.
+    const econ = computeObjectEconomics({ ...demo()[0], hourlyRate: 40 }, SETTINGS);
+    const sev = (factor: number) => roomNachkalkulationVerdict(econ, roomEntry(econ, factor))!.severity;
+    expect([sev(0.9), sev(1), sev(1.1), sev(3)]).toEqual([0, 1, 2, 3]);
+  });
+
+  it("ignores paused modules and room actuals the Controlling detail does not compare", () => {
+    const paused: Project = {
+      ...demo()[0],
+      rooms: [],
+      winterdienst: { ...WD_REF, enabled: false },
+      hms: HMS_REF,
+      serviceActuals: { winterdienst: [wdSeason("2025/26", 45, 45 * 50)] },
+    };
+    const econ = computeObjectEconomics(paused, SETTINGS);
+    expect(econ.totals.hasModules).toBe(true);
+    // Keine Räume, aktive Module → keine Raum-Nachkalkulation; Winterdienst pausiert → kein Vergleich.
+    expect(portfolioNachkalkulationVerdict(paused, econ, { actualMonthlyHours: 999, recordedAt: "2026-01-01" })).toBeNull();
+  });
+});
+
 describe("portfolio filters", () => {
   it("filters by module and status", () => {
     const projects = demo();
@@ -330,5 +419,51 @@ describe("calcRateImpact", () => {
     const impact = calcRateImpact(demo(), SETTINGS, next);
     expect(impact.affectedCount).toBe(2);
     expect(impact.deltaMonthly).toBe(0);
+  });
+});
+
+describe("objectSliceDisplayValues", () => {
+  it("shows the same rounded amounts as the offer positions and adds up to the rounded price", () => {
+    const p = demo()[0];
+    p.ruestzeit = 20;
+    p.winterdienst = WD_REF;
+    p.hms = HMS_REF;
+    const econ = computeObjectEconomics(p, SETTINGS);
+    const slices = objectRevenueSlices(p, econ);
+    const values = objectSliceDisplayValues(p, econ, slices);
+    const m = displayModuleAmounts(displayOfferGroups(buildOfferPositions(p, econ.totals, econ.effectiveRate), econ.totals.priceMonthly));
+    expect(values[slices.findIndex((s) => s.key === SETUP_SLICE_KEY)]).toBe(m.setup);
+    expect(values[slices.findIndex((s) => s.key === "hms")]).toBe(m.hms);
+    expect(values.reduce((a, v) => a + Math.round(v * 100), 0)).toBe(Math.round(roundDisplay(econ.totals.priceMonthly) * 100));
+    values.forEach((v, i) => expect(Math.abs(v - slices[i].value)).toBeLessThan(0.02 * Math.max(1, p.rooms.length)));
+  });
+});
+
+describe("moduleSliceDisplayValues", () => {
+  it("'Umsatz nach Leistung' adds up to the KPI (Σ rounded object prices)", () => {
+    // Zwei Objekte zu je 11,255 €: KPI und Tabelle zeigen 2 × 11,26 = 22,52 €.
+    const settings = { ...SETTINGS, hourlyRate: 22.51 };
+    const mk = (id: string): Project => ({
+      id, name: id, status: "active", createdAt: "2026-01-01", updatedAt: "2026-01-01", ruestzeit: 0, wegezeit: 0,
+      rooms: [{ id: "r", name: "R", typeId: "t", typeName: "Büro", groupId: "g", groupName: "Büro", area: 100, frequency: "monthly", typePerformance: 200 }],
+    });
+    const objects = [mk("a"), mk("b")].map((project) => ({ project, econ: computeObjectEconomics(project, settings) }));
+    const kpi = sumDisplay(objects.map((o) => roundDisplay(o.econ.totals.priceMonthly)));
+    expect(kpi).toBe(22.52);
+    const slices = revenueByModule(objects.map((o) => o.econ));
+    expect(sumDisplay(moduleSliceDisplayValues(objects, slices))).toBe(kpi);
+  });
+
+  it("matches the KPI for mixed objects with Winterdienst and HMS", () => {
+    const ps = demo();
+    ps[0].winterdienst = WD_REF;
+    ps[0].hms = HMS_REF;
+    ps[1].hms = HMS_REF;
+    ps[1].ruestzeit = 13;
+    const objects = ps.map((project) => ({ project, econ: computeObjectEconomics(project, SETTINGS) }));
+    const slices = revenueByModule(objects.map((o) => o.econ));
+    const values = moduleSliceDisplayValues(objects, slices);
+    expect(sumDisplay(values)).toBe(sumDisplay(objects.map((o) => roundDisplay(o.econ.totals.priceMonthly))));
+    values.forEach((v, i) => expect(Math.abs(v - slices[i].value)).toBeLessThan(0.05));
   });
 });

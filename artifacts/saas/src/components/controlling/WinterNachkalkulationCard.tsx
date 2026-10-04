@@ -19,7 +19,7 @@ import { useStoreActions } from "@/hooks/use-store-actions";
 import { markupToRevenueMargin } from "@/lib/price-strategy";
 import { compareWinterNachkalkulation } from "@/lib/service-modules/nachkalkulation";
 import type { ServiceActuals, WinterdienstActual, WinterdienstResult } from "@/lib/service-modules/types";
-import { marginTone, verdictLabel, verdictTone } from "@/lib/status";
+import { marginTone, nachkalkulationBadge } from "@/lib/status";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
 import { useStore, type Project } from "@/store/use-store";
 import {
@@ -276,7 +276,7 @@ export function WinterNachkalkulationCard({
               </p>
               <span className="flex items-center gap-2 text-xs text-muted-foreground">
                 Leistung je Einsatz
-                <StatusBadge tone={verdictTone(cmp.verdict)} label={verdictLabel(cmp.verdict)} />
+                <StatusBadge tone={nachkalkulationBadge(cmp).tone} label={nachkalkulationBadge(cmp).label} />
               </span>
             </div>
 

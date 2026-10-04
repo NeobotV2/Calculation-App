@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { RotateCcw, Save } from "lucide-react";
+import { Check, RotateCcw, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useStore } from "@/store/use-store";
 import { useStoreActions } from "@/hooks/use-store-actions";
@@ -19,12 +19,13 @@ import {
   type HourlyRateConfig,
   type CleaningType,
   type SchichtzuschlagConfig,
+  adoptedRate,
   calcHourlyRate,
   getDefaultConfig,
   CLEANING_TYPE_LABELS,
   CLEANING_TYPE_OVERHEADS,
 } from "@/lib/hourly-rate-calc";
-import type { EconomicsSettings } from "@/lib/object-economics";
+import { isDefaultRateSetting, type EconomicsSettings } from "@/lib/object-economics";
 import { calcRateImpact, type RateImpact } from "@/pages/auswertung/portfolio";
 import { BasislohnSection } from "./kalkulation/sections/BasislohnSection";
 import { SchichtzuschlaegeSection } from "./kalkulation/sections/SchichtzuschlaegeSection";
@@ -36,7 +37,6 @@ import { ResultSummary } from "./kalkulation/sections/ResultSummary";
 import { BenchmarkCard } from "./kalkulation/sections/BenchmarkCard";
 import { CLEANING_TYPES } from "./kalkulation/constants";
 
-const roundRate = (v: number) => Math.round(v * 100) / 100;
 
 /** „Betrifft 3 Objekte ohne eigenen Satz · Monatsumsatz +120,00 €" */
 export function rateImpactText(impact: RateImpact): string {
@@ -58,6 +58,8 @@ function ImpactCallout({ impact }: { impact: RateImpact }) {
 export default function Kalkulation() {
   const storedConfig = useStore((s) => s.hourlyRateConfig);
   const currentHourlyRate = useStore((s) => s.hourlyRate);
+  const confirmedHourlyRate = useStore((s) => s.confirmedHourlyRate);
+  const confirmHourlyRate = useStore((s) => s.confirmHourlyRate);
   const projects = useStore((s) => s.projects);
   const settings = useEconomicsSettings();
   const actions = useStoreActions();
@@ -157,8 +159,11 @@ export default function Kalkulation() {
     config.schichtzuschlaege.sonntag.enabled ||
     config.schichtzuschlaege.feiertag.enabled;
 
-  const newRate = roundRate(breakdown.stundenverrechnungssatz);
+  // Übernommener Satz: Rechner-Ergebnis auf den Cent aufgerundet (erreicht die Zielmarge).
+  const newRate = adoptedRate(breakdown);
   const hasChanged = JSON.stringify(config) !== JSON.stringify(storedConfig) || newRate !== currentHourlyRate;
+  // Unveränderte Standardwerte lassen sich ausdrücklich bestätigen („Verrechnungssatz prüfen“ in Erste Schritte).
+  const needsConfirm = !hasChanged && isDefaultRateSetting(currentHourlyRate, storedConfig, confirmedHourlyRate);
 
   // Auswirkung auf den Monatsumsatz: computeObjectEconomics mit alten vs. neuen
   // Einstellungen (gleiche Regel wie updateHourlyRateConfig im Store).
@@ -175,11 +180,19 @@ export default function Kalkulation() {
 
   const handleSave = async () => {
     if (isSaving) return;
+    if (needsConfirm) {
+      confirmHourlyRate(currentHourlyRate);
+      toast.success("Verrechnungssatz bestätigt", {
+        description: "Die Standardwerte passen zu Ihrem Betrieb – der Satz gilt als geprüft.",
+      });
+      return;
+    }
     const note = impact ? rateImpactText(impact) : undefined;
     setIsSaving(true);
     try {
       useStore.getState().updateHourlyRateConfig(config);
       await actions.updateSettings({ hourlyRate: newRate });
+      confirmHourlyRate(newRate);
       toast.success("Verrechnungssatz übernommen", note ? { description: note } : undefined);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Der Verrechnungssatz konnte nicht gespeichert werden.");
@@ -211,7 +224,7 @@ export default function Kalkulation() {
         header={
           <PageHeader
             title="Verrechnungssatz"
-            back={{ href: "/mehr", label: "Mehr" }}
+            back={{ href: "/mehr", label: "Mehr", phoneOnly: true }}
             subtitle="Kalkulieren Sie Ihren Stundenverrechnungssatz aus Lohn, Zuschlägen, Ausfallzeiten und Gemeinkosten."
           />
         }
@@ -226,6 +239,7 @@ export default function Kalkulation() {
             </ResultSummary>
           </>
         }
+        railLabel="Rechenweg"
       >
         <div className="space-y-4">
           <Card className="lg:hidden">
@@ -333,20 +347,28 @@ export default function Kalkulation() {
       <StickyActionBar chrome="app" label="Verrechnungssatz übernehmen">
         <div className="min-w-0 flex-1 text-sm">
           <span className="block text-label text-muted-foreground">
-            {hasChanged ? "Neuer Verrechnungssatz" : "Verrechnungssatz ist aktuell"}
+            {hasChanged ? "Neuer Verrechnungssatz" : needsConfirm ? "Standardwerte, noch nicht bestätigt" : "Verrechnungssatz ist aktuell"}
           </span>
-          <Money value={breakdown.stundenverrechnungssatz} period="hour" className="font-semibold text-foreground" />
+          <Money value={newRate} period="hour" className="font-semibold text-foreground" />
         </div>
         <Button type="button" variant="ghost" onClick={handleReset}>
           <RotateCcw aria-hidden="true" />
           <span className="hidden sm:inline">Standardwerte</span>
           <span className="sr-only sm:hidden">Standardwerte</span>
         </Button>
-        <Button type="button" onClick={handleSave} disabled={!hasChanged} loading={isSaving}>
-          <Save aria-hidden="true" />
-          <span className="hidden sm:inline">Als Verrechnungssatz übernehmen</span>
-          <span className="sm:hidden">Übernehmen</span>
-        </Button>
+        {needsConfirm ? (
+          <Button type="button" onClick={handleSave}>
+            <Check aria-hidden="true" />
+            <span className="hidden sm:inline">Standardwerte bestätigen</span>
+            <span className="sm:hidden">Bestätigen</span>
+          </Button>
+        ) : (
+          <Button type="button" onClick={handleSave} disabled={!hasChanged} loading={isSaving}>
+            <Save aria-hidden="true" />
+            <span className="hidden sm:inline">Als Verrechnungssatz übernehmen</span>
+            <span className="sm:hidden">Übernehmen</span>
+          </Button>
+        )}
       </StickyActionBar>
     </PageTransition>
   );

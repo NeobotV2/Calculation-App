@@ -63,10 +63,12 @@ export interface ModuleIconProps extends Omit<React.HTMLAttributes<HTMLSpanEleme
   size?: ModuleSize;
   /** Zeigt das Label (volle Bezeichnung) neben der Kachel. */
   showLabel?: boolean;
+  /** Steht neben einem sichtbaren Modulnamen: für Screenreader ausblenden (kein doppelter Name). */
+  decorative?: boolean;
 }
 
 /** Icon-Kachel des Moduls (`bg-module-x-soft text-module-x`). */
-export function ModuleIcon({ module, size = "md", showLabel = false, className, ...props }: ModuleIconProps) {
+export function ModuleIcon({ module, size = "md", showLabel = false, decorative = false, className, ...props }: ModuleIconProps) {
   const meta = MODULE_META[module];
   const Icon = meta.icon;
   const tile = (
@@ -78,7 +80,7 @@ export function ModuleIcon({ module, size = "md", showLabel = false, className, 
         tileSize[size],
         !showLabel && className,
       )}
-      {...(showLabel ? { "aria-hidden": true } : { role: "img", "aria-label": meta.label, ...props })}
+      {...(showLabel ? { "aria-hidden": true } : decorative ? { ...props, "aria-hidden": true } : { role: "img", "aria-label": meta.label, ...props })}
     >
       <Icon aria-hidden="true" strokeWidth={2} />
     </span>

@@ -80,6 +80,26 @@ export function dbObjectToProject(obj: DbObject, rooms: DbRoom[]): Project {
   };
 }
 
+export const SERVICE_MODULES_MIGRATION_MESSAGE =
+  "Winterdienst/Hausmeisterservice können noch nicht gespeichert werden – die Datenbank benötigt das Update 005_service_modules. Bitte den Administrator informieren.";
+
+/** Schreiben mit Modul-Spalten scheitert, weil die Datenbank Migration 005 noch nicht kennt. */
+export class ServiceModulesMigrationError extends Error {
+  constructor() {
+    super(SERVICE_MODULES_MIGRATION_MESSAGE);
+    this.name = "ServiceModulesMigrationError";
+  }
+}
+
+/**
+ * PostgREST „PGRST204“ (Spalte nicht im Schema-Cache) bzw. Postgres „42703“
+ * (undefined_column) für eine der Spalten aus 005_service_modules.sql.
+ */
+export function isMissingServiceModuleColumn(error: { code?: string | null; message?: string | null } | null | undefined): boolean {
+  if (!error || (error.code !== "PGRST204" && error.code !== "42703")) return false;
+  return /["'](winterdienst|hms|service_actuals)["']/.test(error.message ?? "");
+}
+
 async function getCompanyId(): Promise<string | null> {
   if (!supabase) return null;
   const { data } = await supabase.from("profiles").select("company_id").single();
@@ -128,6 +148,7 @@ export async function createObject(name: string, customer?: string): Promise<str
   return data.id;
 }
 
+/** false bei Fehlern; fehlen die Modul-Spalten (Migration 005), wirft es ServiceModulesMigrationError. */
 export async function updateObject(
   id: string,
   updates: Partial<Pick<Project, "name" | "customer" | "location" | "notes" | "hourlyRate" | "status" | "objectType" | "rpiContactName" | "ruestzeit" | "wegezeit" | "winterdienst" | "hms" | "serviceActuals">>
@@ -155,6 +176,7 @@ export async function updateObject(
     .from("cleaning_objects")
     .update(dbUpdates)
     .eq("id", id);
+  if (isMissingServiceModuleColumn(error)) throw new ServiceModulesMigrationError();
   return !error;
 }
 
@@ -164,6 +186,7 @@ export async function deleteObject(id: string): Promise<boolean> {
   return !error;
 }
 
+/** null bei Fehlern; fehlen die Modul-Spalten (Migration 005), wirft es ServiceModulesMigrationError. */
 export async function duplicateObject(id: string): Promise<string | null> {
   if (!supabase) return null;
   const companyId = await getCompanyId();
@@ -197,6 +220,7 @@ export async function duplicateObject(id: string): Promise<string | null> {
     })
     .select("id")
     .single();
+  if (isMissingServiceModuleColumn(objError)) throw new ServiceModulesMigrationError();
   if (objError || !newObj) return null;
 
   const { data: rooms } = await supabase

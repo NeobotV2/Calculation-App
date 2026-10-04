@@ -20,8 +20,9 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn, formatCurrency } from "@/lib/utils";
 import { OfferPreviewDialog } from "./OfferPreviewDialog";
+import { seriousHintCount } from "./offer-meta";
 
-export { openOfferItemCount, readinessLabel, readinessTone } from "./offer-meta";
+export { offerStatusChip, openOfferItemCount } from "./offer-meta";
 
 export type OfferCheckMode = "gate" | "info";
 
@@ -132,6 +133,8 @@ export function OfferCheckDialog({
   const needsConfirm = criticals.length > 0;
   const canProceed = !hasBlockers && (!needsConfirm || confirmed);
   const status = getObjectStatus(project, readiness);
+  const onlyHintsOpen = !hasBlockers && !needsConfirm && offerGaps.length === 0;
+  const warningHints = seriousHintCount(readiness);
   const close = () => onOpenChange(false);
 
   const proceed = () => {
@@ -147,7 +150,9 @@ export function OfferCheckDialog({
       ? "Der Preis deckt nicht alle Kosten. Prüfen Sie die kritischen Punkte, bevor Sie das Angebot öffnen."
       : offerGaps.length > 0
         ? "Für ein vollständiges Angebot fehlen noch Angaben."
-        : "Es gibt keine offenen Punkte.";
+        : warningHints > 0
+          ? "Bitte prüfen Sie die Hinweise, bevor Sie das Angebot versenden."
+          : "Es gibt keine offenen Punkte.";
 
   return (
     <>
@@ -166,11 +171,15 @@ export function OfferCheckDialog({
           </DialogHeader>
 
           <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6">
-            {blockers.length === 0 && criticals.length === 0 && offerGaps.length === 0 && (
+            {onlyHintsOpen && (warningHints > 0 ? (
+              <Callout tone="warning" title="Prüfung offen">
+                Name, Preis, Kunde und Firmendaten sind vollständig. Bitte prüfen Sie die Hinweise.
+              </Callout>
+            ) : (
               <Callout tone="success" title="Angebotsbereit">
                 Name, Preis, Kunde und Firmendaten sind vollständig.
               </Callout>
-            )}
+            ))}
 
             {blockers.length > 0 && (
               <Group title="Blocker" tone="critical" count={blockers.length}>
@@ -237,12 +246,7 @@ export function OfferCheckDialog({
           <DialogFooter className="border-t border-border px-4 py-4 md:px-6">
             {isGate ? (
               <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setPreviewOpen(true)}
-                  disabled={hasBlockers}
-                >
+                <Button type="button" variant="secondary" onClick={() => setPreviewOpen(true)}>
                   <Eye aria-hidden="true" />
                   Vorschau
                 </Button>
@@ -259,7 +263,14 @@ export function OfferCheckDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      {isGate && <OfferPreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} project={project} />}
+      {isGate && (
+        <OfferPreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          project={project}
+          onOpenOffer={canProceed ? () => { setPreviewOpen(false); proceed(); } : null}
+        />
+      )}
     </>
   );
 }

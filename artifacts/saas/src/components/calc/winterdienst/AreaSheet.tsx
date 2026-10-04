@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel, ResponsiveSheetFooterRow } from "@/components/ui/responsive-sheet";
 import { NativeSelect } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -105,7 +105,11 @@ export function AreaSheet({ open, onOpenChange, area, isNew, config, onSave }: A
     if (!draft.clear && !draft.spread) e.work = "Bitte wählen Sie Räumen und/oder Streuen.";
     setErrors(e);
     if (e.areaM2) {
-      areaInputRef.current?.focus();
+      // Feld und Meldung mittig zeigen — sonst liegt die Meldung unter der Fußleiste.
+      areaInputRef.current?.focus({ preventScroll: true });
+      requestAnimationFrame(() => {
+        (document.getElementById(`${uid}-m2-error`) ?? areaInputRef.current)?.scrollIntoView({ block: "center" });
+      });
       return;
     }
     if (e.work) return;
@@ -118,14 +122,14 @@ export function AreaSheet({ open, onOpenChange, area, isNew, config, onSave }: A
 
   const footer = (
     <>
-      <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-        Abbrechen
-      </Button>
-      {isNew && (
-        <Button type="button" variant="secondary" onClick={() => submit(true)}>
-          Speichern & nächste Fläche
-        </Button>
-      )}
+      <ResponsiveSheetFooterRow>
+        <ResponsiveSheetCancel />
+        {isNew && (
+          <Button type="button" variant="secondary" onClick={() => submit(true)}>
+            Speichern & nächste<span className="hidden sm:inline"> Fläche</span>
+          </Button>
+        )}
+      </ResponsiveSheetFooterRow>
       <Button type="button" onClick={() => submit(false)}>
         Speichern
       </Button>

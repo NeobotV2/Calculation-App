@@ -3,9 +3,8 @@ import { useMemo } from "react";
 import { ShieldAlert } from "lucide-react";
 import type { Project } from "@/store/use-store";
 import type { ObjectEconomics } from "@/lib/object-economics";
-import { buildOfferPositions, type OfferPosition, type OfferPositionGroup } from "@/lib/offer-positions";
-import { allocateRounded, roundDisplay, roundGroupsForDisplay, sumDisplay } from "@/lib/display-rounding";
-import type { ObjectComponent } from "@/lib/object-totals";
+import { buildOfferPositions, type OfferPosition } from "@/lib/offer-positions";
+import { allocateRounded, displayComponents, displayOfferGroups, sumDisplay, type DisplayComponentRow } from "@/lib/display-rounding";
 import { calcWinterdienst } from "@/lib/service-modules/winterdienst";
 import { monthShort } from "@/lib/service-modules/util";
 import type { MonthIndex, WinterBillingMode, WinterdienstConfig, WinterdienstResult, HmsConfig, HmsResult } from "@/lib/service-modules/types";
@@ -166,12 +165,15 @@ function SeasonBreakdownTable({ wd }: { wd: WinterdienstResult }) {
 function WinterdienstBlock({
   cfg,
   wd,
+  shown,
   economics,
   headingTag,
   idPrefix,
 }: {
   cfg: WinterdienstConfig;
   wd: WinterdienstResult;
+  /** Angezeigte Komponentenzeile, damit Kennzahlen und Komponenten denselben Betrag zeigen. */
+  shown: DisplayComponentRow | undefined;
   economics: ObjectEconomics;
   headingTag: DocHeadingTag;
   idPrefix: string;
@@ -223,8 +225,8 @@ function WinterdienstBlock({
               { label: "Fixe Kosten (Bereitschaft, Vorbereitung)", value: formatCurrency(wd.fixedCostSeason) },
               { label: "Arbeitsstunden je Saison", value: `${hours(wd.laborHoursSeason)} h` },
               { label: "Streugut je Saison", value: `${formatNumber(wd.materialKgSeason, 0)} kg` },
-              { label: "Ø Erlös pro Monat", value: formatCurrency(wd.revenueMonthly) },
-              { label: "Ø Kosten pro Monat", value: formatCurrency(wd.costMonthly) },
+              { label: "Ø Erlös pro Monat", value: formatCurrency(shown?.priceMonthly ?? wd.revenueMonthly) },
+              { label: "Ø Kosten pro Monat", value: formatCurrency(shown?.costMonthly ?? wd.costMonthly) },
               { label: "Marge (vom Umsatz)", value: pct(wd.marginPct), tone: marginClass, strong: true },
             ]}
           />
@@ -291,6 +293,7 @@ function HmsBlock({
   cfg,
   hms,
   positions,
+  shown,
   economics,
   headingTag,
   idPrefix,
@@ -298,6 +301,8 @@ function HmsBlock({
   cfg: HmsConfig;
   hms: HmsResult;
   positions: OfferPosition[];
+  /** Angezeigte Komponentenzeile, damit Kennzahlen und Komponenten denselben Betrag zeigen. */
+  shown: DisplayComponentRow | undefined;
   economics: ObjectEconomics;
   headingTag: DocHeadingTag;
   idPrefix: string;
@@ -373,8 +378,8 @@ function HmsBlock({
         rows={[
           { label: "Deckungsbeitrag je Jahr", value: signedCurrency(hms.contributionAnnual) },
           { label: "Marge (vom Umsatz)", value: pct(hms.marginPct), tone: marginClass, strong: true },
-          { label: "Ø Erlös / Kosten pro Monat", value: `${formatCurrency(hms.revenueMonthly)} / ${formatCurrency(hms.costMonthly)}` },
-          { label: "Ø Stunden pro Monat", value: `${hours(hms.laborHoursMonthly)} h` },
+          { label: "Ø Erlös / Kosten pro Monat", value: `${formatCurrency(shown?.priceMonthly ?? hms.revenueMonthly)} / ${formatCurrency(shown?.costMonthly ?? hms.costMonthly)}` },
+          { label: "Ø Stunden pro Monat", value: `${hours(shown?.hoursMonthly ?? hms.laborHoursMonthly)} h` },
           ...(hms.contingentHoursAnnual > 0
             ? [{ label: "Kontingent je Jahr", value: `${hours(hms.contingentHoursAnnual)} h` }]
             : []),
@@ -413,49 +418,6 @@ function HmsBlock({
   );
 }
 
-/**
- * Komponentenzeilen für die Anzeige: Erlös und Stunden aus den gerundeten
- * Angebotspositionen (gleiche Beträge wie im Leistungsverzeichnis), Kosten
- * mit Restverteilung auf die gerundeten Gesamtkosten.
- */
-function componentsForDisplay(components: ObjectComponent[], shownGroups: OfferPositionGroup[], costMonthly: number) {
-  const unterhalt = shownGroups.find((g) => g.module === "unterhalt")?.positions ?? [];
-  const pick = (key: ObjectComponent["key"]): OfferPosition[] | null => {
-    switch (key) {
-      case "reinigung":
-        return unterhalt.filter((p) => p.kind === "room");
-      case "ruest_wege":
-        return unterhalt.filter((p) => p.kind === "ruestzeit" || p.kind === "wegezeit");
-      case "winterdienst":
-        return shownGroups.find((g) => g.module === "winterdienst")?.positions ?? null;
-      case "hms":
-        return shownGroups.find((g) => g.module === "hms")?.positions ?? null;
-      default:
-        return null;
-    }
-  };
-  const costs = allocateRounded(components.map((c) => c.costMonthly), costMonthly);
-  const rows = components.map((c, i) => {
-    const ps = pick(c.key);
-    return {
-      key: c.key,
-      label: c.label,
-      exact: c,
-      priceMonthly: ps ? sumDisplay(ps.map((p) => p.priceMonthly)) : roundDisplay(c.priceMonthly),
-      hoursMonthly: ps ? sumDisplay(ps.map((p) => p.hoursMonthly), 1) : roundDisplay(c.hoursMonthly, 1),
-      costMonthly: costs[i],
-    };
-  });
-  return {
-    rows,
-    total: {
-      priceMonthly: sumDisplay(rows.map((r) => r.priceMonthly)),
-      hoursMonthly: sumDisplay(rows.map((r) => r.hoursMonthly), 1),
-      costMonthly: sumDisplay(rows.map((r) => r.costMonthly)),
-    },
-  };
-}
-
 export function InternalCalcDocument({
   project,
   economics,
@@ -471,11 +433,8 @@ export function InternalCalcDocument({
     [project, totals, effectiveRate],
   );
   // Anzeige: gerundete Positionen (Σ Zeilen = Summe) und daraus abgeleitete Komponentenzeilen.
-  const shownGroups = useMemo(
-    () => roundGroupsForDisplay(groups, { totalMonthly: totals.priceMonthly }),
-    [groups, totals.priceMonthly],
-  );
-  const shownComponents = useMemo(() => componentsForDisplay(totals.components, shownGroups, totals.costMonthly), [totals, shownGroups]);
+  const shownGroups = useMemo(() => displayOfferGroups(groups, totals.priceMonthly), [groups, totals.priceMonthly]);
+  const shownComponents = useMemo(() => displayComponents(totals.components, shownGroups, totals.costMonthly), [totals, shownGroups]);
   const unterhalt = shownGroups.find((g) => g.module === "unterhalt");
   const hmsPositions = groups.find((g) => g.module === "hms")?.positions ?? [];
   const issued = now ?? new Date();
@@ -570,7 +529,7 @@ export function InternalCalcDocument({
                     <td className={cn(DOC_TD, DOC_NUM)}>{hours(c.hoursMonthly)}</td>
                     <td className={cn(DOC_TD, DOC_NUM)}>{formatCurrency(c.priceMonthly)}</td>
                     <td className={cn(DOC_TD, DOC_NUM)}>{formatCurrency(c.costMonthly)}</td>
-                    <td className={cn(DOC_TD, DOC_NUM)}>{signedCurrency(sumDisplay([c.priceMonthly, -c.costMonthly]))}</td>
+                    <td className={cn(DOC_TD, DOC_NUM)}>{signedCurrency(c.contributionMonthly)}</td>
                     <td className={cn(DOC_TD, DOC_NUM)}>{pct(m)}</td>
                   </tr>
                 );
@@ -583,7 +542,7 @@ export function InternalCalcDocument({
                 <td className={cn(DOC_TD, DOC_NUM)}>{formatCurrency(shownComponents.total.priceMonthly)}</td>
                 <td className={cn(DOC_TD, DOC_NUM)}>{formatCurrency(shownComponents.total.costMonthly)}</td>
                 <td className={cn(DOC_TD, DOC_NUM)}>
-                  {signedCurrency(sumDisplay([shownComponents.total.priceMonthly, -shownComponents.total.costMonthly]))}
+                  {signedCurrency(shownComponents.total.contributionMonthly)}
                 </td>
                 <td className={cn(DOC_TD, DOC_NUM, marginClass)}>{pct(totals.marginPct)}</td>
               </tr>
@@ -733,6 +692,7 @@ export function InternalCalcDocument({
           <WinterdienstBlock
             cfg={project.winterdienst}
             wd={totals.winterdienst}
+            shown={shownComponents.rows.find((c) => c.key === "winterdienst")}
             economics={economics}
             headingTag={sectionTag}
             idPrefix={uid}
@@ -744,6 +704,7 @@ export function InternalCalcDocument({
             cfg={project.hms}
             hms={totals.hms}
             positions={hmsPositions}
+            shown={shownComponents.rows.find((c) => c.key === "hms")}
             economics={economics}
             headingTag={sectionTag}
             idPrefix={uid}

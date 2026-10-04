@@ -1,7 +1,8 @@
 import type { Project } from "@/store/use-store";
 import { BENCHMARKS, estimateFte } from "@/data/benchmarks";
-import type { ObjectTotals } from "@/lib/object-totals";
+import type { ObjectComponentKey, ObjectTotals } from "@/lib/object-totals";
 import { evaluateModuleFindings } from "@/lib/service-modules/plausibility";
+import { withMinusSign } from "@/lib/utils";
 
 /* ─────────────────────────────────────────────────────────────────────────
    Risiko-Scoring (0–100) für eine Objektkalkulation.
@@ -15,7 +16,7 @@ export type RiskLevel = "niedrig" | "mittel" | "hoch";
 
 /** Zahl im deutschen Format (Dezimalkomma) mit fester Nachkommazahl. */
 const de = (n: number, digits: number) =>
-  n.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  withMinusSign(n.toLocaleString("de-DE", { minimumFractionDigits: digits, maximumFractionDigits: digits }));
 
 export interface RiskFactor {
   key: string;
@@ -67,21 +68,55 @@ export interface RiskInput {
 export const NACHKALK_LIGHT_OVERRUN = 0.05;
 export const NACHKALK_HEAVY_OVERRUN = 0.10;
 
+/** Rüst- und Wegezeit gehört zur Unterhaltsreinigung. */
+const COMPONENT_NAMES: Record<ObjectComponentKey, string> = {
+  reinigung: "Unterhaltsreinigung",
+  ruest_wege: "Unterhaltsreinigung",
+  winterdienst: "Winterdienst",
+  hms: "Hausmeisterservice",
+};
+
+/** Leistungen mit negativem Deckungsbeitrag (€/Monat), in der Reihenfolge der Komponenten. */
+function lossMakingServices(totals: ObjectTotals): { name: string; contributionMonthly: number }[] {
+  const byName = new Map<string, number>();
+  for (const c of totals.components) {
+    const name = COMPONENT_NAMES[c.key];
+    byName.set(name, (byName.get(name) ?? 0) + c.priceMonthly - c.costMonthly);
+  }
+  return [...byName]
+    .filter(([, db]) => db < -1e-9)
+    .map(([name, contributionMonthly]) => ({ name, contributionMonthly }));
+}
+
+const joinAnd = (items: string[]) =>
+  items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} und ${items[items.length - 1]}`;
+
 export function calcRiskScore(input: RiskInput): RiskResult {
   const factors: RiskFactor[] = [];
   const add = (key: string, points: number, title: string, detail: string, recommendation: string) =>
     factors.push({ key, points, title, detail, recommendation });
 
   const { project, monthlyHours, area, monthlyCost, marginPct, targetMarginPct } = input;
+  // Mit aktiven Modulen ist marginPct die Gesamtmarge des Objekts, nicht die der Reinigung.
+  const moduleTotals = input.objectTotals?.hasModules ? input.objectTotals : undefined;
 
   // 1. Marge
-  if (marginPct < 0) {
+  if (marginPct < 0 && moduleTotals) {
+    const losses = lossMakingServices(moduleTotals);
+    const db = moduleTotals.contributionMonthly < 0
+      ? ` (Deckungsbeitrag ${de(moduleTotals.contributionMonthly, 2)} € pro Monat)` : "";
+    const cause = losses.length > 0
+      ? ` Ursache: ${losses.map((l) => `${l.name} (${de(l.contributionMonthly, 2)} €)`).join(", ")}.` : "";
+    add("margin_negative", 35, "Kalkulation unter Vollkosten",
+      `Der Monatspreis deckt die Vollkosten nicht${db}.${cause}`,
+      `Preis${losses.length > 0 ? ` für ${joinAnd(losses.map((l) => l.name))}` : ""} anheben oder Leistungsumfang reduzieren — so nicht anbieten.`);
+  } else if (marginPct < 0) {
     add("margin_negative", 35, "Kalkulation unter Vollkosten",
       "Der Verrechnungssatz deckt die Selbstkosten nicht.",
       "Satz erhöhen oder Leistungsumfang reduzieren — so nicht anbieten.");
   } else if (marginPct < targetMarginPct / 2) {
     add("margin_half", 25, "Marge weit unter Zielwert",
-      `Nur ${de(marginPct, 1)} % statt ${de(targetMarginPct, 1)} % Zielmarge (vom Umsatz).`,
+      `${moduleTotals ? "Gesamtmarge nur" : "Nur"} ${de(marginPct, 1)} % statt ${de(targetMarginPct, 1)} % Zielmarge (vom Umsatz).`,
       "Preis anheben oder Kostenstruktur prüfen; kaum Reserve für Unvorhergesehenes.");
   } else if (marginPct < targetMarginPct - 1e-9) {
     add("margin_low", 12, "Marge unter Zielwert",
@@ -160,8 +195,10 @@ export function calcRiskScore(input: RiskInput): RiskResult {
   }
 
   // 9. Leistungsmodule (Winterdienst/HMS) — gleiche Befunde wie warnings.ts
-  if (input.objectTotals?.hasModules) {
-    for (const f of evaluateModuleFindings(project, input.objectTotals, targetMarginPct)) {
+  if (moduleTotals) {
+    for (const f of evaluateModuleFindings(project, moduleTotals, targetMarginPct)) {
+      // Ein Modulverlust steckt bei negativer Gesamtmarge bereits in margin_negative (dort benannt).
+      if (marginPct < 0 && f.idSuffix.startsWith("below_cost_")) continue;
       if (f.riskPoints > 0) add(f.riskKey, f.riskPoints, f.title, f.message, f.action);
     }
   }

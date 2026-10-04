@@ -357,8 +357,9 @@ function FlowEditor({ mode, project, stepParam, routeId, onReopen }: FlowEditorP
       />
 
       <PageContainer width="wide" className="flex-1">
-        <div className="pt-4 pb-8 md:pt-6 lg:grid lg:grid-cols-[14rem_minmax(0,1fr)_20rem] lg:gap-8">
-          <aside className="hidden lg:block" aria-label="Fortschritt">
+        {/* Drei Spalten erst ab xl: bei 1024 px blieben für Tabellen nur ~350 px (Preise/Aktionen abgeschnitten). */}
+        <div className="pt-4 pb-8 md:pt-6 xl:grid xl:grid-cols-[14rem_minmax(0,1fr)_20rem] xl:gap-8">
+          <aside className="hidden xl:block" aria-label="Fortschritt">
             <div className="sticky top-[calc(var(--safe-top)+5rem)] -m-1 max-h-[calc(100dvh-var(--safe-top)-11rem)] overflow-y-auto overscroll-contain p-1">
               <FlowStepper
                 steps={steps}
@@ -372,19 +373,19 @@ function FlowEditor({ mode, project, stepParam, routeId, onReopen }: FlowEditorP
           <main id="main" className="min-w-0">
             <div className="mx-auto max-w-3xl space-y-6">
               <FlowStepperCompact
-                className="lg:hidden"
+                className="xl:hidden"
                 steps={steps}
                 current={current}
                 canSelect={(s) => canSelectStep(s, draft, mode)}
                 onSelect={goTo}
               />
-              <div className="hidden space-y-1 lg:block">
+              <div className="hidden space-y-1 xl:block">
                 <h2 id={titleId} data-step-title tabIndex={-1} className="text-h2 text-foreground outline-none">
                   {FLOW_STEP_LABELS[current]}
                 </h2>
                 <p className="text-sm text-muted-foreground">{stepDef.description}</p>
               </div>
-              <p className="text-sm text-muted-foreground lg:hidden">{stepDef.description}</p>
+              <p className="text-sm text-muted-foreground xl:hidden">{stepDef.description}</p>
 
               {/* Fokus-Modus ohne AppShell/SyncBanner: Offline-Hinweis hier, auf jedem Schritt (§11). */}
               {offline && (
@@ -473,9 +474,15 @@ function FlowEditor({ mode, project, stepParam, routeId, onReopen }: FlowEditorP
           </main>
 
           {/* Höhe begrenzt: Kopf (5rem) + fixierte Fußleiste (≤ 6rem) dürfen nichts verdecken (WCAG 2.4.11). */}
-          <aside className="hidden lg:block">
+          <aside className="hidden xl:block">
             <div className="sticky top-[calc(var(--safe-top)+5rem)] max-h-[calc(100dvh-var(--safe-top)-11rem)] overflow-y-auto overscroll-contain rounded-lg border border-border bg-card p-4 shadow-surface">
-              <LiveSummary draft={draft} econ={econ} readiness={readiness} onReviewHints={current === "pruefen" ? undefined : reviewHints} />
+              <LiveSummary
+                draft={draft}
+                econ={econ}
+                positions={positions}
+                readiness={readiness}
+                onReviewHints={current === "pruefen" ? undefined : reviewHints}
+              />
             </div>
           </aside>
         </div>
@@ -499,6 +506,7 @@ function FlowEditor({ mode, project, stepParam, routeId, onReopen }: FlowEditorP
             heading={null}
             draft={draft}
             econ={econ}
+            positions={positions}
             readiness={readiness}
             onReviewHints={
               current === "pruefen"

@@ -10,6 +10,8 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "src"),
     },
   },
+  // Wie @vitejs/plugin-react im App-Build: Komponenten ohne React-Import rendern auch im Test.
+  esbuild: { jsx: "automatic" },
   test: {
     environment: "node",
     include: ["src/**/*.{test,spec}.{ts,tsx}"],

@@ -7,10 +7,10 @@ import { DataTable, type Column, type DataTableGroup } from "@/components/ui/dat
 import { ModuleIcon } from "@/components/ui/module-badge";
 import { Money } from "@/components/ui/money";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { formatOfferQuantity } from "@/components/offer/offer-meta";
+import { formatOfferQuantity, openOfferItemCount } from "@/components/offer/offer-meta";
 import { getObjectStatus, type OfferReadiness, type ReadinessItem } from "@/lib/offer-readiness";
 import type { OfferPosition, OfferPositionGroup } from "@/lib/offer-positions";
-import { roundDisplay, roundGroupsForDisplay, sumDisplay } from "@/lib/display-rounding";
+import { displayOfferGroups, roundDisplay, sumDisplay } from "@/lib/display-rounding";
 import { severityLabel, severityTone, type Tone } from "@/lib/status";
 import { useMediaQuery } from "@/lib/theme";
 import { MEDIA } from "@/lib/tokens";
@@ -54,8 +54,8 @@ function itemLabel(item: ReadinessItem): string {
 /** Zusammenfassung der Prüfliste: „Angebotsbereit“, „Prüfung offen (n)“ oder „Unvollständig (n)“. */
 export function readinessSummary(r: OfferReadiness): { label: string; tone: Tone } {
   if (r.blockers.length > 0) return { label: `Unvollständig (${r.blockers.length})`, tone: "critical" };
-  const serious = r.hints.filter((h) => h.severity === "warning" || h.severity === "critical").length;
-  const open = r.criticals.length + r.offerGaps.length + serious;
+  // Gleiche Zählung wie der Status-Chip der Druckansicht.
+  const open = openOfferItemCount(r);
   if (open > 0) return { label: `Prüfung offen (${open})`, tone: "warning" };
   return { label: "Angebotsbereit", tone: "success" };
 }
@@ -147,7 +147,7 @@ function GroupTitle({ group, suffix }: { group: OfferPositionGroup; suffix?: str
   return (
     <span className="block">
       <span className="flex items-center gap-2">
-        <ModuleIcon module={group.module} size="sm" />
+        <ModuleIcon module={group.module} size="sm" decorative />
         <span>
           {group.label}
           {suffix && <span className="font-normal text-muted-foreground"> · {suffix}</span>}
@@ -258,7 +258,7 @@ function MobilePositions({ groups, total }: { groups: OfferPositionGroup[]; tota
                 onClick={() => setOpen((s) => ({ ...s, [g.module]: !isOpen }))}
                 className="flex min-h-12 w-full items-center gap-3 bg-surface-sunken px-4 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               >
-                <ModuleIcon module={g.module} size="sm" />
+                <ModuleIcon module={g.module} size="sm" decorative />
                 <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
                   {g.label}
                   <span className="block text-xs font-normal text-muted-foreground">
@@ -320,7 +320,7 @@ export function StepPruefen({ mode, draft, tempProject, econ, readiness, positio
   // Anzeige-Rundung: Zeilen auf Cent mit Restverteilung — Σ Zeilen = Zwischensumme,
   // Σ Zwischensummen = Gesamt netto = gerundeter Monatspreis oben.
   const shown = React.useMemo(
-    () => roundGroupsForDisplay(positions, { totalMonthly: totals.priceMonthly }),
+    () => displayOfferGroups(positions, totals.priceMonthly),
     [positions, totals.priceMonthly],
   );
   const total = sumDisplay(shown.map((g) => g.subtotalMonthly));
@@ -342,7 +342,7 @@ export function StepPruefen({ mode, draft, tempProject, econ, readiness, positio
             </h3>
             <Money value={priceMonthly} size="display" period="month" />
             <p className="text-sm text-muted-foreground">
-              Jahreswert <Money value={roundDisplay(priceMonthly * 12)} period="year" className="font-medium text-foreground" /> · zzgl. USt.
+              Jahreswert <Money value={roundDisplay(totals.priceAnnual)} period="year" className="font-medium text-foreground" /> · zzgl. USt.
             </p>
           </div>
           <StatusBadge tone={status.tone} label={status.label} className="self-start" />

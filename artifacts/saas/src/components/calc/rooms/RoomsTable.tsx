@@ -2,7 +2,7 @@ import * as React from "react";
 import { ArrowDown, ArrowUp, ChevronRight, Copy, Ellipsis, Info, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DataTable, type Column, type DataTableGroup } from "@/components/ui/data-table";
+import { DataTable, columnHideClass, type Column, type DataTableGroup } from "@/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -208,15 +208,14 @@ const COLUMN_META: { id: ColumnId; hideBelow?: "lg" | "xl"; numeric?: boolean }[
   { id: "turnus" },
   { id: "lw", hideBelow: "lg", numeric: true },
   { id: "minuten", hideBelow: "xl", numeric: true },
-  { id: "stunden", numeric: true },
+  { id: "stunden", hideBelow: "lg", numeric: true },
   { id: "preis", numeric: true },
 ];
 
 function metaCellClass(meta: (typeof COLUMN_META)[number]) {
   return cn(
     meta.numeric ? "text-right tabular-nums" : "text-left",
-    meta.hideBelow === "lg" && "hidden lg:table-cell",
-    meta.hideBelow === "xl" && "hidden xl:table-cell",
+    columnHideClass(meta.hideBelow),
   );
 }
 
@@ -380,7 +379,9 @@ export function RoomsTable({
               className={cn("-my-1 -ml-2 [&_svg]:transition-transform", isOpen && "[&_svg]:rotate-90")}
             />
             <div className="min-w-0">
-              <div className="truncate font-medium text-foreground">{name}</div>
+              <div className="truncate font-medium text-foreground" title={name}>
+                {name}
+              </div>
               {row.room.typeName && row.room.typeName !== name && (
                 <div className="truncate text-xs text-muted-foreground">{row.room.typeName}</div>
               )}
@@ -389,6 +390,8 @@ export function RoomsTable({
         );
       },
       footer: <span>{total.label}</span>,
+      // Nimmt die Restbreite; lange Namen kürzen statt die Tabelle zu verbreitern.
+      cellClassName: "w-full max-w-0",
     },
     gruppe: {
       header: "Gruppe",
@@ -399,7 +402,7 @@ export function RoomsTable({
       unit: "m²",
       cell: (row) => formatArea(row.room.area),
       footer: formatArea(total.area, 1),
-      width: "7rem",
+      width: "6rem",
     },
     turnus: {
       header: "Turnus",

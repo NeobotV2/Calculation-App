@@ -36,7 +36,8 @@ export function BottomNav() {
                   <span
                     aria-hidden="true"
                     className={cn(
-                      "flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-surface",
+                      // Erhöhte Kachel: nimmt nur die Höhe eines Icons ein (-mt), damit „Neu“ auf derselben Linie steht wie die übrigen Labels.
+                      "-mt-4 flex size-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-surface",
                       active && "ring-2 ring-primary/30 ring-offset-2 ring-offset-card",
                     )}
                   >

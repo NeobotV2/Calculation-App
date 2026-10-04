@@ -84,7 +84,7 @@ export function WinterdienstOverview({
         titleAs="h2"
         title={
           <span id={`${uid}-title`} className="flex flex-wrap items-center gap-2">
-            <ModuleIcon module="winterdienst" size="sm" />
+            <ModuleIcon module="winterdienst" size="sm" decorative />
             Winterdienst
             {paused && <Badge tone="neutral">Pausiert</Badge>}
           </span>

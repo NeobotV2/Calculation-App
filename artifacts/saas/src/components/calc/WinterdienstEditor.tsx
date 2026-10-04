@@ -2,6 +2,7 @@ import * as React from "react";
 import { calcWinterdienst } from "@/lib/service-modules/winterdienst";
 import type { ModuleFinding } from "@/lib/service-modules/plausibility";
 import type { ModuleRates, WinterdienstConfig } from "@/lib/service-modules/types";
+import { SHEET_STICKY_RESULT } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { ModuleFindingsList } from "./ModuleFindingsList";
 import { AdvancedCard } from "./winterdienst/AdvancedCard";
@@ -67,13 +68,13 @@ export function WinterdienstEditor({
           <ScenarioTable result={result} targetMarginPct={targetMarginPct} />
         </section>
         <ModuleFindingsList findings={wdFindings} compact label="Hinweise zum Winterdienst" heading="Hinweise" />
-        <section
-          aria-label="Ergebnis Winterdienst"
-          className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-raised md:sticky md:bottom-0 md:z-sticky"
-        >
-          <WinterdienstKpis result={result} targetMarginPct={targetMarginPct} />
-          <WinterdienstResultLines result={result} />
-        </section>
+        <WinterdienstResultLines result={result} />
+        {/* Nur die Kennzahlen bleiben haften (flach); randlos mit Fläche, damit nichts darunter durchscheint. */}
+        <div className={SHEET_STICKY_RESULT}>
+          <section aria-label="Ergebnis Winterdienst" className="rounded-lg border border-border bg-card p-4 shadow-raised">
+            <WinterdienstKpis result={result} targetMarginPct={targetMarginPct} />
+          </section>
+        </div>
       </div>
     );
   }

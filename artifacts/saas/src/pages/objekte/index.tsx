@@ -15,7 +15,7 @@ import { StateView } from "@/components/ui/state-view";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { canAddProject, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
+import { canAddProject, canRestoreProject, countLimitedProjects, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import type { CompanyInfo } from "@/lib/offer-readiness";
 import { trackFreeLimitReached } from "@/services/analytics-service";
@@ -73,6 +73,7 @@ export default function ObjekteList() {
   const counts = useMemo(() => countObjectsByTab(rows), [rows]);
   const visible = useMemo(() => sortObjectRows(filterObjectRows(rows, filter), sort), [rows, filter, sort]);
   const activeCount = counts.active;
+  const limitedCount = useMemo(() => countLimitedProjects(projects), [projects]);
   const objectLimit = getObjectLimit();
   const paid = isPaidPlan(plan);
 
@@ -123,6 +124,11 @@ export default function ObjekteList() {
   };
 
   const handleRestore = async (row: ObjectRow) => {
+    const gate = canRestoreProject(row.project.id);
+    if (!gate.allowed) {
+      showUpgrade(gate);
+      return;
+    }
     try {
       await actions.restoreProject(row.project.id);
       toast.success("Objekt wiederhergestellt");
@@ -280,15 +286,16 @@ export default function ObjekteList() {
           <Callout
             tone="info"
             action={
-              activeCount >= objectLimit ? (
+              limitedCount >= objectLimit ? (
                 <Button asChild variant="secondary" size="sm">
                   <Link href="/upgrade">Pro-Plan ansehen</Link>
                 </Button>
               ) : undefined
             }
           >
-            Sie nutzen {activeCount} von {objectLimit} kostenlosen {objectLimit === 1 ? "Objekt" : "Objekten"}.
-            {activeCount >= objectLimit && " Für weitere Objekte wechseln Sie zum Pro-Plan."}
+            Sie nutzen {limitedCount} von {objectLimit} kostenlosen {objectLimit === 1 ? "Objekt" : "Objekten"}
+            {limitedCount < activeCount && " (Beispielobjekte zählen nicht)"}.
+            {limitedCount >= objectLimit && " Für weitere Objekte wechseln Sie zum Pro-Plan."}
           </Callout>
         )}
 

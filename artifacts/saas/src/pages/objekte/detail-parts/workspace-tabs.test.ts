@@ -8,6 +8,8 @@ import {
   isCleaningTabVisible,
   isWorkspaceTab,
   moduleShares,
+  displayedModuleShares,
+  rateChangePreview,
   resolveTab,
   tabFlowStep,
   tabHasWarnings,
@@ -18,6 +20,11 @@ import {
   workspaceKpis,
 } from "./workspace-tabs";
 import { calcProjectTotals } from "@/lib/calc";
+import { groupRooms, roundRoomsForDisplay, setupTimeTotals } from "@/components/calc/rooms/rooms-editor-logic";
+import { hmsDisplayAmounts } from "@/components/calc/hms/hms-ui";
+import { displayModuleAmounts, displayOfferGroups, displayTotals, roundDisplay } from "@/lib/display-rounding";
+import { calcOfferPresentation } from "@/lib/object-totals";
+import { buildOfferPositions } from "@/lib/offer-positions";
 import { calcHourlyRate, getDefaultConfig } from "@/lib/hourly-rate-calc";
 import { computeObjectEconomics, type EconomicsSettings } from "@/lib/object-economics";
 import { calcPriceStrategy } from "@/lib/price-strategy";
@@ -281,6 +288,70 @@ describe("module add / pause (Monatspreis)", () => {
     expect(shares.reduce((a, s) => a + s.share, 0)).toBeCloseTo(1, 9);
   });
 
+  it("displayed module shares add up to the rounded Monatspreis (same amounts as Prüfschritt/Angebot)", () => {
+    const p = { ...base, winterdienst: WD_REF, hms: HMS_REF };
+    const econ = computeObjectEconomics(p, CUSTOM_SETTINGS);
+    const shown = displayedModuleShares(p, econ);
+    const cents = shown.reduce((a, s) => a + Math.round(s.priceMonthly * 100), 0);
+    expect(cents).toBe(Math.round(roundDisplay(econ.totals.priceMonthly) * 100));
+    const amounts = displayModuleAmounts(
+      displayOfferGroups(buildOfferPositions(p, econ.totals, econ.effectiveRate), econ.totals.priceMonthly),
+    );
+    expect(shown.map((s) => s.priceMonthly)).toEqual([amounts.unterhalt, amounts.winterdienst, amounts.hms]);
+  });
+
+  it("cards, Reinigung tab, HMS tab and offer rows agree unless a leftover cent forces one module", () => {
+    let seed = 99;
+    const rnd = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    const FREQS = ["monthly", "biweekly", "1x_week", "2x_week", "3x_week", "5x_week"] as const;
+    const cents = (v: number) => Math.round(v * 100);
+    for (let run = 0; run < 400; run++) {
+      const p = makeProject({
+        ruestzeit: rnd() < 0.5 ? 0 : 10,
+        wegezeit: rnd() < 0.5 ? 0 : 5,
+        rooms: Array.from({ length: 2 + Math.floor(rnd() * 8) }, (_, i) =>
+          makeRoom({ id: `r${i}`, groupId: rnd() < 0.5 ? "g1" : "g2", area: Math.round(rnd() * 3000) / 10, frequency: FREQS[Math.floor(rnd() * 6)], typePerformance: Math.round(80 + rnd() * 250) }),
+        ),
+        hms: {
+          ...HMS_REF,
+          tasks: Array.from({ length: 1 + Math.floor(rnd() * 4) }, (_, i) => ({
+            id: `t${i}`, label: `T${i}`, unit: "pauschal" as const, quantity: 1, minutesPerUnit: Math.round(5 + rnd() * 60), frequencyPerYear: 52, enabled: true,
+          })),
+        },
+      });
+      const econ = computeObjectEconomics(p, CUSTOM_SETTINGS);
+      const { totals, effectiveRate: rate } = econ;
+      const cards = new Map(displayedModuleShares(p, econ).map((s) => [s.module, s.priceMonthly]));
+      const st = setupTimeTotals({ ruestzeit: p.ruestzeit, wegezeit: p.wegezeit }, p.rooms, rate);
+      const roomsTab = roundRoomsForDisplay(groupRooms(p.rooms, rate), [
+        { key: "ruestzeit", hoursMonthly: st.ruestzeitHours, priceMonthly: st.ruestzeitHours * rate },
+        { key: "wegezeit", hoursMonthly: st.wegezeitHours, priceMonthly: st.wegezeitHours * rate },
+      ]);
+      const hmsTab = hmsDisplayAmounts(totals.hms!);
+      const forced =
+        cents(roundDisplay(totals.cleaning.cost)) + cents(roundDisplay(totals.hms!.revenueMonthly)) !== cents(roundDisplay(totals.priceMonthly));
+      const uOff = cents(cards.get("unterhalt")!) !== cents(roomsTab.total.priceMonthly);
+      const hOff = cents(cards.get("hms")!) !== cents(hmsTab.revenueMonthly);
+      expect(Number(uOff) + Number(hOff)).toBe(forced ? 1 : 0);
+      const offer = displayOfferGroups(buildOfferPositions(p, totals, rate), totals.priceMonthly);
+      const offerRows = new Map(offer.flatMap((g) => g.positions).map((x) => [x.id, x.priceMonthly]));
+      if (!uOff) for (const g of roomsTab.groups) for (const r of g.rows) expect(r.priceMonthly).toBe(offerRows.get(r.room.id));
+      if (!hOff) for (const t of p.hms!.tasks) expect(hmsTab.monthlyById.get(t.id)).toBe(offerRows.get(t.id));
+    }
+  });
+
+  it("offer totals show the same Jahreswert as the workspace KPI (priceAnnual, rounded once)", () => {
+    for (const p of [base, { ...base, winterdienst: { ...WD_REF, billingMode: "pauschale_12" as const, capEinsaetze: 30 }, hms: HMS_REF }]) {
+      const econ = computeObjectEconomics(p, CUSTOM_SETTINGS);
+      const op = calcOfferPresentation(econ.totals, p);
+      const offer = displayTotals({ fixedMonthly: op.fixedMonthly, averageMonthly: econ.totals.priceMonthly, vatRatePct: 19, annualNet: op.expectedAnnual });
+      expect(offer.annualNet).toBe(roundDisplay(workspaceKpis(econ).priceAnnual));
+    }
+  });
+
   it("module shares are 0 without a price", () => {
     const totals = computeObjectEconomics(makeProject(), CUSTOM_SETTINGS).totals;
     expect(moduleShares(totals)).toEqual([{ module: "unterhalt", priceMonthly: 0, share: 0 }]);
@@ -314,5 +385,33 @@ describe("frequencyChangePreview", () => {
     const snapshot = JSON.stringify(p);
     frequencyChangePreview(p, "7x_week", CUSTOM_SETTINGS);
     expect(JSON.stringify(p)).toBe(snapshot);
+  });
+});
+
+describe("rateChangePreview", () => {
+  const rooms = [makeRoom(), makeRoom({ id: "r2", area: 40, frequency: "2x_week" })];
+
+  it("is null while the saved rate would not change", () => {
+    expect(rateChangePreview(makeProject({ rooms, hourlyRate: 34 }), 34, CUSTOM_SETTINGS)).toBeNull();
+    expect(rateChangePreview(makeProject({ rooms }), undefined, CUSTOM_SETTINGS)).toBeNull();
+    // Leer bzw. 0 = Standardsatz (wie beim Speichern).
+    expect(rateChangePreview(makeProject({ rooms }), 0, CUSTOM_SETTINGS)).toBeNull();
+  });
+
+  it("reprices the whole object, including the modules, with computeObjectEconomics", () => {
+    const p = makeProject({ rooms, ruestzeit: 15, winterdienst: WD_REF, hms: HMS_REF });
+    const pre = rateChangePreview(p, 40, CUSTOM_SETTINGS)!;
+    expect(pre.oldPriceMonthly).toBe(computeObjectEconomics(p, CUSTOM_SETTINGS).totals.priceMonthly);
+    expect(pre.newPriceMonthly).toBe(computeObjectEconomics({ ...p, hourlyRate: 40 }, CUSTOM_SETTINGS).totals.priceMonthly);
+    expect(pre.newPriceMonthly).toBeGreaterThan(pre.oldPriceMonthly);
+    expect(pre.deltaMonthly).toBeCloseTo(pre.newPriceMonthly - pre.oldPriceMonthly, 9);
+  });
+
+  it("clearing an object rate falls back to the standard rate", () => {
+    const p = makeProject({ rooms, hourlyRate: 40 });
+    const pre = rateChangePreview(p, undefined, CUSTOM_SETTINGS)!;
+    expect(pre.oldPriceMonthly).toBe(calcProjectTotals(p, 40).cost);
+    expect(pre.newPriceMonthly).toBe(calcProjectTotals(p, CUSTOM_SETTINGS.hourlyRate).cost);
+    expect(pre.deltaMonthly).toBeLessThan(0);
   });
 });

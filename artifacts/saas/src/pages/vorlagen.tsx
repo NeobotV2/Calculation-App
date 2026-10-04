@@ -192,7 +192,7 @@ export default function Vorlagen() {
 
   return (
     <PageTransition>
-      <PageShell header={<PageHeader title="Vorlagen" back={{ href: "/mehr", label: "Mehr" }} />}>
+      <PageShell header={<PageHeader title="Vorlagen" back={{ href: "/mehr", label: "Mehr", phoneOnly: true }} />}>
         {!paid && (
           <Callout
             tone="info"

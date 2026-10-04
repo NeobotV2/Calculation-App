@@ -8,11 +8,12 @@ import {
   installmentSchedule,
   offerDates,
   offerNumber,
+  offerStatusChip,
+  openItemsText,
   openOfferItemCount,
   PAPER_TOKENS,
-  readinessLabel,
-  readinessTone,
   round2,
+  seriousHintCount,
   seasonText,
   verkehrssicherungText,
   winterBillingText,
@@ -23,6 +24,7 @@ import {
 import { calcObjectTotals, calcOfferPresentation } from "@/lib/object-totals";
 import { buildOfferPositions, sumOfferPositions } from "@/lib/offer-positions";
 import { calcProjectTotals } from "@/lib/calc";
+import { getObjectStatus, type OfferReadiness, type ReadinessItem } from "@/lib/offer-readiness";
 import type { HmsConfig, ModuleRates, WinterdienstConfig } from "@/lib/service-modules/types";
 import type { Project, Room } from "@/store/use-store";
 
@@ -176,12 +178,17 @@ describe("winterBillingText (WD_REF, contract §5.8)", () => {
   it("cap 30: the flat fee covers 30 Einsätze (P = 2.569,41 €) and the cap text names the overage price", () => {
     const { totals, op } = offerFor({ billingMode: "pauschale_12", capEinsaetze: 30 });
     expect(plain(winterBillingText(op, totals.winterdienst))).toBe(
-      "Winterdienst-Saisonpauschale Nov–Mär (kalkuliert 30 Einsätze): 2.569,41 € netto, " +
+      "Winterdienst-Saisonpauschale Nov–Mär für bis zu 30 Einsätze (kalkuliert 45 Einsätze): 2.569,41 € netto, " +
       "zahlbar in 12 Monatsraten à 214,12 € (letzte Rate 214,09 €).",
     );
     expect(plain(winterCapText(op))).toBe(
       "Die Pauschale umfasst bis zu 30 Einsätze; jeder weitere Einsatz wird mit 75,31 € netto berechnet.",
     );
+  });
+
+  it("cap at or above the expected Einsätze keeps the plain wording", () => {
+    const { totals, op } = offerFor({ billingMode: "pauschale_saison", capEinsaetze: 50 });
+    expect(plain(winterBillingText(op, totals.winterdienst))).toMatch(/^Winterdienst-Saisonpauschale Nov–Mär \(kalkuliert 45 Einsätze\): /);
   });
 
   it("returns null without Winterdienst and no cap text without a cap", () => {
@@ -208,12 +215,41 @@ describe("winter season, Verkehrssicherung and totals lines", () => {
     );
   });
 
-  it("pauschale_saison: 5 Raten line; fixed monthly 743,16 € (rooms + HMS)", () => {
+  it("pauschale_saison: 5 Raten line with the last-rate correction; fixed monthly 743,16 € (rooms + HMS)", () => {
     const { totals, op } = offerFor({ billingMode: "pauschale_saison" }, HMS_REF);
-    expect(plain(winterTotalsLine(op))).toBe("Winterdienst: 5 Raten à 739,82 € (Nov–Mär)");
+    expect(plain(winterTotalsLine(op))).toBe("Winterdienst: 5 Raten à 739,82 € (Nov–Mär), letzte Rate 739,83 €");
     expect(round2(op.fixedMonthly)).toBe(743.16);
     expect(op.expectedAnnual).toBeCloseTo(12617.0075, 6);
     expect(round2(totals.priceMonthly)).toBe(1051.42);
+  });
+
+  it("pauschale_saison: totals line and billing text name the same rates (they sum to the Pauschale)", () => {
+    const de = (s: string) => Number(s.replace(/\./g, "").replace(",", "."));
+    for (const wd of [
+      {},
+      { capEinsaetze: 30 },
+      { seasonMonths: [1, 2, 11, 12] },
+      { seasonMonths: [1, 2, 3, 4, 10, 11, 12], expectedEinsaetze: 37 },
+      { standbyFeeMonthly: 0, seasonSetupHours: 0, expectedEinsaetze: 20 },
+    ] satisfies Partial<WinterdienstConfig>[]) {
+      const { totals, op } = offerFor({ ...wd, billingMode: "pauschale_saison" });
+      const billing = plain(winterBillingText(op, totals.winterdienst))!;
+      const line = plain(winterTotalsLine(op))!;
+      const b = /: ([\d.,]+) € netto, zahlbar in (\d+) Raten \([^)]+\) à ([\d.,]+) €(?: \(letzte Rate ([\d.,]+) €\))?\.$/.exec(billing);
+      const t = /^Winterdienst: (\d+) Raten à ([\d.,]+) € \([^)]+\)(?:, letzte Rate ([\d.,]+) €)?$/.exec(line);
+      expect(b, billing).not.toBeNull();
+      expect(t, line).not.toBeNull();
+      const [, total, bCount, bAmount, bLast = bAmount] = b!;
+      const [, tCount, tAmount, tLast = tAmount] = t!;
+      expect([tCount, tAmount, tLast], line).toEqual([bCount, bAmount, bLast]);
+      expect(round2(de(tAmount) * (Number(tCount) - 1) + de(tLast)), line).toBe(de(total));
+    }
+  });
+
+  it("pauschale_saison: no last-rate part when the rates divide evenly", () => {
+    const { op } = offerFor({ billingMode: "pauschale_saison" });
+    const even = { ...op, winterSeasonInstallment: { ...op.winterSeasonInstallment!, amount: 700 } };
+    expect(plain(winterTotalsLine(even))).toBe("Winterdienst: 5 Raten à 700,00 € (Nov–Mär)");
   });
 
   it("pro_einsatz totals line", () => {
@@ -263,26 +299,58 @@ describe("offer document sums (pAll at rate 30)", () => {
   });
 });
 
-describe("readiness chip", () => {
-  const item = (id: string) => ({ id, level: "hint" as const, title: id });
-  const r = (b: number, c: number, o: number) => ({
-    blockers: Array.from({ length: b }, (_, i) => item(`b${i}`)),
-    criticals: Array.from({ length: c }, (_, i) => item(`c${i}`)),
-    offerGaps: Array.from({ length: o }, (_, i) => item(`o${i}`)),
-  });
+describe("offer status chip (print toolbar)", () => {
+  const item = (id: string, level: ReadinessItem["level"], severity?: ReadinessItem["severity"]): ReadinessItem =>
+    ({ id, level, title: id, severity });
+  const r = (b: number, c: number, o: number, hints: ReadinessItem["severity"][] = []): OfferReadiness => {
+    const blockers = Array.from({ length: b }, (_, i) => item(`b${i}`, "blocker"));
+    const criticals = Array.from({ length: c }, (_, i) => item(`c${i}`, "critical"));
+    const offerGaps = Array.from({ length: o }, (_, i) => item(`o${i}`, "offer"));
+    const hintItems = hints.map((sev, i) => item(`h${i}`, "hint", sev));
+    return {
+      items: [...blockers, ...criticals, ...offerGaps, ...hintItems],
+      blockers, criticals, offerGaps, hints: hintItems,
+      canExport: b === 0,
+      isOfferReady: b === 0 && c === 0 && o === 0,
+    };
+  };
+  const p = makeProject();
 
-  it("counts blockers, criticals and offer gaps (not hints)", () => {
+  it("counts blockers, criticals, offer gaps and warning hints (not info hints)", () => {
     expect(openOfferItemCount(r(1, 1, 2))).toBe(4);
-    expect(readinessLabel(r(0, 0, 0))).toBe("Angebotsbereit");
-    expect(readinessLabel(r(0, 0, 1))).toBe("1 offener Punkt");
-    expect(readinessLabel(r(1, 1, 0))).toBe("2 offene Punkte");
+    expect(openOfferItemCount(r(0, 0, 0, ["info", "warning", "critical"]))).toBe(2);
+    expect(seriousHintCount(r(0, 0, 0, ["info", "info"]))).toBe(0);
+    expect(openItemsText(1)).toBe("1 offener Punkt");
+    expect(openItemsText(3)).toBe("3 offene Punkte");
   });
 
-  it("tones: blocker/critical → critical, gaps → warning, else success", () => {
-    expect(readinessTone(r(1, 0, 0))).toBe("critical");
-    expect(readinessTone(r(0, 1, 0))).toBe("critical");
-    expect(readinessTone(r(0, 0, 1))).toBe("warning");
-    expect(readinessTone(r(0, 0, 0))).toBe("success");
+  it("uses the object status word and tone, with the number of open points", () => {
+    expect(offerStatusChip(p, r(0, 0, 0))).toEqual({ label: "Angebotsbereit", spokenLabel: "Angebotsbereit", tone: "success" });
+    expect(offerStatusChip(p, r(0, 0, 0, ["info"]))).toEqual({ label: "Angebotsbereit", spokenLabel: "Angebotsbereit", tone: "success" });
+    expect(offerStatusChip(p, r(0, 0, 1))).toEqual({ label: "Prüfung offen (1)", spokenLabel: "Prüfung offen, 1 offener Punkt", tone: "warning" });
+    expect(offerStatusChip(p, r(0, 1, 0, ["warning"]))).toEqual({ label: "Prüfung offen (2)", spokenLabel: "Prüfung offen, 2 offene Punkte", tone: "warning" });
+    expect(offerStatusChip(p, r(1, 1, 0))).toEqual({ label: "Entwurf (2)", spokenLabel: "Entwurf, 2 offene Punkte", tone: "neutral" });
+    expect(offerStatusChip(makeProject({ status: "archived" }), r(0, 0, 1))).toEqual({ label: "Archiviert", spokenLabel: "Archiviert", tone: "neutral" });
+  });
+
+  it("only a warning hint: 'Prüfung offen', never 'Angebotsbereit'", () => {
+    const warnOnly = r(0, 0, 0, ["warning"]);
+    expect(warnOnly.isOfferReady).toBe(true);
+    expect(offerStatusChip(p, warnOnly)).toEqual({ label: "Prüfung offen (1)", spokenLabel: "Prüfung offen, 1 offener Punkt", tone: "warning" });
+  });
+
+  it("agrees with getObjectStatus for every combination", () => {
+    const sevs: ReadinessItem["severity"][][] = [[], ["info"], ["warning"], ["critical"], ["info", "warning"]];
+    for (const proj of [p, makeProject({ status: "archived" })]) {
+      for (const b of [0, 1]) for (const c of [0, 1]) for (const o of [0, 2]) for (const h of sevs) {
+        const rr = r(b, c, o, h);
+        const status = getObjectStatus(proj, rr);
+        const chip = offerStatusChip(proj, rr);
+        expect(chip.tone).toBe(status.tone);
+        expect(chip.label.startsWith(status.label)).toBe(true);
+        expect(chip.label === "Angebotsbereit").toBe(status.key === "angebotsbereit");
+      }
+    }
   });
 });
 

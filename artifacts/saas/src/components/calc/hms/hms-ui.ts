@@ -260,6 +260,14 @@ export function withTaskSeason(task: HmsTask, months: readonly number[]): HmsTas
   return next;
 }
 
+/** Pflichtfelder des Leistungs-Editors: Bezeichnung; bei aktiver Leistung eine Menge größer 0. */
+export function validateTaskDraft(task: Pick<HmsTask, "label" | "quantity" | "enabled">): { label?: string; quantity?: string } {
+  const out: { label?: string; quantity?: string } = {};
+  if (!task.label.trim()) out.label = "Bitte geben Sie eine Bezeichnung ein.";
+  if (task.enabled && !(Number.isFinite(task.quantity) && task.quantity > 0)) out.quantity = "Bitte geben Sie eine Menge größer als 0 ein.";
+  return out;
+}
+
 /* ── Ergebnis ─────────────────────────────────────────────────────────── */
 
 /** Ergebnis je aktiver Leistung, Schlüssel = task.id. */

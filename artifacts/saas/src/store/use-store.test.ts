@@ -52,9 +52,11 @@ vi.mock("@/lib/supabase", () => {
   return { supabase: { from }, isSupabaseConfigured: true };
 });
 
-import { useStore, DEMO_PROJECTS, type Project } from "./use-store";
+import { useStore, DEMO_PROJECTS, isDemoProject, type Project } from "./use-store";
+import { canAddProject, canRestoreProject, countLimitedProjects } from "@/lib/feature-gates";
 import { dbObjectToProject, updateObject, duplicateObject, type DbObject } from "@/services/object-service";
-import { migrateDemoData } from "@/services/migration-service";
+import { getDemoData, hasDemoData, migrateDemoData } from "@/services/migration-service";
+import { adoptedRate, calcHourlyRate, getDefaultConfig, suggestedDefaultRate } from "@/lib/hourly-rate-calc";
 import { createEmptyCalcDraft, createEmptyTenderDraft } from "@/lib/drafts";
 import type { HmsConfig, ServiceActuals, WinterdienstConfig } from "@/lib/service-modules/types";
 
@@ -328,5 +330,147 @@ describe("migration-service — forwards all object fields", () => {
     const update = dbCalls.find((c) => c.table === "cleaning_objects" && c.op === "update");
     expect(update?.payload).toMatchObject({ object_type: "Praxis", ruestzeit: 10 });
     expect(update?.payload).not.toHaveProperty("winterdienst");
+  });
+});
+
+describe("store — onboarding, demo data and Nachkalkulation export", () => {
+  it("completing onboarding (also from a direct link) marks the splash as seen", () => {
+    useStore.setState({ hasSeenSplash: false });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.9, loadDemo: true });
+    expect(useStore.getState().hasSeenSplash).toBe(true);
+    expect(useStore.getState().hasOnboarded).toBe(true);
+  });
+
+  it("demo objects do not count against the Basic object limit", () => {
+    useStore.setState({ plan: "free" });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.9, loadDemo: true });
+    const { projects } = useStore.getState();
+    expect(projects.every(isDemoProject)).toBe(true);
+    expect(countLimitedProjects(projects)).toBe(0);
+    expect(canAddProject().allowed).toBe(true);
+    seedProject();
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(1);
+    expect(canAddProject().allowed).toBe(false);
+  });
+
+  it("export → import keeps the room Nachkalkulation of imported objects only", () => {
+    const id = seedProject();
+    useStore.getState().setNachkalkulation(id, { actualMonthlyHours: 61.5, note: "Ist" });
+    const exported = JSON.parse(useStore.getState().exportData());
+    exported.nachkalkulationen.fremd = { actualMonthlyHours: 3, recordedAt: "2026-01-01T00:00:00.000Z" };
+    exported.nachkalkulationen[id + "x"] = { actualMonthlyHours: Number.NaN };
+    useStore.getState().resetAll();
+    expect(useStore.getState().importData(JSON.stringify(exported))).toBe(true);
+    const nk = useStore.getState().nachkalkulationen;
+    expect(Object.keys(nk)).toEqual([id]);
+    expect(nk[id].actualMonthlyHours).toBe(61.5);
+    expect(nk[id].note).toBe("Ist");
+  });
+
+  it("drops Nachkalkulation entries with invalid hours", () => {
+    const id = seedProject();
+    const exported = JSON.parse(useStore.getState().exportData());
+    exported.nachkalkulationen = { [id]: { actualMonthlyHours: "viel" } };
+    expect(useStore.getState().importData(JSON.stringify(exported))).toBe(true);
+    expect(useStore.getState().nachkalkulationen).toEqual({});
+  });
+});
+
+describe("store — Verrechnungssatz", () => {
+  it("adopting the calculator rounds the rate up to the cent (target margin reached)", () => {
+    const cfg = { ...getDefaultConfig(), baseLohn: 14.37 };
+    useStore.getState().updateHourlyRateConfig(cfg);
+    expect(useStore.getState().hourlyRate).toBe(adoptedRate(calcHourlyRate(cfg)));
+    expect(useStore.getState().hourlyRate).toBeGreaterThanOrEqual(calcHourlyRate(cfg).stundenverrechnungssatz);
+  });
+
+  it("confirmHourlyRate is kept, exported and cleared by the resets", () => {
+    useStore.getState().confirmHourlyRate(suggestedDefaultRate());
+    expect(useStore.getState().confirmedHourlyRate).toBe(suggestedDefaultRate());
+    const exported = JSON.parse(useStore.getState().exportData());
+    expect(exported.confirmedHourlyRate).toBe(suggestedDefaultRate());
+    useStore.getState().resetToDefaults();
+    expect(useStore.getState().confirmedHourlyRate).toBeNull();
+    expect(useStore.getState().importData(JSON.stringify(exported))).toBe(true);
+    expect(useStore.getState().confirmedHourlyRate).toBe(suggestedDefaultRate());
+    useStore.getState().resetAll();
+    expect(useStore.getState().confirmedHourlyRate).toBeNull();
+  });
+});
+
+describe("store — onboarding is non-destructive", () => {
+  it("running the onboarding again keeps objects, own rate and company name", () => {
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    const own = seedProject({ name: "Kunde Meier" });
+    useStore.getState().setNachkalkulation(own, { actualMonthlyHours: 12 });
+    useStore.getState().updateSettings({ hourlyRate: 26.4 });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Neue Firma", hourlyRate: suggestedDefaultRate(), loadDemo: true });
+    const st = useStore.getState();
+    expect(st.projects.map((p) => p.id).sort()).toEqual(["demo-1", "demo-2", own].sort());
+    expect(st.hourlyRate).toBe(26.4);
+    expect(st.companyName).toBe("Glanz GmbH");
+    expect(st.nachkalkulationen[own]?.actualMonthlyHours).toBe(12);
+  });
+
+  it("a first onboarding still takes the entered rate and name", () => {
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 31.5, loadDemo: false });
+    expect(useStore.getState().hourlyRate).toBe(31.5);
+    expect(useStore.getState().companyName).toBe("Glanz GmbH");
+    expect(useStore.getState().projects).toEqual([]);
+  });
+});
+
+describe("store — sample objects and the Basic limit", () => {
+  it("a renamed sample counts like an own object", () => {
+    useStore.setState({ plan: "free" });
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    expect(canAddProject().allowed).toBe(true);
+    useStore.getState().updateProject("demo-1", { name: "Kunde Meier GmbH – Bürohaus" });
+    expect(isDemoProject(byId("demo-1"))).toBe(false);
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(1);
+    expect(canAddProject().allowed).toBe(false);
+    // Kunde geändert: ebenfalls eigenes Objekt.
+    useStore.getState().updateProject("demo-2", { customer: "Praxis Dr. Huber" });
+    expect(countLimitedProjects(useStore.getState().projects)).toBe(2);
+  });
+
+  it("untouched samples are not migrated to the cloud", () => {
+    useStore.getState().completeOnboarding({ role: "Inhaber", companyName: "Glanz GmbH", hourlyRate: 32.91, loadDemo: true });
+    expect(hasDemoData()).toBe(false);
+    expect(getDemoData()).toBeNull();
+    const own = seedProject({ name: "Eigenes Objekt" });
+    expect(getDemoData()?.projects.map((p) => p.id)).toEqual([own]);
+  });
+
+  it("restoring from the archive respects the object limit", () => {
+    useStore.setState({ plan: "free" });
+    const a = seedProject({ name: "A" });
+    useStore.getState().archiveProject(a);
+    expect(canAddProject().allowed).toBe(true);
+    seedProject({ name: "B" });
+    const gate = canRestoreProject(a);
+    expect(gate.allowed).toBe(false);
+    expect(gate.trigger).toBe("second_object");
+    useStore.setState({ plan: "pro_monthly" });
+    expect(canRestoreProject(a).allowed).toBe(true);
+  });
+});
+
+describe("store — Nachkalkulation import uses the input rules", () => {
+  it("drops 0 h and absurd hours, repairs invalid dates and caps the note", () => {
+    const p1 = seedProject({ name: "P1" });
+    const p2 = seedProject({ name: "P2" });
+    const p3 = seedProject({ name: "P3" });
+    const exported = JSON.parse(useStore.getState().exportData());
+    exported.nachkalkulationen = {
+      [p1]: { actualMonthlyHours: 1e308, recordedAt: "gestern" },
+      [p2]: { actualMonthlyHours: 0, recordedAt: "2026-13-45" },
+      [p3]: { actualMonthlyHours: 42.5, recordedAt: "kaputt", note: "x".repeat(800) },
+    };
+    expect(useStore.getState().importData(JSON.stringify(exported))).toBe(true);
+    const nk = useStore.getState().nachkalkulationen;
+    expect(Object.keys(nk)).toEqual([p3]);
+    expect(Number.isFinite(Date.parse(nk[p3].recordedAt))).toBe(true);
+    expect(nk[p3].note).toHaveLength(500);
   });
 });

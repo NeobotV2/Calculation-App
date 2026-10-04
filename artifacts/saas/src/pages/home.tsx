@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
 import { Calculator, Landmark, Plus, RotateCcw } from "lucide-react";
-import { useStore } from "@/store/use-store";
+import { isDemoProject, useStore } from "@/store/use-store";
 import { useEconomicsSettings, usePortfolioEconomics } from "@/hooks/use-object-economics";
 import { useInitialLoading, useSyncStatus } from "@/hooks/use-sync-status";
-import { isDefaultRateSetting } from "@/lib/object-economics";
+import { isRateChecked } from "@/lib/object-economics";
 import { DEFAULT_COMPANY_NAME, type CompanyInfo } from "@/lib/offer-readiness";
 import { markupToRevenueMargin } from "@/lib/price-strategy";
 import { marginStatusLabel, marginTone } from "@/lib/status";
-import { getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
+import { countLimitedProjects, getObjectLimit, isPaidPlan } from "@/lib/feature-gates";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { PageShell } from "@/components/layout/PageShell";
 import { Section } from "@/components/layout/Section";
@@ -97,7 +97,12 @@ export default function Home() {
   const objectLimit = getObjectLimit();
   const companyComplete =
     !blank(companyName) && companyName.trim() !== DEFAULT_COMPANY_NAME && !blank(companyStreet) && !blank(companyCity);
-  const rateChecked = !isDefaultRateSetting(settings.hourlyRate, settings.hourlyRateConfig);
+  const rateChecked = useMemo(
+    () => isRateChecked(settings.hourlyRate, settings.hourlyRateConfig, settings.confirmedHourlyRate),
+    [settings.hourlyRate, settings.hourlyRateConfig, settings.confirmedHourlyRate],
+  );
+  // Beispielobjekte zählen weder zum Objektlimit noch als eigene Kalkulation.
+  const ownProjects = projects.filter((p) => !isDemoProject(p));
   const refreshing = syncStatus === "loading" && hasLoadedOnce;
   const firstLoadPending = !hasLoadedOnce;
 
@@ -164,7 +169,7 @@ export default function Home() {
               value={rows.length}
               format="number"
               emphasis="primary"
-              hint={paid ? undefined : `${rows.length} von ${objectLimit} im Basic-Plan`}
+              hint={paid ? undefined : `${countLimitedProjects(projects)} von ${objectLimit} im Basic-Plan`}
             />
             <Kpi
               label="Handlungsbedarf"
@@ -218,7 +223,7 @@ export default function Home() {
           <GettingStartedCard
             companyComplete={companyComplete}
             rateChecked={rateChecked}
-            hasCalculation={projects.length > 0}
+            hasCalculation={ownProjects.length > 0}
           />
         )}
 

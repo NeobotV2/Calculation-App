@@ -6,6 +6,7 @@ import { StateView } from "@/components/ui/state-view";
 import { calcHms } from "@/lib/service-modules/hms";
 import type { ModuleFinding } from "@/lib/service-modules/plausibility";
 import type { HmsConfig, HmsResult, HmsTask, ModuleRates } from "@/lib/service-modules/types";
+import { SHEET_STICKY_RESULT } from "@/components/ui/responsive-sheet";
 import { cn } from "@/lib/utils";
 import { ModuleFindingsList } from "./ModuleFindingsList";
 import { CatalogPicker } from "./hms/CatalogPicker";
@@ -161,13 +162,12 @@ export function HmsEditor({
           <MonthProfileBar hours={result.monthlyLaborHours} />
         </section>
         <ModuleFindingsList findings={list} compact label="Hinweise zum Hausmeisterservice" heading="Hinweise" />
-        <section
-          aria-label="Ergebnis Hausmeisterservice"
-          className="space-y-3 rounded-lg border border-border bg-card p-4 shadow-raised md:sticky md:bottom-0 md:z-sticky"
-        >
-          <HmsKpis result={result} targetMarginPct={targetMarginPct} />
-          <HmsContingentLine result={result} />
-        </section>
+        <HmsContingentLine result={result} />
+        <div className={SHEET_STICKY_RESULT}>
+          <section aria-label="Ergebnis Hausmeisterservice" className="rounded-lg border border-border bg-card p-4 shadow-raised">
+            <HmsKpis result={result} targetMarginPct={targetMarginPct} />
+          </section>
+        </div>
       </div>
     );
   }

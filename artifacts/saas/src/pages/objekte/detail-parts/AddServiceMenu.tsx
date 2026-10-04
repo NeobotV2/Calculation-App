@@ -54,7 +54,7 @@ export function AddServiceMenu({ project, cleaningVisible, onAdd, className }: A
         <DropdownMenuLabel className="text-overline uppercase text-muted-foreground">Leistung hinzufügen</DropdownMenuLabel>
         {options.map((m) => (
           <DropdownMenuItem key={m} onSelect={() => onAdd(m)} className="items-start gap-3 py-2">
-            <ModuleIcon module={m} size="sm" aria-hidden="true" role={undefined} aria-label={undefined} />
+            <ModuleIcon module={m} size="sm" decorative />
             <span className="min-w-0">
               <span className="block font-medium text-foreground">{MODULE_META[m].label}</span>
               <span className="block text-xs text-muted-foreground">{DESCRIPTIONS[m]}</span>

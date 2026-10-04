@@ -8,7 +8,7 @@
 import type { Project } from "@/store/use-store";
 import {
   calcHourlyRate,
-  getDefaultConfig,
+  isDefaultRateSetting,
   type HourlyRateBreakdown,
   type HourlyRateConfig,
 } from "@/lib/hourly-rate-calc";
@@ -34,13 +34,18 @@ export interface EconomicsSettings {
   targetMargin: number;
   /** Abgeschaltete Warnungstypen (getWarningTypeKey-Schlüssel). */
   disabledWarnings: string[];
+  /**
+   * Auf der Seite „Verrechnungssatz“ ausdrücklich bestätigter Satz. Entspricht
+   * er `hourlyRate`, gilt der Satz nicht mehr als ungeprüfter Standardsatz.
+   */
+  confirmedHourlyRate?: number | null;
 }
 
 export interface ObjectEconomics {
   /** project.hourlyRate ?? globaler Satz. */
   effectiveRate: number;
   breakdown: HourlyRateBreakdown;
-  /** Globaler Satz 22,50 € und unveränderte Standard-Konfiguration. */
+  /** Ungeprüfter Standardsatz (`isDefaultRateSetting`): Standard-Konfiguration, Satz 22,50 € bzw. Vorschlag, nicht bestätigt. */
   isDefaultRate: boolean;
   /** isDefaultRate und das Objekt hat keinen eigenen Satz. */
   usesDefaultRate: boolean;
@@ -64,15 +69,16 @@ export interface ObjectEconomicsOptions {
   breakdown?: HourlyRateBreakdown;
 }
 
-export const DEFAULT_HOURLY_RATE = 22.5;
+export { DEFAULT_HOURLY_RATE, isDefaultRateSetting, suggestedDefaultRate } from "@/lib/hourly-rate-calc";
 
-let defaultConfigJson: string | null = null;
-
-/** Gleiche Regel wie bisher in den Seiten: 22,50 €/h und JSON-gleiche Standard-Konfiguration. */
-export function isDefaultRateSetting(hourlyRate: number, config: HourlyRateConfig): boolean {
-  if (hourlyRate !== DEFAULT_HOURLY_RATE) return false;
-  if (defaultConfigJson === null) defaultConfigJson = JSON.stringify(getDefaultConfig());
-  return JSON.stringify(config) === defaultConfigJson;
+/**
+ * „Verrechnungssatz prüfen“ (Erste Schritte) ist erledigt, wenn der Satz die
+ * Vollkosten deckt UND kein ungeprüfter Standardsatz ist (Rechner angepasst,
+ * eigener Satz oder Standardwerte ausdrücklich bestätigt).
+ */
+export function isRateChecked(hourlyRate: number, config: HourlyRateConfig, confirmedRate?: number | null): boolean {
+  if (hourlyRate < calcHourlyRate(config).vollkosten) return false;
+  return !isDefaultRateSetting(hourlyRate, config, confirmedRate);
 }
 
 export function computeObjectEconomics(
@@ -82,7 +88,7 @@ export function computeObjectEconomics(
 ): ObjectEconomics {
   const effectiveRate = project.hourlyRate ?? s.hourlyRate;
   const breakdown = opts?.breakdown ?? calcHourlyRate(s.hourlyRateConfig);
-  const isDefaultRate = isDefaultRateSetting(s.hourlyRate, s.hourlyRateConfig);
+  const isDefaultRate = isDefaultRateSetting(s.hourlyRate, s.hourlyRateConfig, s.confirmedHourlyRate);
   const usesDefaultRate = isDefaultRate && !project.hourlyRate;
   const rates: ModuleRates = { rate: effectiveRate, vollkosten: breakdown.vollkosten };
   const totals = calcObjectTotals(project, rates);

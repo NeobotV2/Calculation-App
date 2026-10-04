@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { useAuth } from "@/lib/auth-context";
 import { compareNachkalkulation } from "@/lib/nachkalkulation";
 import type { ObjectEconomics } from "@/lib/object-economics";
-import { verdictLabel, verdictTone, type Tone } from "@/lib/status";
+import { nachkalkulationBadge, type Tone } from "@/lib/status";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useStore, type Project } from "@/store/use-store";
 
@@ -62,11 +62,7 @@ export function RoomNachkalkulationCard({ project, economics, readOnly = false, 
       })
     : null;
 
-  const verdict: { tone: Tone; label: string } | null = result
-    ? result.verdict === "schlechter" && result.actualMarginPct < 0
-      ? { tone: "critical", label: "Kritisch – Verlust" }
-      : { tone: verdictTone(result.verdict), label: verdictLabel(result.verdict) }
-    : null;
+  const verdict: { tone: Tone; label: string } | null = result ? nachkalkulationBadge(result) : null;
 
   const startEditing = () => {
     setHours(nachkalkulation?.actualMonthlyHours);

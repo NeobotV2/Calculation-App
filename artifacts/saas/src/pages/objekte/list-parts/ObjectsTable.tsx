@@ -157,7 +157,7 @@ export function ObjectsTable({
         </span>
       ),
     },
-    { id: "modules", header: "Leistungen", ...sortable("modules"), cell: (row) => <ModuleIcons row={row} /> },
+    { id: "modules", header: "Leistungen", hideBelow: "lg", ...sortable("modules"), cell: (row) => <ModuleIcons row={row} /> },
     {
       id: "price",
       header: "Monatspreis",
@@ -179,7 +179,8 @@ export function ObjectsTable({
       header: "Fläche",
       unit: "m²",
       numeric: true,
-      hideBelow: "xl",
+      // Alle 9 Spalten brauchen ~1120 px: erst ab 72rem Tabellenbreite (1366-px-Laptop: ohne).
+      hideBelow: "2xl",
       ...sortable("area"),
       cell: (row) => formatNumber(row.econ.totals.cleaning.area, 0),
     },
@@ -192,7 +193,7 @@ export function ObjectsTable({
     {
       id: "updated",
       header: "Geändert",
-      hideBelow: "lg",
+      hideBelow: "2xl",
       ...sortable("updated"),
       cell: (row) => <span className="tabular-nums text-muted-foreground">{formatDate(row.project.updatedAt)}</span>,
     },

@@ -226,7 +226,8 @@ export default function Willkommen() {
   const goStart = (cta: string) => {
     trackLandingCtaClicked(cta);
     setHasSeenSplash();
-    setLocation("/onboarding");
+    // Wer schon eingerichtet ist, startet in der App — ein zweites Onboarding würde Daten überschreiben.
+    setLocation(useStore.getState().hasOnboarded ? "/" : "/onboarding");
   };
 
   const goLogin = () => {
@@ -490,7 +491,7 @@ export default function Willkommen() {
           ))}
         </div>
         <Reveal className="text-center mt-12">
-          <Button size="lg" onClick={() => goStart("ablauf")}>
+          <Button size="lg" onClick={() => goStart("ablauf")} className="h-auto min-h-11 max-w-full whitespace-normal py-2 text-balance pointer-coarse:h-auto pointer-coarse:min-h-12">
             Erstes Objekt kostenlos kalkulieren <ArrowRight aria-hidden="true" />
           </Button>
         </Reveal>

@@ -208,3 +208,54 @@ describe("calcRiskScore with service modules (T12)", () => {
     expect(calcRiskScore({ ...input, objectTotals: otP })).toEqual(calcRiskScore(input));
   });
 });
+
+describe("calcRiskScore margin factor with service modules", () => {
+  const riskFor = (p: Project, rates = MOD_R) => {
+    const ot = calcObjectTotals(p, rates);
+    const s = calcPriceStrategy({ monthlyHours: ot.cleaning.hours, area: 100, effectiveRate: rates.rate, vollkosten: rates.vollkosten, targetMarkupPct: 10, extras: ot.extras });
+    const input: RiskInput = { project: p, monthlyHours: ot.cleaning.hours, area: 100, monthlyCost: ot.cleaning.cost,
+      marginPct: s.marginPct, targetMarginPct: s.targetMarginPct, usesDefaultRate: false, objectTotals: ot };
+    return { ot, s, input, r: calcRiskScore(input) };
+  };
+  // Negative Beträge mit typografischem Minus (U+2212) wie überall in der App.
+  const eur = (n: number) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/^-/, "\u2212");
+
+  it("names the loss-making module and counts the loss once", () => {
+    const wdLoss: WinterdienstConfig = { ...MOD_WD_REF, rateOverride: 5, vollkostenOverride: 24, machineRatePerHour: 0 };
+    const { ot, s, r } = riskFor(modProject({ ruestzeit: 15, winterdienst: wdLoss }));
+    expect(s.marginPct).toBeLessThan(0);
+    expect(s.contributionMonthly).toBeCloseTo(ot.contributionMonthly, 9);
+    const m = r.factors.find((f) => f.key === "margin_negative")!;
+    const wdDb = ot.winterdienst!.revenueMonthly - ot.winterdienst!.costMonthly;
+    expect(m.detail).toBe(`Der Monatspreis deckt die Vollkosten nicht (Deckungsbeitrag ${eur(ot.contributionMonthly)} € pro Monat). Ursache: Winterdienst (${eur(wdDb)} €).`);
+    expect(m.recommendation).toBe("Preis für Winterdienst anheben oder Leistungsumfang reduzieren — so nicht anbieten.");
+    expect(r.factors.map((f) => [f.key, f.points])).toEqual([["margin_negative", 35], ["wd_harsh_loss", 4]]);
+    expect(r.score).toBe(39);
+  });
+
+  it("groups Rüst-/Wegezeit with the cleaning and lists every loss-making service", () => {
+    const { ot, r } = riskFor(modProject({ ruestzeit: 15, hms: MOD_HMS_REF }), { rate: 20, vollkosten: 24 });
+    expect(ot.components.map((c) => c.key)).toEqual(["reinigung", "ruest_wege", "hms"]);
+    const m = r.factors.find((f) => f.key === "margin_negative")!;
+    expect(m.detail).toMatch(/Ursache: Unterhaltsreinigung \(\u2212[\d.,]+ €\), Hausmeisterservice \(\u2212[\d.,]+ €\)\.$/);
+    expect(m.recommendation).toBe("Preis für Unterhaltsreinigung und Hausmeisterservice anheben oder Leistungsumfang reduzieren — so nicht anbieten.");
+    expect(r.factors.some((f) => f.key === "hms_module_loss")).toBe(false);
+  });
+
+  it("keeps the module loss as its own factor while the object as a whole is profitable", () => {
+    const { s, r } = riskFor(modProject({ ruestzeit: 15, winterdienst: { ...MOD_WD_REF, rateOverride: 15, vollkostenOverride: 24 } }));
+    expect(s.marginPct).toBeGreaterThan(0);
+    expect(r.factors.find((f) => f.key === "wd_module_loss")?.points).toBe(12);
+  });
+
+  it("words the low margin as the object margin", () => {
+    const { input } = riskFor(MOD_P_ALL);
+    expect(calcRiskScore({ ...input, marginPct: 3 }).factors[0].detail).toBe(`Gesamtmarge nur 3,0 % statt ${input.targetMarginPct.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} % Zielmarge (vom Umsatz).`);
+    expect(calcRiskScore({ ...input, marginPct: 3, objectTotals: undefined }).factors[0].detail).toMatch(/^Nur 3,0 %/);
+  });
+
+  it("keeps the cleaning-only wording without modules", () => {
+    const m = calcRiskScore(baseInput({ marginPct: -3 })).factors.find((f) => f.key === "margin_negative")!;
+    expect([m.detail, m.recommendation]).toEqual(["Der Verrechnungssatz deckt die Selbstkosten nicht.", "Satz erhöhen oder Leistungsumfang reduzieren — so nicht anbieten."]);
+  });
+});

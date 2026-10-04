@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cn, formatCurrency, formatNumber, formatEuro, formatDate, parseDecimal } from "./utils";
+import { cn, formatCurrency, formatNumber, formatEuro, formatDate, parseDecimal, softHyphenate, withMinusSign } from "./utils";
 
 describe("cn", () => {
   it("merges class names and dedupes conflicting tailwind utilities", () => {
@@ -12,6 +12,14 @@ describe("formatNumber / formatEuro", () => {
   it("formats with German grouping and decimal comma", () => {
     expect(formatNumber(1234.5, 2)).toBe("1.234,50");
     expect(formatNumber(1000, 0)).toBe("1.000");
+  });
+
+  it("uses the typographic minus (U+2212) for negative values", () => {
+    expect(formatNumber(-34.1, 1)).toBe("\u221234,1");
+    expect(formatNumber(-0.04, 1)).toBe("0,0");
+    expect(formatCurrency(-1175.45)).toContain("\u22121.175,45");
+    expect(formatCurrency(-1175.45)).not.toContain("-");
+    expect(withMinusSign("-0,00 €")).toBe("0,00 €");
   });
 
   it("formatEuro always uses two decimals", () => {
@@ -65,6 +73,29 @@ describe("parseDecimal", () => {
     expect(parseDecimal("\u22123,25")).toBe(-3.25);
   });
 
+  it("reads a single dot with three digits as German thousands grouping", () => {
+    expect(parseDecimal("1.200")).toBe(1200);
+    expect(parseDecimal("1.850")).toBe(1850);
+    expect(parseDecimal("12.500")).toBe(12500);
+    expect(parseDecimal("-1.200")).toBe(-1200);
+    // Keine Gruppierung möglich: Dezimalpunkt.
+    expect(parseDecimal("0.125")).toBe(0.125);
+    expect(parseDecimal("1234.567")).toBe(1234.567);
+    expect(parseDecimal("1.25")).toBe(1.25);
+    expect(parseDecimal("1.2")).toBe(1.2);
+  });
+
+  it("fields with 3+ decimals read a single dot as decimal point (laser-measured lengths)", () => {
+    expect(parseDecimal("4.375", { thousandsDot: false })).toBe(4.375);
+    expect(parseDecimal("1.200", { thousandsDot: false })).toBe(1.2);
+    expect(parseDecimal("4,375", { thousandsDot: false })).toBe(4.375);
+    // Eindeutige Gruppierung bleibt gültig.
+    expect(parseDecimal("1.234,5", { thousandsDot: false })).toBe(1234.5);
+    expect(parseDecimal("1.234.567", { thousandsDot: false })).toBe(1234567);
+    // Standard (Beträge, Flächen): deutsche Tausender.
+    expect(parseDecimal("4.375")).toBe(4375);
+  });
+
   it("returns undefined for empty or invalid input", () => {
     expect(parseDecimal("")).toBeUndefined();
     expect(parseDecimal("   ")).toBeUndefined();
@@ -74,5 +105,15 @@ describe("parseDecimal", () => {
     expect(parseDecimal("1.2.3,4")).toBeUndefined();
     expect(parseDecimal("12a")).toBeUndefined();
     expect(parseDecimal("1e5")).toBeUndefined();
+  });
+});
+
+describe("softHyphenate", () => {
+  it("adds a soft hyphen to known long compounds only", () => {
+    expect(softHyphenate("Hausmeisterservice")).toBe("Hausmeister\u00ADservice");
+    expect(softHyphenate("Unterhaltsreinigung")).toBe("Unterhalts\u00ADreinigung");
+    expect(softHyphenate("Ø pro Monat (Jahresmittel)")).toBe("Ø pro Monat (Jahres\u00ADmittel)");
+    expect(softHyphenate("Winterdienst")).toBe("Winterdienst");
+    expect(softHyphenate("Hausmeisterservice").replace(/\u00AD/g, "")).toBe("Hausmeisterservice");
   });
 });

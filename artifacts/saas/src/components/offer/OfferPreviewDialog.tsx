@@ -67,10 +67,15 @@ export interface OfferPreviewDialogProps {
   project: Project | undefined;
   /** Detailgrad der Vorschau (Standard: kompakt, wie /print/:id beim Öffnen). */
   detail?: OfferDetail;
+  /**
+   * Aus dem Angebots-Check: „Angebot öffnen“ läuft über dessen Freigabe statt über den
+   * Link „Zum Angebot“; `null` blendet die Aktion aus, solange der Check sie sperrt.
+   */
+  onOpenOffer?: (() => void) | null;
 }
 
 /** Vorschau = exakt das Kundenangebot von /print/:id, auf die Dialogbreite skaliert. Immer erlaubt. */
-export function OfferPreviewDialog({ open, onOpenChange, project, detail = "compact" }: OfferPreviewDialogProps) {
+export function OfferPreviewDialog({ open, onOpenChange, project, detail = "compact", onOpenOffer }: OfferPreviewDialogProps) {
   const economics = useObjectEconomics(project);
   const company = useOfferCompany();
   // Plan-Abo, damit Wasserzeichen und Hinweis nach einem Upgrade neu berechnet werden.
@@ -87,7 +92,13 @@ export function OfferPreviewDialog({ open, onOpenChange, project, detail = "comp
             {pdfAllowed ? "So erhält Ihr Kunde das Angebot." : "Vorschau · Export im Pro-Plan"}
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto bg-surface-sunken p-3 md:p-6">
+        {/* Per Tastatur scrollbar (WCAG 2.1.1): fokussierbare, benannte Region. */}
+        <div
+          role="region"
+          aria-label="Angebotsdokument"
+          tabIndex={0}
+          className="min-h-0 flex-1 overflow-y-auto bg-surface-sunken p-3 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:p-6"
+        >
           {project && economics ? (
             <ScaledToFit>
               <OfferDocument
@@ -113,12 +124,18 @@ export function OfferPreviewDialog({ open, onOpenChange, project, detail = "comp
           <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
             Schließen
           </Button>
-          {project && (
+          {project && onOpenOffer === undefined && (
             <Button asChild>
               <Link href={`/print/${project.id}`} onClick={() => onOpenChange(false)}>
                 <FileText aria-hidden="true" />
                 Zum Angebot
               </Link>
+            </Button>
+          )}
+          {project && onOpenOffer && (
+            <Button type="button" onClick={onOpenOffer}>
+              <FileText aria-hidden="true" />
+              Angebot öffnen
             </Button>
           )}
         </DialogFooter>

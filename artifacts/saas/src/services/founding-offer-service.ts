@@ -39,7 +39,7 @@ export function getRegularMonthlyPrice(): number {
 
 export async function claimFoundingOffer(): Promise<{ success: boolean; error?: string }> {
   if (!isFoundingOfferAvailable()) {
-    return { success: false, error: "Das Founding-Angebot ist nicht mehr verfügbar." };
+    return { success: false, error: "Das Gründer-Angebot ist nicht mehr verfügbar." };
   }
 
   _foundingConfig.currentCount += 1;

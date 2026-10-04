@@ -22,8 +22,8 @@ import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartToo
 import { getObjectStatus, getOfferReadiness, type CompanyInfo, type ObjectStatusKey } from "@/lib/offer-readiness";
 import { markupToRevenueMargin } from "@/lib/price-strategy";
 import { marginStatusLabel, marginTone } from "@/lib/status";
-import { formatCurrency, formatNumber } from "@/lib/utils";
-import { allocateRounded, sumDisplay } from "@/lib/display-rounding";
+import { formatCurrency, formatNumber, softHyphenate } from "@/lib/utils";
+import { allocateRounded, roundDisplay, sumDisplay } from "@/lib/display-rounding";
 import {
   aggregatePortfolio,
   COMPONENT_SLICE_META,
@@ -33,12 +33,13 @@ import {
   formatPercent,
   hasActivePortfolioFilter,
   hoursByObject,
+  moduleSliceDisplayValues,
   portfolioModules,
+  portfolioNachkalkulationVerdict,
   PORTFOLIO_MODULE_FILTER_LABELS,
   PORTFOLIO_STATUS_FILTER_LABELS,
   revenueByGroup,
   revenueByModule,
-  roomNachkalkulationVerdict,
   shareOf,
   sumSlices,
   type ChartSlice,
@@ -56,6 +57,8 @@ export interface SliceChartCardProps {
   slices: ChartSlice[];
   /** Text, wenn keine Anteile vorhanden sind. */
   emptyText: string;
+  /** Bereits gerundete Beträge je Anteil (z. B. wie im Angebot); sonst Restverteilung auf die Summe. */
+  shownValues?: readonly number[];
   className?: string;
 }
 
@@ -63,10 +66,13 @@ export interface SliceChartCardProps {
  * Ringdiagramm mit Legende als Liste (Bezeichnung, Betrag, Anteil). Die
  * Legende trägt die Information zugänglich; das Diagramm ist dekorativ.
  */
-export function SliceChartCard({ title, description, slices, emptyText, className }: SliceChartCardProps) {
+export function SliceChartCard({ title, description, slices, emptyText, shownValues: given, className }: SliceChartCardProps) {
   const total = sumSlices(slices);
   // Legende: Beträge auf Cent mit Restverteilung — Σ Zeilen = „Summe“.
-  const shownValues = useMemo(() => allocateRounded(slices.map((s) => s.value), total), [slices, total]);
+  const shownValues = useMemo(
+    () => (given && given.length === slices.length ? [...given] : allocateRounded(slices.map((s) => s.value), total)),
+    [given, slices, total],
+  );
   const shownTotal = sumDisplay(shownValues);
   const config = useMemo<ChartConfig>(
     () => Object.fromEntries(slices.map((s, i) => [`s${i}`, { label: s.label, color: s.color }])),
@@ -121,7 +127,7 @@ export function SliceChartCard({ title, description, slices, emptyText, classNam
             {slices.map((s, i) => (
               <li key={s.key} className="flex items-center gap-3 py-2">
                 <span aria-hidden="true" className="size-2.5 shrink-0 rounded-xs" style={{ backgroundColor: s.color }} />
-                <span className="min-w-0 flex-1 hyphens-auto break-words text-foreground">{s.label}</span>
+                <span className="min-w-0 flex-1 hyphens-auto break-words text-foreground">{softHyphenate(s.label)}</span>
                 <Money value={shownValues[i]} className="font-medium" />
                 <span className="w-14 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                   {formatPercent(shareOf(s.value, total), 0)}
@@ -319,7 +325,7 @@ function PortfolioTable({ rows, empty }: { rows: PortfolioRow[]; empty?: ReactNo
       header: "Nachkalkulation",
       hideBelow: "xl",
       sortable: true,
-      sortValue: (r) => r.verdict?.label ?? null,
+      sortValue: (r) => r.verdict?.severity ?? null,
       cell: (r) => <VerdictCell row={r} />,
     },
     {
@@ -462,7 +468,27 @@ export default function AuswertungGlobal() {
   );
 
   const totals = useMemo(() => aggregatePortfolio(econList), [econList]);
+  // KPI aus den angezeigten Objektpreisen: Σ Zeilen der Portfolio-Tabelle = Umsatz/Monat.
+  const shownRevenue = useMemo(
+    () => ({
+      monthly: sumDisplay(econList.map((e) => roundDisplay(e.totals.priceMonthly))),
+      annual: sumDisplay(econList.map((e) => roundDisplay(e.totals.priceAnnual))),
+    }),
+    [econList],
+  );
   const moduleSlices = useMemo(() => revenueByModule(econList), [econList]);
+  // Legende „Umsatz nach Leistung“ aus den angezeigten Objektbeträgen: Summe = KPI „Umsatz/Monat“.
+  const moduleShownValues = useMemo(
+    () =>
+      moduleSliceDisplayValues(
+        activeProjects.flatMap((project) => {
+          const econ = economics.get(project.id);
+          return econ ? [{ project, econ }] : [];
+        }),
+        moduleSlices,
+      ),
+    [activeProjects, economics, moduleSlices],
+  );
   const groupSlices = useMemo(() => revenueByGroup(activeProjects, economics), [activeProjects, economics]);
   const hoursRows = useMemo(() => hoursByObject(activeProjects, economics), [activeProjects, economics]);
 
@@ -477,7 +503,7 @@ export default function AuswertungGlobal() {
           econ,
           status: getObjectStatus(p, readiness),
           modules: portfolioModules(p),
-          verdict: roomNachkalkulationVerdict(econ, nachkalkulationen[p.id]),
+          verdict: portfolioNachkalkulationVerdict(p, econ, nachkalkulationen[p.id]),
         }];
       }),
     [activeProjects, economics, company, nachkalkulationen],
@@ -519,9 +545,9 @@ export default function AuswertungGlobal() {
           <KpiGroup columns={3} className="grid-cols-1 min-[400px]:grid-cols-2 xl:grid-cols-6">
             <Kpi
               label="Umsatz/Monat"
-              value={totals.priceMonthly}
+              value={shownRevenue.monthly}
               format="currency"
-              hint={`${formatCurrency(totals.priceAnnual)} / Jahr`}
+              hint={`${formatCurrency(shownRevenue.annual)} / Jahr`}
               info="Summe der Ø-Monatspreise netto aller aktiven Objekte, inklusive Winterdienst (Jahresmittel) und Hausmeisterservice."
             />
             <Kpi
@@ -559,22 +585,24 @@ export default function AuswertungGlobal() {
           </KpiGroup>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <SliceChartCard
-            title="Umsatz nach Leistung"
-            description="Ø Monatsumsatz netto je Leistung"
-            slices={moduleSlices}
-            emptyText="Noch kein Umsatz vorhanden."
-          />
-          <SliceChartCard
-            title="Umsatz nach Raumgruppe"
-            description="Unterhaltsreinigung inkl. Rüst-/Wegezeit"
-            slices={groupSlices}
-            emptyText="Keine Räume vorhanden."
-          />
-        </div>
-
-        <HoursByObjectCard rows={hoursRows} />
+        <Section id="verteilung" title="Verteilung">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <SliceChartCard
+              title="Umsatz nach Leistung"
+              description="Ø Monatsumsatz netto je Leistung"
+              slices={moduleSlices}
+              shownValues={moduleShownValues}
+              emptyText="Noch kein Umsatz vorhanden."
+            />
+            <SliceChartCard
+              title="Umsatz nach Raumgruppe"
+              description="Unterhaltsreinigung inkl. Rüst-/Wegezeit"
+              slices={groupSlices}
+              emptyText="Keine Räume vorhanden."
+            />
+          </div>
+          <HoursByObjectCard rows={hoursRows} />
+        </Section>
 
         <Section
           id="portfolio"

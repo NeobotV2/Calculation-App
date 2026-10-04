@@ -305,6 +305,12 @@
     color: hsl(var(--foreground));
   }
 
+  /* Fieldsets wachsen sonst auf die Breite ihres Inhalts (min-inline-size: min-content):
+     eine nicht umbrechende Chip-Leiste schob z. B. die Raumart-Auswahl aus dem Sheet. */
+  fieldset {
+    min-inline-size: 0;
+  }
+
   ::selection {
     background-color: hsl(var(--primary) / 0.2);
     color: hsl(var(--foreground));

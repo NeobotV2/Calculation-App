@@ -4,7 +4,7 @@ import { useStore, type Project } from "@/store/use-store";
 import type { ObjectEconomics } from "@/lib/object-economics";
 import { calcOfferPresentation, type OfferPresentation } from "@/lib/object-totals";
 import { buildOfferPositions, type OfferPosition, type OfferPositionGroup } from "@/lib/offer-positions";
-import { displayTotals, roundGroupsForDisplay } from "@/lib/display-rounding";
+import { displayOfferGroups, displayTotals } from "@/lib/display-rounding";
 import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import {
   formatOfferQuantity,
@@ -25,7 +25,7 @@ import {
    Immer hell (Papier), A4, Fließtext 10 pt, Tabellen 9 pt, tabular-nums.
    Alle Summen stammen aus buildOfferPositions / calcOfferPresentation und
    werden für die Anzeige so gerundet, dass jede Summe aufgeht
-   (roundGroupsForDisplay / displayTotals).
+   (displayOfferGroups / displayTotals).
    ───────────────────────────────────────────────────────────────────────── */
 
 /** Firmen- und Dokumentfelder aus dem Store, die das Angebot braucht. */
@@ -347,8 +347,13 @@ function TotalsBox({
   headingTag: DocHeadingTag;
 }) {
   const totals = economics.totals;
-  // Angezeigte Beträge: USt auf den gerundeten Nettobetrag, Jahreswerte = 12 × angezeigter Monat.
-  const d = displayTotals({ fixedMonthly: op.fixedMonthly, averageMonthly: totals.priceMonthly, vatRatePct: vatRate });
+  // Angezeigte Beträge: USt auf den gerundeten Nettobetrag; Jahreswert wie im Arbeitsbereich (priceAnnual, einmal gerundet).
+  const d = displayTotals({
+    fixedMonthly: op.fixedMonthly,
+    averageMonthly: totals.priceMonthly,
+    vatRatePct: vatRate,
+    annualNet: op.expectedAnnual,
+  });
   const hasVat = vatRate > 0;
   const winterLine = winterTotalsLine(op);
   const showAverage = hasSeasonalShare(totals.priceMonthly, op.fixedMonthly, totals.hasModules);
@@ -398,16 +403,12 @@ export function OfferDocument({
 }: OfferDocumentProps) {
   const totals = economics.totals;
   const op = useMemo(() => calcOfferPresentation(totals, project), [totals, project]);
-  const groups = useMemo(() => {
-    const exact = buildOfferPositions(project, totals, economics.effectiveRate);
-    // Anzeige: Zeilen auf Cent, Rest-Cents nach größtem Rest — Σ Zeilen = Summe Modul,
-    // Σ Module = Ø-Monatspreis; ohne saisonalen Winterdienst zusätzlich = „Monatlich netto“.
-    const seasonal = hasSeasonalShare(totals.priceMonthly, op.fixedMonthly, totals.hasModules);
-    return roundGroupsForDisplay(exact, {
-      totalMonthly: totals.priceMonthly,
-      fixed: seasonal ? { modules: ["unterhalt", "hms"], totalMonthly: op.fixedMonthly } : undefined,
-    });
-  }, [project, totals, economics.effectiveRate, op.fixedMonthly]);
+  // Anzeige: Zeilen auf Cent, Rest-Cents nach größtem Rest — Σ Zeilen = Summe Modul,
+  // Σ Module = Ø-Monatspreis; dieselbe Rundung wie Prüfschritt und Arbeitsbereich.
+  const groups = useMemo(
+    () => displayOfferGroups(buildOfferPositions(project, totals, economics.effectiveRate), totals.priceMonthly),
+    [project, totals, economics.effectiveRate],
+  );
   const issued = now ?? new Date();
   const dates = offerDates(issued);
   const number = offerNumber(project, issued);

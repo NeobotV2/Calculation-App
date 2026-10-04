@@ -12,9 +12,9 @@ vi.mock("@/lib/capacitor-storage", () => {
   };
 });
 
-import { computeObjectEconomics, isDefaultRateSetting, type EconomicsSettings } from "./object-economics";
+import { computeObjectEconomics, isDefaultRateSetting, isRateChecked, suggestedDefaultRate, type EconomicsSettings } from "./object-economics";
 import { calcProjectTotals } from "./calc";
-import { calcHourlyRate, getDefaultConfig } from "./hourly-rate-calc";
+import { adoptedRate, calcHourlyRate, getDefaultConfig } from "./hourly-rate-calc";
 import { calcPriceStrategy, calcSensitivity } from "./price-strategy";
 import { calcRiskScore } from "./risk-score";
 import { getProjectWarnings, getWarningTypeKey } from "./warnings";
@@ -180,5 +180,92 @@ describe("computeObjectEconomics — with modules", () => {
     const filtered = computeObjectEconomics(p, { ...settings, disabledWarnings: ["winterdienst"] }, { breakdown });
     expect(filtered.warnings.some((w) => w.id.startsWith("p1_wd_"))).toBe(false);
     expect(filtered.moduleFindings.some((f) => f.idSuffix.startsWith("wd_"))).toBe(true);
+  });
+});
+
+describe("isRateChecked (Erste Schritte)", () => {
+  it("is done only for a changed rate that covers the Vollkosten", () => {
+    const cfg = getDefaultConfig();
+    const vollkosten = calcHourlyRate(cfg).vollkosten;
+    expect(isRateChecked(22.5, cfg)).toBe(false);
+    // Geändert, aber unter Vollkosten: nicht „geprüft“.
+    expect(isRateChecked(vollkosten - 1, cfg)).toBe(false);
+    expect(isRateChecked(Math.ceil(vollkosten) + 3, cfg)).toBe(true);
+    // Unveränderte Vorbelegung aus dem Onboarding: noch nicht selbst geprüft.
+    // Rechner-Ergebnis 32,9008 € auf den nächsten Cent AUFgerundet (adoptedRate).
+    expect(suggestedDefaultRate()).toBe(32.91);
+    expect(suggestedDefaultRate()).toBeGreaterThan(vollkosten);
+    expect(isRateChecked(suggestedDefaultRate(), cfg)).toBe(false);
+    // Rechner angepasst und Satz übernommen: geprüft.
+    const own = { ...cfg, baseLohn: cfg.baseLohn + 1 };
+    expect(isRateChecked(calcHourlyRate(own).stundenverrechnungssatz, own)).toBe(true);
+  });
+});
+
+describe("Standard-Verrechnungssatz: eine Regel für Erste Schritte, Hinweis und Risiko", () => {
+  const cfg = getDefaultConfig();
+  const base: EconomicsSettings = { hourlyRate: 22.5, hourlyRateConfig: cfg, targetMargin: cfg.gewinnmarge, disabledWarnings: [] };
+  const p = makeProject();
+  const flags = (s: EconomicsSettings) => {
+    const e = computeObjectEconomics(p, s);
+    return {
+      usesDefaultRate: e.usesDefaultRate,
+      warning: e.warnings.some((w) => w.id === "p1_default_rate"),
+      risk: e.risk.factors.some((f) => f.key === "default_rate"),
+      checked: isRateChecked(s.hourlyRate, s.hourlyRateConfig, s.confirmedHourlyRate),
+    };
+  };
+
+  it("the onboarding suggestion counts as default exactly like 22,50 €", () => {
+    for (const hourlyRate of [22.5, suggestedDefaultRate()]) {
+      expect(isDefaultRateSetting(hourlyRate, cfg)).toBe(true);
+      expect(flags({ ...base, hourlyRate })).toEqual({ usesDefaultRate: true, warning: true, risk: true, checked: false });
+    }
+  });
+
+  it("confirming the default calculator on the Verrechnungssatz page completes the check and clears the hint", () => {
+    const hourlyRate = suggestedDefaultRate();
+    expect(flags({ ...base, hourlyRate, confirmedHourlyRate: hourlyRate })).toEqual({ usesDefaultRate: false, warning: false, risk: false, checked: true });
+    // Bestätigung gilt nur für genau diesen Satz.
+    expect(flags({ ...base, hourlyRate, confirmedHourlyRate: 30 }).checked).toBe(false);
+    // Unter Vollkosten bleibt „prüfen“ offen, auch wenn bestätigt.
+    expect(isRateChecked(22.5, cfg, 22.5)).toBe(false);
+  });
+
+  it("a customised calculator or own rate is not a default", () => {
+    expect(isDefaultRateSetting(32.9, cfg)).toBe(false);
+    expect(isDefaultRateSetting(suggestedDefaultRate(), { ...cfg, baseLohn: cfg.baseLohn + 1 })).toBe(false);
+  });
+});
+
+describe("adoptedRate / suggested rate vs. target margin", () => {
+  it("rounds the calculator result up to the next cent", () => {
+    expect(adoptedRate({ stundenverrechnungssatz: 32.90078 })).toBe(32.91);
+    expect(adoptedRate({ stundenverrechnungssatz: 32.9 })).toBe(32.9);
+    expect(adoptedRate({ stundenverrechnungssatz: 30.000000001 })).toBe(30);
+    expect(adoptedRate({ stundenverrechnungssatz: Number.NaN })).toBe(0);
+  });
+
+  it("the suggested rate meets the target margin — no 'Marge unter Zielwert'", () => {
+    const cfg = getDefaultConfig();
+    const s: EconomicsSettings = { hourlyRate: suggestedDefaultRate(), hourlyRateConfig: cfg, targetMargin: cfg.gewinnmarge, disabledWarnings: [] };
+    for (const project of DEMO_PROJECTS) {
+      const e = computeObjectEconomics(project, s);
+      expect(e.strategy.marginPct).toBeGreaterThanOrEqual(e.strategy.targetMarginPct);
+      expect(e.warnings.some((w) => w.id.endsWith("_low_margin"))).toBe(false);
+      expect(e.risk.factors.some((f) => f.key === "margin_low")).toBe(false);
+    }
+  });
+
+  it("any adopted calculator rate meets its own target margin", () => {
+    const cfg = getDefaultConfig();
+    for (let lohn = 12; lohn <= 20; lohn += 0.07) {
+      const own = { ...cfg, baseLohn: Math.round(lohn * 100) / 100 };
+      const b = calcHourlyRate(own);
+      const rate = adoptedRate(b);
+      const margin = ((rate - b.vollkosten) / rate) * 100;
+      const target = (own.gewinnmarge / (100 + own.gewinnmarge)) * 100;
+      expect(margin).toBeGreaterThanOrEqual(target - 1e-9);
+    }
   });
 });

@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { calcWinterdienst, clearingPerf, effectiveMethod, materialParams, spreadingPerf, weatherFactors } from "./winterdienst";
 import type { ModuleRates, WinterdienstConfig } from "./types";
 import { applyWinterRegion, createDefaultWinterdienst, createWinterArea, WINTER_REGION_PRESETS } from "@/data/winterdienst";
+import { breakEvenText } from "@/components/calc/winterdienst/winterdienst-ui";
 
 /* Kontrakt §14: Satz 30 €/h, Vollkosten 24 €/h. */
 const R: ModuleRates = { rate: 30, vollkosten: 24 };
@@ -200,6 +201,22 @@ describe("calcWinterdienst — degenerate inputs (T15)", () => {
     expect(n0.revenue.standby).toBe(0);
     expect(n0.billing.installmentCount).toBe(12);
     expect(n0.monthlyLaborHours[5]).toBeCloseTo(65.9 / 12, 6);
+  });
+
+  it("K_E = 0: a Pauschale below the fixed costs loses at every Einsatz count", () => {
+    const noVar: WinterdienstConfig = { ...WD_REF, areas: [], travelMinutesPerEinsatz: 0, documentationMinutesPerEinsatz: 0,
+      seasonSetupHours: 0, standbyFeeMonthly: 0, standbyCostMonthly: 20 };
+    const loss = calcWinterdienst(noVar, R);
+    expect(loss.perEinsatz.cost).toBe(0);
+    expect(loss.contributionSeason).toBeCloseTo(-100, 6);
+    expect(loss.billing.lossAboveEinsaetze).toBe(0);
+    expect(breakEvenText(loss.billing)).toBe("Bei keiner Einsatzzahl kostendeckend");
+    expect(calcWinterdienst({ ...noVar, capEinsaetze: 10 }, R).billing.lossAboveEinsaetze).toBe(0);
+
+    const covered = calcWinterdienst({ ...noVar, standbyFeeMonthly: 20 }, R);
+    expect(covered.contributionSeason).toBeCloseTo(0, 9);
+    expect(covered.billing.lossAboveEinsaetze).toBeNull();
+    expect(breakEvenText(covered.billing)).toBe("Bei jeder Einsatzzahl kostendeckend");
   });
 
   it("falls back to sonstige for an unknown area type", () => {

@@ -3,6 +3,7 @@ import { HMS_RATE_BENCHMARK } from "@/data/hausmeisterservice";
 import { monthShort, nn, pos } from "./util";
 import type { ObjectTotals } from "@/lib/object-totals";
 import type { Project } from "@/store/use-store";
+import { withMinusSign } from "@/lib/utils";
 
 export type FindingSeverity = "critical" | "warning" | "info";
 
@@ -32,8 +33,10 @@ export const MODULE_THRESHOLDS = {
   eps: 1e-9,
 } as const;
 
-const eur = (n: number) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const n1 = (n: number) => n.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const eur = (n: number) => withMinusSign(n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const n1 = (n: number) => withMinusSign(n.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+/** Anzahl ohne „,0“ bei ganzen Zahlen: 40 → „40“, 37,5 → „37,5“. */
+const count = (n: number) => withMinusSign(n.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 1 }));
 
 /**
  * Plausibilitätsregeln der Module in fester Reihenfolge; jede idSuffix höchstens einmal.
@@ -82,9 +85,12 @@ export function evaluateModuleFindings(project: Project, totals: ObjectTotals, t
     }
 
     // W3 Pauschale im strengen Winter
+    const lossAbove = wd.billing.lossAboveEinsaetze;
+    const coveredUpTo = lossAbove !== null && lossAbove >= 1 ? Math.floor(lossAbove) : null;
     if (isPauschale && wd.scenarios.streng.contribution < -eps) {
       const s = wd.scenarios.streng;
-      const capHint = wd.billing.lossAboveEinsaetze !== null ? ` (z. B. bis ${Math.floor(wd.billing.lossAboveEinsaetze)} Einsätze)` : "";
+      // Eine Deckelung unter der erwarteten Einsatzzahl löst wd_cap aus und rettet keinen Verlust im Normalwinter.
+      const capHint = coveredUpTo !== null && coveredUpTo >= wd.einsaetze ? ` (z. B. bis ${coveredUpTo} Einsätze)` : "";
       add({ idSuffix: "wd_harsh", riskKey: "wd_harsh_loss", severity: "info", riskPoints: 4,
         title: "Pauschale verliert im strengen Winter",
         message: `Bei ${Math.round(s.einsaetze)} statt ${Math.round(wd.einsaetze)} Einsätzen entsteht ein Verlust von ${eur(-s.contribution)} € je Saison.`,
@@ -92,19 +98,44 @@ export function evaluateModuleFindings(project: Project, totals: ObjectTotals, t
     }
 
     // W4 Einsatzzahl gegen Region
-    const lossAbove = wd.billing.lossAboveEinsaetze;
     const belowMin = wd.einsaetze < preset.einsaetzeMin;
-    const pauschaleUncovered = isPauschale && lossAbove !== null && lossAbove < preset.einsaetzeTyp;
-    if (belowMin || pauschaleUncovered) {
+    // Deckung im typischen Winter aus dem Saisonergebnis (W18): Erlös P + max(0, e − Deckel)·U_E
+    // gegen Kosten F_K + e·K_E. Bei einer Deckelung mit U_E > K_E holt die Abrechnung
+    // über dem Deckel den Verlust wieder ein — dann gibt es nur ein Verlustfenster.
+    const pauschale = wd.billing.pauschaleSeason;
+    const cap = wd.billing.capEinsaetze;
+    const vr = wd.billing.pricePerEinsatz;
+    const vc = wd.perEinsatz.cost;
+    const seasonResultAt = (e: number) =>
+      pauschale === null ? 0 : pauschale + (cap !== null ? Math.max(0, e - cap) * vr : 0) - (wd.fixedCostSeason + e * vc);
+    const pauschaleUncovered = isPauschale && pauschale !== null && seasonResultAt(preset.einsaetzeTyp) < -eps;
+    const recovers = cap !== null && vr > vc + eps && lossAbove !== null && lossAbove <= cap;
+    const breakEvenAbove = recovers && pauschale !== null ? (wd.fixedCostSeason - pauschale + cap * vr) / (vr - vc) : null;
+    const typicalText = `ein typischer Winter in der Region ${preset.label} hat ${preset.einsaetzeTyp}.`;
+    const uncoveredText =
+      breakEvenAbove !== null
+        ? coveredUpTo !== null
+          ? `Die Pauschale ist zwischen ca. ${coveredUpTo} und ${Math.ceil(breakEvenAbove - eps)} Einsätzen nicht kostendeckend; ${typicalText}`
+          : `Die Pauschale ist erst ab ca. ${Math.ceil(breakEvenAbove - eps)} Einsätzen kostendeckend; ${typicalText}`
+        : `Die Pauschale ist ${coveredUpTo !== null ? `nur bis ca. ${coveredUpTo} Einsätze` : "bei keiner Einsatzzahl"} kostendeckend; ${typicalText}`;
+    if (belowMin || (pauschaleUncovered && wd.einsaetze < preset.einsaetzeTyp)) {
       add({ idSuffix: "wd_einsaetze_low", riskKey: "wd_einsaetze_low", severity: isPauschale ? "warning" : "info", riskPoints: isPauschale ? 12 : 0,
         title: "Einsatzannahme zu niedrig",
         message: belowMin
           ? `${n1(wd.einsaetze)} Einsätze liegen unter dem Orientierungswert für ${preset.label} (${preset.einsaetzeMin}–${preset.einsaetzeMax}, typisch ${preset.einsaetzeTyp}).`
-          : `Die Pauschale ist nur bis ca. ${Math.floor(lossAbove as number)} Einsätze kostendeckend; ein typischer Winter in der Region ${preset.label} hat ${preset.einsaetzeTyp}.`,
+          : uncoveredText,
         action: isPauschale
           ? "Einsatzzahl aus den Einsatzprotokollen der Vorjahre ableiten oder Abrechnung pro Einsatz anbieten."
           : "Umsatzplanung prüfen; die Bereitschaftspauschale sichert die Fixkosten." });
-    } else if (wd.einsaetze > preset.einsaetzeMax) {
+    } else if (pauschaleUncovered) {
+      // Annahme ≥ typisch, aber der typische Winter macht Verlust (bei Deckelung: Verlustfenster).
+      // Ohne eigene Risikopunkte — below_cost_wd bzw. wd_harsh bewerten das Saisonergebnis.
+      add({ idSuffix: "wd_einsaetze_low", riskKey: "wd_einsaetze_low", severity: "warning", riskPoints: 0,
+        title: "Pauschale deckt typischen Winter nicht",
+        message: uncoveredText,
+        action: "Einsatzpreis, Bereitschaftspauschale oder Zuschläge anheben, bis die Pauschale einen typischen Winter deckt." });
+    }
+    if (wd.einsaetze > preset.einsaetzeMax) {
       add({ idSuffix: "wd_einsaetze_high", riskKey: "wd_einsaetze_high", severity: "info", riskPoints: 0,
         title: "Einsatzannahme sehr hoch",
         message: `${n1(wd.einsaetze)} Einsätze liegen über dem Strengwinter-Orientierungswert für ${preset.label} (${preset.einsaetzeMax}).`,
@@ -149,7 +180,7 @@ export function evaluateModuleFindings(project: Project, totals: ObjectTotals, t
       add({ idSuffix: "wd_salt", riskKey: "wd_salt_hint", severity: "info", riskPoints: 0,
         title: "Streusalz auf dem Gehweg",
         message: "Auf öffentlichen Gehwegen ist Auftausalz in vielen Kommunen untersagt.",
-        action: "Ortssatzung prüfen und die Option „Salzbeschränkung“ setzen, falls sie gilt." });
+        action: "Ortssatzung prüfen und die Option „Ortssatzung schränkt Auftausalz ein“ setzen, falls sie gilt." });
     }
 
     // W9 Räumen ohne Streuen
@@ -204,7 +235,7 @@ export function evaluateModuleFindings(project: Project, totals: ObjectTotals, t
     if (isPauschale && wd.billing.capEinsaetze !== null && wd.billing.capEinsaetze < wd.einsaetze) {
       add({ idSuffix: "wd_cap", riskKey: "wd_cap", severity: "info", riskPoints: 0,
         title: "Deckelung unter erwarteter Einsatzzahl",
-        message: `Die Pauschale umfasst ${n1(wd.billing.capEinsaetze)} Einsätze, erwartet werden ${n1(wd.einsaetze)}.`,
+        message: `Die Pauschale umfasst ${count(wd.billing.capEinsaetze)} Einsätze, erwartet werden ${count(wd.einsaetze)}.`,
         action: "Pauschale und Deckelung abstimmen – der Kunde erhält sonst schon im Normalwinter Nachberechnungen." });
     }
 
@@ -267,12 +298,20 @@ export function evaluateModuleFindings(project: Project, totals: ObjectTotals, t
         action: "Turnus auf mindestens wöchentlich (52 × pro Jahr) setzen." });
     }
     // H5
-    if (nn(hc.travelMinutesPerVisitDay) <= 0 && hms.visitDaysPerYear > 0) {
+    const travelMinutes = nn(hc.travelMinutesPerVisitDay);
+    if (hms.visitDaysPerYear <= 0 && hms.contingentHoursAnnual > 0) {
+      add({ idSuffix: "hms_travel_contingent", riskKey: "hms_travel_contingent", severity: "info", riskPoints: 0,
+        title: "Keine Anfahrt für das Kontingent",
+        message: "Kontingente zählen nicht als Einsatztage – für Einsätze auf Abruf ist keine Anfahrt kalkuliert.",
+        action: travelMinutes > 0
+          ? "Einsatztage/Jahr für die erwarteten Abrufe angeben."
+          : "Einsatztage/Jahr für die erwarteten Abrufe und die Anfahrt je Einsatztag erfassen." });
+    } else if (travelMinutes <= 0 && hms.visitDaysPerYear > 0) {
       add({ idSuffix: "hms_travel", riskKey: "hms_travel", severity: "info", riskPoints: 0,
         title: "Keine Anfahrt kalkuliert",
         message: `Für ${n1(hms.visitDaysPerYear)} Einsatztage pro Jahr ist keine Anfahrt kalkuliert.`,
         action: "Anfahrt je Einsatztag erfassen." });
-    } else if (nn(hc.travelMinutesPerVisitDay) > 0 && nn(project.wegezeit) > 0 && project.rooms.length > 0) {
+    } else if (hms.travelHoursAnnual > 0 && nn(project.wegezeit) > 0 && project.rooms.length > 0) {
       add({ idSuffix: "hms_travel", riskKey: "hms_travel", severity: "info", riskPoints: 0,
         title: "Anfahrt doppelt?",
         message: "Reinigung und Hausmeisterservice enthalten je eine Anfahrt.",

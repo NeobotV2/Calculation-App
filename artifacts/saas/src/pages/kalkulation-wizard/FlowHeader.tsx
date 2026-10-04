@@ -47,12 +47,27 @@ export function FlowHeader({
       <div className={cn("mx-auto flex h-14 w-full items-center gap-2 md:gap-3", PAGE_WIDTH_CLASS.wide, PAGE_GUTTER_CLASS)}>
         <IconButton icon={X} label="Kalkulation schließen" onClick={onClose} className="-ml-2" />
         <div className="min-w-0 flex-1">
+          {/* Bearbeiten auf dem Phone: der Objektname ist der Titel, „Kalkulation bearbeiten“ die Zeile darunter. */}
           <h1 className="truncate text-h3 text-foreground">
-            {title}
-            {mode === "edit" && trimmed && <span className="font-normal text-muted-foreground"> · {trimmed}</span>}
+            {mode === "edit" && trimmed ? (
+              <>
+                <span className="max-md:sr-only">
+                  {title}
+                  <span className="font-normal text-muted-foreground"> · </span>
+                </span>
+                <span className="md:font-normal md:text-muted-foreground">{trimmed}</span>
+              </>
+            ) : (
+              title
+            )}
           </h1>
-          {status && (
-            <p className="truncate text-xs text-muted-foreground md:hidden">{status}</p>
+          {mode === "edit" && trimmed ? (
+            <p className="truncate text-xs text-muted-foreground md:hidden">
+              <span aria-hidden="true">{title}</span>
+              {status && ` · ${status}`}
+            </p>
+          ) : (
+            status && <p className="truncate text-xs text-muted-foreground md:hidden">{status}</p>
           )}
         </div>
         {status && <p className="hidden shrink-0 text-xs text-muted-foreground md:block">{status}</p>}

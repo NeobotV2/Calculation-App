@@ -24,10 +24,11 @@ import { WinterNachkalkulationCard } from "@/components/controlling/WinterNachka
 import { HmsNachkalkulationCard } from "@/components/controlling/HmsNachkalkulationCard";
 import { calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
 import { marginStatusLabel, marginTone } from "@/lib/status";
-import { formatCurrency, formatNumber } from "@/lib/utils";
-import { allocateRounded, sumDisplay } from "@/lib/display-rounding";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
+import { displayOfferGroups, sumDisplay } from "@/lib/display-rounding";
+import { buildOfferPositions } from "@/lib/offer-positions";
 import { SliceChartCard } from "./index";
-import { formatPercent, objectRevenueSlices, portfolioModules } from "./portfolio";
+import { formatPercent, objectRevenueSlices, objectSliceDisplayValues, portfolioModules } from "./portfolio";
 
 interface RoomRow {
   room: Room;
@@ -67,19 +68,28 @@ export default function AuswertungDetail() {
 
   const roomRows = useMemo<RoomRow[]>(() => {
     if (!project || !economics) return [];
-    const exact = project.rooms.map((room) => {
+    // Anzeige: dieselben gerundeten Raumbeträge wie Prüfschritt, Arbeitsbereich und Angebot.
+    const shown = displayOfferGroups(
+      buildOfferPositions(project, economics.totals, economics.effectiveRate),
+      economics.totals.priceMonthly,
+    );
+    const byId = new Map(
+      (shown.find((g) => g.module === "unterhalt")?.positions ?? []).filter((p) => p.kind === "room").map((p) => [p.id, p]),
+    );
+    return project.rooms.map((room) => {
       const rc = calcRoom(room, economics.effectiveRate);
-      return { room, hours: rc.monthlyHours, cost: rc.monthlyCost };
+      const p = byId.get(room.id);
+      return { room, hours: rc.monthlyHours, cost: rc.monthlyCost, costShown: p?.priceMonthly ?? 0, hoursShown: p?.hoursMonthly ?? 0 };
     });
-    // Anzeige-Rundung: Σ angezeigte Zeilen = „Summe Räume“.
-    const costShown = allocateRounded(exact.map((r) => r.cost));
-    const hoursShown = allocateRounded(exact.map((r) => r.hours), undefined, 1);
-    return exact.map((r, i) => ({ ...r, costShown: costShown[i], hoursShown: hoursShown[i] }));
   }, [project, economics]);
 
   const slices = useMemo(
     () => (project && economics ? objectRevenueSlices(project, economics) : []),
     [project, economics],
+  );
+  const sliceValues = useMemo(
+    () => (project && economics ? objectSliceDisplayValues(project, economics, slices) : undefined),
+    [project, economics, slices],
   );
 
   if (!project || !economics) {
@@ -216,10 +226,14 @@ export default function AuswertungDetail() {
             emphasis="hero"
             hint={`${formatCurrency(totals.priceAnnual)} / Jahr`}
           />
-          <KpiGroup columns={4} className="mt-5">
+          <KpiGroup columns={showRoomNk ? 4 : 2} className="mt-5">
             <Kpi label="Std./Monat" value={totals.laborHoursMonthly} format="hours" />
-            <Kpi label="Fläche Reinigung" value={cleaning.area} format="area" hint={`${cleaning.count} ${cleaning.count === 1 ? "Raum" : "Räume"}`} />
-            <Kpi label="Ø Preis/m² Reinigung" value={cleaning.pricePerSqm} format="currency" />
+            {showRoomNk && (
+              <>
+                <Kpi label="Fläche Reinigung" value={cleaning.area} format="area" hint={`${cleaning.count} ${cleaning.count === 1 ? "Raum" : "Räume"}`} />
+                <Kpi label="Ø Preis/m² Reinigung" value={cleaning.pricePerSqm} format="currency" />
+              </>
+            )}
             <Kpi label="Verrechnungssatz" value={economics.effectiveRate} format="currency" period="hour" />
           </KpiGroup>
         </Card>
@@ -254,7 +268,7 @@ export default function AuswertungDetail() {
             Basis:{" "}
             <Link
               href="/verrechnungssatz"
-              className="font-medium text-primary underline-offset-4 hover:underline focus-visible:rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="font-medium text-primary underline underline-offset-4 focus-visible:rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Ihr Verrechnungssatz
             </Link>{" "}
@@ -262,43 +276,47 @@ export default function AuswertungDetail() {
           </p>
         </Section>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        {/* Ohne Unterhaltsreinigung (nur Winterdienst/HMS) entfällt der Raum-Chart. */}
+        <div className={cn("grid gap-4", showRoomNk && "lg:grid-cols-2")}>
           <SliceChartCard
             title="Umsatz nach Raumgruppe und Leistung"
             description="Ø Monatsumsatz netto"
             slices={slices}
+            shownValues={sliceValues}
             emptyText="Noch kein Umsatz vorhanden."
           />
-          <Card>
-            <CardHeader title="Stunden pro Raum" description="Monatsstunden je Raum" />
-            {hoursData.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Keine Räume vorhanden.</p>
-            ) : (
-              <div aria-hidden="true">
-                <ChartContainer
-                  config={HOURS_CHART_CONFIG}
-                  className="aspect-auto w-full"
-                  style={{ height: Math.min(hoursData.length, 14) * 32 + 48 }}
-                >
-                  <BarChart data={hoursData.slice(0, 14)} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
-                    <CartesianGrid horizontal={false} />
-                    <XAxis type="number" tickLine={false} axisLine={false} tickFormatter={(v) => `${formatNumber(Number(v), 0)} h`} />
-                    <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={112} />
-                    <ChartTooltip
-                      cursor={false}
-                      content={
-                        <ChartTooltipContent
-                          labelFormatter={(_, payload) => String(payload?.[0]?.payload?.fullName ?? "")}
-                          formatter={(value) => <span className="font-medium tabular-nums">{formatNumber(Number(value), 1)} h</span>}
-                        />
-                      }
-                    />
-                    <Bar dataKey="stunden" fill="var(--color-stunden)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
-                  </BarChart>
-                </ChartContainer>
-              </div>
-            )}
-          </Card>
+          {showRoomNk && (
+            <Card>
+              <CardHeader title="Stunden pro Raum" description="Monatsstunden je Raum" />
+              {hoursData.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Keine Räume vorhanden.</p>
+              ) : (
+                <div aria-hidden="true">
+                  <ChartContainer
+                    config={HOURS_CHART_CONFIG}
+                    className="aspect-auto w-full"
+                    style={{ height: Math.min(hoursData.length, 14) * 32 + 48 }}
+                  >
+                    <BarChart data={hoursData.slice(0, 14)} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
+                      <CartesianGrid horizontal={false} />
+                      <XAxis type="number" tickLine={false} axisLine={false} tickFormatter={(v) => `${formatNumber(Number(v), 0)} h`} />
+                      <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={112} />
+                      <ChartTooltip
+                        cursor={false}
+                        content={
+                          <ChartTooltipContent
+                            labelFormatter={(_, payload) => String(payload?.[0]?.payload?.fullName ?? "")}
+                            formatter={(value) => <span className="font-medium tabular-nums">{formatNumber(Number(value), 1)} h</span>}
+                          />
+                        }
+                      />
+                      <Bar dataKey="stunden" fill="var(--color-stunden)" radius={[0, 4, 4, 0]} isAnimationActive={false} />
+                    </BarChart>
+                  </ChartContainer>
+                </div>
+              )}
+            </Card>
+          )}
         </div>
 
         {roomRows.length > 0 && (

@@ -217,3 +217,15 @@ describe("getProjectWarnings with service modules (T11)", () => {
     expect(getProjectWarnings(paused, 30, cfg, bd, false, 10)).toEqual(getProjectWarnings(modProject(), 30, cfg, bd, false, 10));
   });
 });
+
+describe("warning copy points to the new navigation", () => {
+  it("names Stammdaten › Verrechnungssatz instead of the old Stundensatz-Kalkulator", () => {
+    const p = { id: "w1", name: "O", status: "active", createdAt: "", updatedAt: "",
+      rooms: [{ id: "r", name: "Büro", typeId: "t", typeName: "Büro", groupId: "g", groupName: "Büro", area: 100, frequency: "5x_week", typePerformance: 200 }] } as Project;
+    const ws = getProjectWarnings(p, 10, getDefaultConfig(), calcHourlyRate(getDefaultConfig()), true);
+    const text = ws.map((w) => `${w.title} ${w.message} ${w.action ?? ""}`).join(" ");
+    expect(text).not.toMatch(/Stundensatz/);
+    expect(ws.find((w) => w.id === "w1_below_cost")?.action).toContain("Stammdaten › Verrechnungssatz");
+    expect(ws.find((w) => w.id === "w1_default_rate")?.action).toBe("Verrechnungssatz unter Stammdaten › Verrechnungssatz prüfen.");
+  });
+});

@@ -20,6 +20,21 @@ export interface StickyActionBarProps extends React.HTMLAttributes<HTMLDivElemen
   label?: string;
 }
 
+/**
+ * Höhe der sichtbaren Aktionsleisten als CSS-Variable `--sticky-bar-h` am
+ * Dokument (größte Leiste): Toasts (ab md unten rechts) liegen darüber und
+ * verdecken nicht „Weiter“, „Speichern“ oder „Übernehmen“.
+ */
+const barHeights = new Map<symbol, number>();
+function publishBarHeight(key: symbol, height: number | null) {
+  if (height === null) barHeights.delete(key);
+  else barHeights.set(key, height);
+  if (typeof document === "undefined") return;
+  const max = Math.max(0, ...barHeights.values());
+  if (max > 0) document.documentElement.style.setProperty("--sticky-bar-h", `${max}px`);
+  else document.documentElement.style.removeProperty("--sticky-bar-h");
+}
+
 /** Fixierte Aktionsleiste am unteren Rand (Speichern, Weiter …). */
 export function StickyActionBar({
   chrome,
@@ -34,16 +49,21 @@ export function StickyActionBar({
   const [height, setHeight] = React.useState(0);
 
   React.useLayoutEffect(() => {
-    if (!reserveSpace) return;
     const el = barRef.current;
     if (!el) return;
-    const update = () => setHeight(el.offsetHeight);
+    const key = Symbol("sticky-bar");
+    const update = () => {
+      setHeight(el.offsetHeight);
+      publishBarHeight(key, el.offsetHeight);
+    };
     update();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [reserveSpace]);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      publishBarHeight(key, null);
+    };
+  }, []);
 
   return (
     <>

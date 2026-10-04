@@ -53,7 +53,7 @@ export function FlowStepList({ steps, current, canSelect, onSelect, className }:
           <>
             <StepMarker s={s} current={isCurrent} />
             <span className="min-w-0 flex-1">
-              <span className={cn("block truncate text-sm", isCurrent ? "font-semibold text-foreground" : "text-foreground")}>
+              <span className={cn("line-clamp-2 text-sm", isCurrent ? "font-semibold text-foreground" : "text-foreground")}>
                 {FLOW_STEP_LABELS[s.id]}
               </span>
               {state === "unvollständig" && <span className="block text-xs text-warning">unvollständig</span>}

@@ -9,8 +9,9 @@ import { Card } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { FormField } from "@/components/ui/form-field";
 import { ArrowRight } from "lucide-react";
-import { hasDemoData, getDemoData, migrateDemoData } from "@/services/migration-service";
+import { hasDemoData, getDemoData, migrateDemoDataDetailed } from "@/services/migration-service";
 import { toast } from "sonner";
+import { SERVICE_MODULES_MIGRATION_MESSAGE } from "@/services/object-service";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -68,10 +69,14 @@ export default function Login() {
   const handleMigrate = async (accept: boolean) => {
     if (accept && migrationData) {
       setIsMigrating(true);
-      const success = await migrateDemoData(migrationData);
+      const result = await migrateDemoDataDetailed(migrationData);
       setIsMigrating(false);
-      if (success) {
+      if (result.ok) {
         toast.success("Demo-Daten erfolgreich übernommen!");
+      } else if (result.migrationMissing) {
+        toast.error(SERVICE_MODULES_MIGRATION_MESSAGE, {
+          description: "Objekte, Räume und Einstellungen wurden übernommen, Winterdienst und Hausmeisterservice noch nicht.",
+        });
       } else {
         toast.error("Fehler beim Übernehmen der Demo-Daten.");
       }
@@ -86,7 +91,7 @@ export default function Login() {
   if (showMigration) {
     return (
       <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
           <p className="mb-8 text-center text-h1 text-foreground" aria-hidden="true">
             CleanCalc <span className="text-primary">Pro</span>
           </p>
@@ -116,14 +121,14 @@ export default function Login() {
               Nein, mit leerem Konto starten
             </Button>
           </div>
-        </div>
+        </main>
       </PageTransition>
     );
   }
 
   return (
     <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
         <p className="mb-10 text-center text-h1 text-foreground" aria-hidden="true">
           CleanCalc <span className="text-primary">Pro</span>
         </p>
@@ -181,12 +186,12 @@ export default function Login() {
         <div className="mt-10 text-center">
           <p className="text-base text-muted-foreground">
             Neu hier?{" "}
-            <Link href="/register" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link href="/register" className="font-medium text-primary underline underline-offset-4">
               Konto erstellen
             </Link>
           </p>
         </div>
-      </div>
+      </main>
     </PageTransition>
   );
 }

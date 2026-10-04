@@ -5,8 +5,10 @@ import { ModuleIcon, type ServiceModule } from "@/components/ui/module-badge";
 import { Money, formatMoney } from "@/components/ui/money";
 import { PriceRangeBar } from "@/components/ui/price-range-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { displayModuleAmounts, displayOfferGroups } from "@/lib/display-rounding";
 import type { CalcDraft } from "@/lib/drafts";
 import type { ObjectEconomics } from "@/lib/object-economics";
+import type { OfferPositionGroup } from "@/lib/offer-positions";
 import type { OfferReadiness } from "@/lib/offer-readiness";
 import { marginTone } from "@/lib/status";
 import { cn, formatNumber } from "@/lib/utils";
@@ -14,6 +16,8 @@ import { cn, formatNumber } from "@/lib/utils";
 export interface LiveSummaryProps {
   draft: CalcDraft;
   econ: ObjectEconomics;
+  /** Angebotspositionen des Entwurfs: Modulbeträge wie im Prüfschritt (gleiche Anzeige-Rundung). */
+  positions: OfferPositionGroup[];
   readiness: OfferReadiness;
   /** „{n} Hinweise prüfen“ → Schritt Prüfen & Abschließen. */
   onReviewHints?: () => void;
@@ -29,7 +33,7 @@ function ModuleRow({ module, label, children }: { module: ServiceModule; label: 
   return (
     <li className="flex items-start justify-between gap-3 py-2">
       <span className="flex min-w-0 items-center gap-2 text-sm text-foreground">
-        <ModuleIcon module={module} size="sm" />
+        <ModuleIcon module={module} size="sm" decorative />
         <span className="truncate">{label}</span>
       </span>
       <span className="shrink-0 text-right">{children}</span>
@@ -42,9 +46,13 @@ function ModuleRow({ module, label, children }: { module: ServiceModule; label: 
  * Fläche, Marge, Preis-Einordnung und offene Hinweise. Änderungen werden
  * Screenreadern verzögert (nach der Eingabe) angesagt.
  */
-export function LiveSummary({ draft, econ, readiness, onReviewHints, heading = "Live-Kalkulation", className }: LiveSummaryProps) {
+export function LiveSummary({ draft, econ, positions, readiness, onReviewHints, heading = "Live-Kalkulation", className }: LiveSummaryProps) {
   const { totals, strategy } = econ;
   const hasPrice = totals.priceMonthly > 0;
+  const shown = React.useMemo(
+    () => displayModuleAmounts(displayOfferGroups(positions, totals.priceMonthly)),
+    [positions, totals.priceMonthly],
+  );
   const openItems = readiness.items.length;
   const headingId = React.useId();
 
@@ -56,6 +64,8 @@ export function LiveSummary({ draft, econ, readiness, onReviewHints, heading = "
       firstRef.current = false;
       return;
     }
+    // Veraltete Ansage sofort leeren; die neue folgt nach der Eingabe.
+    setAnnounced("");
     const t = setTimeout(
       () => setAnnounced(`Monatspreis netto ${formatMoney(totals.priceMonthly)}, Marge ${formatNumber(strategy.marginPct, 1)} %`),
       ANNOUNCE_DELAY_MS,
@@ -76,7 +86,7 @@ export function LiveSummary({ draft, econ, readiness, onReviewHints, heading = "
 
       <div className="space-y-1">
         <p className="text-label text-muted-foreground">Monatspreis netto</p>
-        <Money value={totals.priceMonthly} size="money" period="month" />
+        <Money value={shown.total} size="money" period="month" />
         {totals.hasModules && <p className="text-xs text-muted-foreground">Ø inkl. Zusatzleistungen</p>}
       </div>
 
@@ -84,12 +94,12 @@ export function LiveSummary({ draft, econ, readiness, onReviewHints, heading = "
         <ul className="divide-y divide-border border-y border-border" aria-label="Preis je Leistung">
           {draft.modules.unterhalt && (
             <ModuleRow module="unterhalt" label="Unterhaltsreinigung">
-              <Money value={totals.cleaning.cost} size="kpi" />
+              <Money value={shown.unterhalt} size="kpi" />
             </ModuleRow>
           )}
           {totals.winterdienst && (
             <ModuleRow module="winterdienst" label="Winterdienst">
-              <Money value={totals.winterdienst.revenueMonthly} size="kpi" />
+              <Money value={shown.winterdienst} size="kpi" />
               <span className="block text-xs text-muted-foreground">Ø / Monat</span>
               <span className="block text-xs text-muted-foreground">
                 Saison <Money value={totals.winterdienst.revenue.total} size="sm" />
@@ -98,7 +108,7 @@ export function LiveSummary({ draft, econ, readiness, onReviewHints, heading = "
           )}
           {totals.hms && (
             <ModuleRow module="hms" label="Hausmeisterservice">
-              <Money value={totals.hms.revenueMonthly} size="kpi" />
+              <Money value={shown.hms} size="kpi" />
               <span className="block text-xs text-muted-foreground">Ø / Monat</span>
             </ModuleRow>
           )}

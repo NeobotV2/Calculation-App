@@ -2,7 +2,7 @@ import * as React from "react";
 import { InfoHint } from "@/components/ui/info-hint";
 import { Money, type MoneyPeriod, type MoneySize } from "@/components/ui/money";
 import { TONE_CLASSES, TONE_ICON, type Tone } from "@/lib/status";
-import { cn, formatNumber } from "@/lib/utils";
+import { cn, formatNumber, softHyphenate } from "@/lib/utils";
 
 export type KpiFormat = "currency" | "hours" | "area" | "percent" | "number";
 export type KpiEmphasis = "hero" | "primary" | "secondary";
@@ -133,7 +133,7 @@ export function Kpi({
     <div className={cn("min-w-0", className)} {...props}>
       <div className="flex min-h-6 items-center gap-1 text-label text-muted-foreground">
         {/* Nie abschneiden: Begriffe wie „Ø pro Monat (Jahresmittel)“ unterscheiden Werte (§4.4). */}
-        <span className="min-w-0 line-clamp-2 hyphens-auto break-words">{label}</span>
+        <span className="min-w-0 line-clamp-2 hyphens-auto break-words">{typeof label === "string" ? softHyphenate(label) : label}</span>
         {info != null && <InfoHint label={resolvedInfoLabel}>{info}</InfoHint>}
       </div>
       <div className="mt-1 break-words">{content}</div>

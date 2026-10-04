@@ -41,7 +41,7 @@ export function ScenarioTable({ result, targetMarginPct, framed = true, classNam
     },
     { id: "einsaetze", header: "Einsätze", numeric: true, cell: (s) => formatCount(s.einsaetze) },
     { id: "erloes", header: "Erlös", numeric: true, cell: (s) => <Money value={s.revenue} /> },
-    { id: "kosten", header: "Kosten", numeric: true, cell: (s) => <Money value={s.cost} /> },
+    { id: "kosten", header: "Kosten", numeric: true, hideBelow: "lg", cell: (s) => <Money value={s.cost} /> },
     {
       id: "db",
       header: <abbr title="Deckungsbeitrag">DB</abbr>,

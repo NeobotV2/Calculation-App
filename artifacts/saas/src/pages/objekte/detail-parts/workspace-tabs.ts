@@ -14,6 +14,8 @@ import {
   type ObjectEconomicsOptions,
 } from "@/lib/object-economics";
 import type { ObjectTotals } from "@/lib/object-totals";
+import { displayModuleAmounts, displayOfferGroups } from "@/lib/display-rounding";
+import { buildOfferPositions } from "@/lib/offer-positions";
 
 export type WorkspaceTab = "uebersicht" | "reinigung" | "winterdienst" | "hms";
 
@@ -192,6 +194,17 @@ export function moduleShares(totals: ObjectTotals): ModuleShare[] {
   return out;
 }
 
+/**
+ * Wie `moduleShares`, die Beträge aber als Anzeigewerte — dieselbe Rundung wie
+ * Prüfschritt, Live-Kalkulation und Angebot (Σ Karten = gerundeter Monatspreis).
+ */
+export function displayedModuleShares(project: Project, econ: ObjectEconomics): ModuleShare[] {
+  const shown = displayModuleAmounts(
+    displayOfferGroups(buildOfferPositions(project, econ.totals, econ.effectiveRate), econ.totals.priceMonthly),
+  );
+  return moduleShares(econ.totals).map((s) => ({ ...s, priceMonthly: shown[s.module] }));
+}
+
 export interface FrequencyChangePreview {
   /** Räume insgesamt. */
   roomCount: number;
@@ -222,4 +235,27 @@ export function frequencyChangePreview(
     newPriceMonthly: after,
     deltaMonthly: after - before,
   };
+}
+
+export interface RateChangePreview {
+  oldPriceMonthly: number;
+  newPriceMonthly: number;
+  deltaMonthly: number;
+}
+
+/**
+ * Verrechnungssatz in „Objektdaten bearbeiten“: Monatspreis vorher/nachher
+ * (`computeObjectEconomics` auf einer Kopie). `hourlyRate` undefined oder ≤ 0
+ * = Standardsatz. `null`, solange Speichern den Satz nicht ändern würde.
+ */
+export function rateChangePreview(
+  project: Project,
+  hourlyRate: number | undefined,
+  settings: EconomicsSettings,
+): RateChangePreview | null {
+  const next = hourlyRate !== undefined && hourlyRate > 0 ? hourlyRate : undefined;
+  if (next === project.hourlyRate) return null;
+  const before = computeObjectEconomics(project, settings).totals.priceMonthly;
+  const after = computeObjectEconomics({ ...project, hourlyRate: next }, settings).totals.priceMonthly;
+  return { oldPriceMonthly: before, newPriceMonthly: after, deltaMonthly: after - before };
 }

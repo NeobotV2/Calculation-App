@@ -19,7 +19,7 @@ export default function Splash() {
   }, [setLocation, setHasSeenSplash, hasOnboarded]);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-background p-6">
+    <main id="main-content" tabIndex={-1} className="flex min-h-dvh flex-col items-center justify-center bg-background p-6 outline-none">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -37,6 +37,6 @@ export default function Splash() {
           Objektkalkulation für professionelle Gebäudereiniger.
         </p>
       </motion.div>
-    </div>
+    </main>
   );
 }

@@ -6,6 +6,7 @@ import {
   getNextStep,
   getObjectStatus,
   getOfferReadiness,
+  isSeriousHint,
   type CompanyInfo,
 } from "./offer-readiness";
 import { computeObjectEconomics, type EconomicsSettings } from "./object-economics";
@@ -240,5 +241,10 @@ describe("fix helpers", () => {
     expect(fixHref(p, { kind: "flow", step: "hms" })).toBe("/kalkulation/p1/hms");
     expect(fixHref(p, { kind: "route", href: "/einstellungen/firma" })).toBe("/einstellungen/firma");
     expect(FLOW_STEP_ORDER).toEqual(["leistungen", "objekt", "raeume", "winterdienst", "hms", "preis", "pruefen"]);
+  });
+
+  it("only warning and critical hints are serious", () => {
+    expect([isSeriousHint({ severity: "warning" }), isSeriousHint({ severity: "critical" })]).toEqual([true, true]);
+    expect([isSeriousHint({ severity: "info" }), isSeriousHint({})]).toEqual([false, false]);
   });
 });

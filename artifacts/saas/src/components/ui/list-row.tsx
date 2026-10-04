@@ -21,6 +21,9 @@ export interface ListRowProps extends Omit<React.HTMLAttributes<HTMLElement>, "t
   selected?: boolean;
   disabled?: boolean;
   as?: "div" | "li";
+  /** Am Zeilen-Button bzw. -Link (nicht am Container), z. B. wenn `onClick` Details aufklappt. */
+  "aria-expanded"?: boolean;
+  "aria-controls"?: string;
 }
 
 const EXTERNAL = /^(https?:|mailto:|tel:)/i;
@@ -42,11 +45,14 @@ export function ListRow({
   disabled = false,
   as = "div",
   className,
+  "aria-expanded": ariaExpanded,
+  "aria-controls": ariaControls,
   ...props
 }: ListRowProps) {
   const interactive = !disabled && (!!href || !!onClick);
   const showChevron = chevron ?? interactive;
 
+  const overlayAria = { "aria-expanded": ariaExpanded, "aria-controls": ariaControls };
   const overlayClass =
     "text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-ring";
 
@@ -58,18 +64,19 @@ export function ListRow({
       <a
         href={href}
         className={overlayClass}
+        {...overlayAria}
         {...(/^https?:/i.test(href) ? { target: "_blank", rel: "noopener noreferrer" } : {})}
       >
         <span className={titleClass}>{title}</span>
       </a>
     ) : (
-      <Link href={href} className={overlayClass}>
+      <Link href={href} className={overlayClass} {...overlayAria}>
         <span className={titleClass}>{title}</span>
       </Link>
     );
   } else if (interactive && onClick) {
     titleNode = (
-      <button type="button" onClick={onClick} className={cn(overlayClass, "w-full")}>
+      <button type="button" onClick={onClick} className={cn(overlayClass, "w-full")} {...overlayAria}>
         <span className={titleClass}>{title}</span>
       </button>
     );

@@ -5,7 +5,7 @@ import { useStore } from "@/store/use-store";
 import { cn } from "@/lib/utils";
 import { nextThemeMode } from "@/lib/theme";
 import { THEME_MODE_LABELS, type ThemeMode } from "@/lib/tokens";
-import { getActiveObjectCount, getObjectLimit } from "@/lib/feature-gates";
+import { countLimitedProjects, getObjectLimit } from "@/lib/feature-gates";
 import { isPaidPlan } from "@/lib/billing-config";
 import { Badge } from "@/components/ui/badge";
 import { IconButton } from "@/components/ui/icon-button";
@@ -48,8 +48,8 @@ function SidebarLink({ item, active }: { item: NavItem; active: boolean }) {
 /** Plan-Etikett im Footer: „Basic · n/limit Objekte" bzw. „Pro". */
 function PlanBadge() {
   const plan = useStore((s) => s.plan);
-  // Abonnieren, damit die Zählung bei Änderungen neu berechnet wird.
-  useStore((s) => s.projects);
+  // Wie Start, Konto und Objekte: ohne Archiv und ohne Beispielobjekte.
+  const projects = useStore((s) => s.projects);
   if (isPaidPlan(plan)) {
     return (
       <Badge tone="brand" size="sm">
@@ -59,7 +59,7 @@ function PlanBadge() {
   }
   return (
     <Badge tone="neutral" size="sm" className="tabular-nums">
-      Basic · {getActiveObjectCount()}/{getObjectLimit()} Objekte
+      Basic · {countLimitedProjects(projects)}/{getObjectLimit()} Objekte
     </Badge>
   );
 }

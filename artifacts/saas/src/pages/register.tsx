@@ -9,9 +9,10 @@ import { Card } from "@/components/ui/card";
 import { Callout } from "@/components/ui/callout";
 import { FormField } from "@/components/ui/form-field";
 import { CircleCheck, RefreshCw } from "lucide-react";
-import { hasDemoData, getDemoData, migrateDemoData, clearDemoData } from "@/services/migration-service";
+import { hasDemoData, getDemoData, migrateDemoDataDetailed, clearDemoData } from "@/services/migration-service";
 import { trackSignupCompleted } from "@/services/analytics-service";
 import { toast } from "sonner";
+import { SERVICE_MODULES_MIGRATION_MESSAGE } from "@/services/object-service";
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -86,10 +87,14 @@ export default function Register() {
   const handleMigrate = async (accept: boolean) => {
     if (accept && migrationData) {
       setIsMigrating(true);
-      const success = await migrateDemoData(migrationData);
+      const result = await migrateDemoDataDetailed(migrationData);
       setIsMigrating(false);
-      if (success) {
+      if (result.ok) {
         toast.success("Demo-Daten erfolgreich übernommen!");
+      } else if (result.migrationMissing) {
+        toast.error(SERVICE_MODULES_MIGRATION_MESSAGE, {
+          description: "Objekte, Räume und Einstellungen wurden übernommen, Winterdienst und Hausmeisterservice noch nicht.",
+        });
       } else {
         toast.error("Fehler beim Übernehmen der Demo-Daten.");
       }
@@ -125,7 +130,7 @@ export default function Register() {
   if (showMigration) {
     return (
       <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
           <p className="mb-8 text-center text-h1 text-foreground" aria-hidden="true">
             CleanCalc <span className="text-primary">Pro</span>
           </p>
@@ -155,7 +160,7 @@ export default function Register() {
               Nein, mit leerem Konto starten
             </Button>
           </div>
-        </div>
+        </main>
       </PageTransition>
     );
   }
@@ -163,7 +168,7 @@ export default function Register() {
   if (needsConfirmation) {
     return (
       <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 text-center">
+        <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 text-center outline-none">
           <div className="mb-8 flex justify-center">
             <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
               <CircleCheck className="size-8" aria-hidden="true" strokeWidth={2} />
@@ -197,14 +202,14 @@ export default function Register() {
               Zur Anmeldung
             </Button>
           </div>
-        </div>
+        </main>
       </PageTransition>
     );
   }
 
   return (
     <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
         <p className="mb-8 text-center text-h2 text-foreground" aria-hidden="true">
           CleanCalc <span className="text-primary">Pro</span>
         </p>
@@ -257,12 +262,12 @@ export default function Register() {
         <div className="mt-10 text-center">
           <p className="text-base text-muted-foreground">
             Schon registriert?{" "}
-            <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+            <Link href="/login" className="font-medium text-primary underline underline-offset-4">
               Anmelden
             </Link>
           </p>
         </div>
-      </div>
+      </main>
     </PageTransition>
   );
 }

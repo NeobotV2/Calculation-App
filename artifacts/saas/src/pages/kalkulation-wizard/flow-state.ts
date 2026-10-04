@@ -490,6 +490,15 @@ export function isForeignStoredDraft(stored: CalcDraft, draft: Pick<CalcDraft, "
   return stored.editingId !== draft.editingId && !isCalcDraftEmpty(stored);
 }
 
+/**
+ * Speichern bzw. Verwerfen darf den Entwurfsspeicher nur leeren, wenn er den
+ * eigenen (oder einen leeren) Entwurf enthält — z. B. bleibt eine „Neue
+ * Kalkulation“ erhalten, wenn währenddessen ein Objekt bearbeitet und gespeichert wird.
+ */
+export function mayClearStoredDraft(stored: CalcDraft | null, draft: Pick<CalcDraft, "editingId">): boolean {
+  return !stored || !isForeignStoredDraft(stored, draft);
+}
+
 /** Bezeichnung eines gespeicherten Entwurfs für Hinweise: „Neue Kalkulation „X““ bzw. „Bearbeitung von „Y““. */
 export function storedDraftLabel(d: CalcDraft): string {
   const name = d.base.name.trim() || d.sourceLabel?.trim() || "";

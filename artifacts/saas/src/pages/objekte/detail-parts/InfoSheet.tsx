@@ -4,12 +4,15 @@ import { Callout } from "@/components/ui/callout";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel } from "@/components/ui/responsive-sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { OBJECT_TYPES } from "@/data/object-types";
+import { useEconomicsSettings } from "@/hooks/use-object-economics";
 import { formatNumber } from "@/lib/utils";
 import type { Project } from "@/store/use-store";
+import { MonthlyPriceChange } from "./MonthlyPriceChange";
+import { rateChangePreview } from "./workspace-tabs";
 
 /** Felder der Objektdaten. Leere Texte ("") löschen den Wert, `hourlyRate` undefined = Standardsatz. */
 export interface InfoSheetValues {
@@ -87,6 +90,12 @@ export function InfoSheet({ open, onOpenChange, project, defaultRate, onSave }: 
 
   const dirty = !sameValues(values, initial);
 
+  const settings = useEconomicsSettings();
+  const ratePreview = useMemo(
+    () => (open ? rateChangePreview(project, values.hourlyRate, settings) : null),
+    [open, project, values.hourlyRate, settings],
+  );
+
   // Unbekannte Altwerte (Freitext) bleiben als eigener Chip wählbar.
   const typeOptions = useMemo(() => {
     const current = initial.objectType.trim();
@@ -130,12 +139,14 @@ export function InfoSheet({ open, onOpenChange, project, defaultRate, onSave }: 
       dirty={dirty}
       footer={
         <>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)} disabled={saving}>
-            Abbrechen
-          </Button>
+          <ResponsiveSheetCancel disabled={saving} />
           <Button type="submit" form={`${ids}-form`} loading={saving}>
             Speichern
           </Button>
+          {ratePreview && (
+            // Schmales Sheet: Preiszeile über den Buttons statt dreizeilig daneben.
+            <MonthlyPriceChange before={ratePreview.oldPriceMonthly} after={ratePreview.newPriceMonthly} className="sm:basis-full" />
+          )}
         </>
       }
     >

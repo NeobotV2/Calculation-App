@@ -9,6 +9,7 @@ import {
   isDraftDirty,
   isForeignStoredDraft,
   isStepVisible,
+  mayClearStoredDraft,
   stableStringify,
   storedDraftLabel,
   type DraftBanner,
@@ -75,6 +76,29 @@ export interface FlowDraftApi {
 
 /** Schlüssel inkl. Schritt und besuchten Schritten, ohne Zeitstempel. */
 const persistKey = (d: CalcDraft) => stableStringify({ ...d, savedAt: undefined });
+
+type ListenerTarget = Pick<EventTarget, "addEventListener" | "removeEventListener">;
+
+/**
+ * Ruft `flush` bei „pagehide“ und beim Wechsel in den Hintergrund
+ * (visibilitychange → hidden) auf — Eingaben der letzten Entprellzeit gehen
+ * sonst beim Neuladen oder Schließen verloren. Gibt die Abmeldung zurück.
+ */
+export function flushOnPageHide(
+  win: ListenerTarget,
+  doc: ListenerTarget & { visibilityState?: DocumentVisibilityState },
+  flush: () => void,
+): () => void {
+  const onVisibility = () => {
+    if (doc.visibilityState === "hidden") flush();
+  };
+  win.addEventListener("pagehide", flush);
+  doc.addEventListener("visibilitychange", onVisibility);
+  return () => {
+    win.removeEventListener("pagehide", flush);
+    doc.removeEventListener("visibilitychange", onVisibility);
+  };
+}
 
 /**
  * Entwurf des Kalkulations-Flows (UX §6.1): Start aus `calcDraft`,
@@ -167,6 +191,15 @@ export function useFlowDraft({ mode, project, resolveStep }: UseFlowDraftOptions
     [persist],
   );
 
+  // Neu laden, Tab schließen oder App in den Hintergrund: nicht auf die Entprellung warten.
+  useEffect(
+    () =>
+      flushOnPageHide(window, document, () => {
+        if (pendingRef.current && !closedRef.current) persist();
+      }),
+    [persist],
+  );
+
   // Erste echte Änderung macht den Wiederherstellen-Hinweis gegenstandslos.
   useEffect(() => {
     if (isDirty && banner?.kind === "restore") setBanner(null);
@@ -247,9 +280,7 @@ export function useFlowDraft({ mode, project, resolveStep }: UseFlowDraftOptions
     closedRef.current = true;
     clearTimer();
     pendingRef.current = false;
-    // Nur den eigenen Entwurf löschen — nie einen anderen, der den Speicher belegt.
-    const stored = useStore.getState().calcDraft;
-    if (!stored || !isForeignStoredDraft(stored, draftRef.current)) setCalcDraft(null);
+    if (mayClearStoredDraft(useStore.getState().calcDraft, draftRef.current)) setCalcDraft(null);
   }, [setCalcDraft]);
 
   const close = useCallback(() => {

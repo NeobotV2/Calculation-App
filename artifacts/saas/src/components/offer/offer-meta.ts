@@ -8,7 +8,7 @@
 import type { Project } from "@/store/use-store";
 import type { OfferPresentation } from "@/lib/object-totals";
 import type { OfferPosition } from "@/lib/offer-positions";
-import type { OfferReadiness } from "@/lib/offer-readiness";
+import { getObjectStatus, isSeriousHint, type OfferReadiness } from "@/lib/offer-readiness";
 import type { WinterBillingMode, WinterdienstConfig, WinterdienstResult } from "@/lib/service-modules/types";
 import { formatSeason } from "@/lib/service-modules/util";
 
@@ -154,7 +154,10 @@ export function winterBillingText(
   }
 
   const p = b.pauschaleSeason ?? b.expectedSeasonTotal;
-  const covered = b.capEinsaetze !== null ? Math.min(b.capEinsaetze, wd.einsaetze) : wd.einsaetze;
+  // Gedeckelt: Umfang der Pauschale und kalkulierte Einsätze getrennt nennen (wie die Position darüber).
+  const scope = b.capEinsaetze !== null && b.capEinsaetze < wd.einsaetze
+    ? ` für bis zu ${formatOfferNumber(b.capEinsaetze)} Einsätze (kalkuliert ${formatOfferNumber(wd.einsaetze)} Einsätze)`
+    : ` (kalkuliert ${formatOfferNumber(wd.einsaetze)} Einsätze)`;
   const count = b.mode === "pauschale_saison" && op.winterSeasonInstallment
     ? op.winterSeasonInstallment.count
     : b.installmentCount;
@@ -163,7 +166,7 @@ export function winterBillingText(
     ? `${s.count} Monatsraten`
     : `${s.count} Raten (${season})`;
   const lastPart = s.last !== s.amount ? ` (letzte Rate ${formatOfferEuro(s.last)})` : "";
-  return `Winterdienst-Saisonpauschale ${season} (kalkuliert ${formatOfferNumber(covered)} Einsätze): ` +
+  return `Winterdienst-Saisonpauschale ${season}${scope}: ` +
     `${formatOfferEuro(s.total)} netto, zahlbar in ${rates} à ${formatOfferEuro(s.amount)}${lastPart}.`;
 }
 
@@ -185,12 +188,16 @@ export function verkehrssicherungText(
     `zu den in der Ortssatzung festgelegten Zeiten; Dokumentation jedes Einsatzes.`;
 }
 
-/** Zeile im Summenblock für Winterdienst außerhalb des Monatsbetrags (Saisonraten bzw. je Einsatz). */
+/**
+ * Zeile im Summenblock für Winterdienst außerhalb des Monatsbetrags (Saisonraten bzw. je Einsatz).
+ * Saisonraten mit derselben Rundung wie `winterBillingText`, inkl. abweichender letzter Rate.
+ */
 export function winterTotalsLine(op: OfferPresentation): string | null {
   const inst = op.winterSeasonInstallment;
   if (inst) {
     const s = installmentSchedule(inst.amount * inst.count, inst.count);
-    return `Winterdienst: ${s.count} Raten à ${formatOfferEuro(s.amount)} (${seasonText(inst.months)})`;
+    const lastPart = s.last !== s.amount ? `, letzte Rate ${formatOfferEuro(s.last)}` : "";
+    return `Winterdienst: ${s.count} Raten à ${formatOfferEuro(s.amount)} (${seasonText(inst.months)})${lastPart}`;
   }
   const per = op.winterPerEinsatz;
   if (per) {
@@ -208,28 +215,49 @@ export function hmsOverageText(op: OfferPresentation): string | null {
   return `Mehrstunden über das Kontingent: ${rate}${NBSP}€/h netto.`;
 }
 
-/* ── Angebotsreife (Readiness-Chip) ────────────────────────────────────── */
+/* ── Angebotsstatus (Chip der Druckansicht) ───────────────────────────── */
 
 /** Strukturgleich mit `Tone` aus lib/status (offer-meta bleibt frei von UI-Importen). */
 export type OfferReadinessTone = "neutral" | "info" | "success" | "warning" | "critical";
 
-/** Anzahl offener Punkte (Blocker + Kritisch + Angebotslücken; Hinweise zählen nicht). */
-export function openOfferItemCount(r: Pick<OfferReadiness, "blockers" | "criticals" | "offerGaps">): number {
-  return r.blockers.length + r.criticals.length + r.offerGaps.length;
+/** Hinweise mit Schwere Warnung/Kritisch: halten das Objekt in „Prüfung offen“ (wie `getObjectStatus`). */
+export function seriousHintCount(r: Pick<OfferReadiness, "hints">): number {
+  return r.hints.filter(isSeriousHint).length;
 }
 
-/** Ton des Readiness-Chips: Blocker/Kritisch → critical, Angebotslücken → warning, sonst success. */
-export function readinessTone(r: Pick<OfferReadiness, "blockers" | "criticals" | "offerGaps">): OfferReadinessTone {
-  if (r.blockers.length > 0 || r.criticals.length > 0) return "critical";
-  if (r.offerGaps.length > 0) return "warning";
-  return "success";
+/**
+ * Anzahl offener Punkte: Blocker, Kritisch, Angebotslücken und Hinweise mit Warnung —
+ * genau die Punkte, die den Status „Angebotsbereit“ verhindern. Info-Hinweise zählen nicht.
+ */
+export function openOfferItemCount(r: Pick<OfferReadiness, "blockers" | "criticals" | "offerGaps" | "hints">): number {
+  return r.blockers.length + r.criticals.length + r.offerGaps.length + seriousHintCount(r);
 }
 
-/** Text des Readiness-Chips: „Angebotsbereit“, „1 offener Punkt“ oder „{n} offene Punkte“. */
-export function readinessLabel(r: Pick<OfferReadiness, "blockers" | "criticals" | "offerGaps">): string {
-  const n = openOfferItemCount(r);
-  if (n === 0) return "Angebotsbereit";
+/** „1 offener Punkt“ bzw. „{n} offene Punkte“. */
+export function openItemsText(n: number): string {
   return n === 1 ? "1 offener Punkt" : `${n} offene Punkte`;
+}
+
+export interface OfferStatusChip {
+  /** Statuswort aus `getObjectStatus`, bei offenen Punkten mit Anzahl: „Prüfung offen (2)“. */
+  label: string;
+  /** Ausgeschrieben für Screenreader: „Prüfung offen, 2 offene Punkte“. */
+  spokenLabel: string;
+  tone: OfferReadinessTone;
+}
+
+/**
+ * Status-Chip der Druckansicht: Wort und Ton aus `getObjectStatus`, damit das Objekt
+ * dort denselben Status trägt wie in jedem anderen Statusbadge.
+ */
+export function offerStatusChip(project: Project, r: OfferReadiness): OfferStatusChip {
+  const status = getObjectStatus(project, r);
+  const n = status.key === "archiviert" ? 0 : openOfferItemCount(r);
+  return {
+    label: n > 0 ? `${status.label} (${n})` : status.label,
+    spokenLabel: n > 0 ? `${status.label}, ${openItemsText(n)}` : status.label,
+    tone: status.tone,
+  };
 }
 
 /* ── Positionen ───────────────────────────────────────────────────────── */

@@ -51,6 +51,7 @@ import type { UpgradeTrigger } from "@/lib/billing-config";
 import { parseLvFile } from "@/lib/lv-import";
 import { calcTenderScenarios, type ScenarioKey } from "@/lib/tender-calc";
 import { calcHourlyRate } from "@/lib/hourly-rate-calc";
+import { isDefaultRateSetting } from "@/lib/object-economics";
 import { calcPriceStrategy } from "@/lib/price-strategy";
 import { calcRiskScore } from "@/lib/risk-score";
 import { calcRoom, FREQUENCY_LABELS } from "@/lib/calc";
@@ -116,6 +117,7 @@ export default function Ausschreibung() {
   const defaultFrequency = useStore((s) => s.defaultFrequency);
   const hourlyRateConfig = useStore((s) => s.hourlyRateConfig);
   const targetMargin = useStore((s) => s.targetMargin);
+  const confirmedHourlyRate = useStore((s) => s.confirmedHourlyRate);
   const calcDraft = useStore((s) => s.calcDraft);
   const setCalcDraft = useStore((s) => s.setCalcDraft);
   const actions = useStoreActions();
@@ -177,10 +179,10 @@ export default function Ausschreibung() {
       monthlyCost: mid.cost,
       marginPct: strategy.marginPct,
       targetMarginPct: strategy.targetMarginPct,
-      usesDefaultRate: !rateInput.trim() && hourlyRate === 22.5,
+      usesDefaultRate: !rateInput.trim() && isDefaultRateSetting(hourlyRate, hourlyRateConfig, confirmedHourlyRate),
     });
     return { strategy, risk };
-  }, [vollkosten, result, baseRate, targetMargin, rooms, tenderName, rateInput, hourlyRate]);
+  }, [vollkosten, result, baseRate, targetMargin, rooms, tenderName, rateInput, hourlyRate, hourlyRateConfig, confirmedHourlyRate]);
 
   // Wirtschaftlichkeit je Szenario (gleiche Preisstrategie, jeweiliger Satz).
   const scenarioStrategies = useMemo(

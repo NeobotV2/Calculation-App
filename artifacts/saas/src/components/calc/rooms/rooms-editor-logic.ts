@@ -5,12 +5,11 @@
    Faktoren in `lib/calc.ts`, damit Tabelle und Kalkulation nie abweichen.
    ───────────────────────────────────────────────────────────────────────── */
 import { FREQUENCY_FACTORS, calcRoom } from "@/lib/calc";
-import { allocateRounded, sumDisplay } from "@/lib/display-rounding";
+import { allocateNested, sumDisplay } from "@/lib/display-rounding";
+import { roomGroupKey } from "@/lib/room-groups";
 import type { FrequencyKey, Room } from "@/store/use-store";
 
-/** Gruppen-id für Räume ohne Raumgruppe. */
-export const UNGROUPED_ID = "__ohne_gruppe";
-export const UNGROUPED_NAME = "Ohne Gruppe";
+export { UNGROUPED_ID, UNGROUPED_NAME } from "@/lib/room-groups";
 
 /** Ein Raum mit seinen berechneten Monatswerten (aus `calcRoom`). */
 export interface RoomRow {
@@ -57,20 +56,16 @@ export function roomRow(room: Room, rate: number, index = 0): RoomRow {
   };
 }
 
-function groupKey(room: Room): { id: string; name: string } {
-  const id = room.groupId || (room.groupName ? `name:${room.groupName}` : UNGROUPED_ID);
-  return { id, name: room.groupName || UNGROUPED_NAME };
-}
-
 /**
  * Räume nach Raumgruppe bündeln. Die Gruppen erscheinen in der Reihenfolge
- * ihres ersten Raums, die Räume innerhalb einer Gruppe in Eingabereihenfolge.
+ * ihres ersten Raums, die Räume innerhalb einer Gruppe in Eingabereihenfolge
+ * (= `orderRoomsByGroup`, die Reihenfolge von Angebot und LV).
  * Σ priceMonthly aller Gruppen = Σ calcRoom(r, rate).monthlyCost.
  */
 export function groupRooms(rooms: readonly Room[], rate: number): RoomGroup[] {
   const groups = new Map<string, RoomGroup>();
   rooms.forEach((room, index) => {
-    const key = groupKey(room);
+    const key = roomGroupKey(room);
     let group = groups.get(key.id);
     if (!group) {
       group = { groupId: key.id, groupName: key.name, rooms: [], rows: [], area: 0, hoursMonthly: 0, priceMonthly: 0 };
@@ -195,15 +190,15 @@ export function groupMove(
 ): { from: number; to: number } | null {
   const index = rooms.findIndex((r) => r.id === roomId);
   if (index < 0) return null;
-  const key = groupKey(rooms[index]).id;
+  const key = roomGroupKey(rooms[index]).id;
   if (direction === "up") {
     for (let j = index - 1; j >= 0; j--) {
-      if (groupKey(rooms[j]).id === key) return { from: index, to: j };
+      if (roomGroupKey(rooms[j]).id === key) return { from: index, to: j };
     }
     return null;
   }
   for (let k = index + 1; k < rooms.length; k++) {
-    if (groupKey(rooms[k]).id === key) return { from: k, to: index };
+    if (roomGroupKey(rooms[k]).id === key) return { from: k, to: index };
   }
   return null;
 }
@@ -297,16 +292,21 @@ export interface RoomsDisplay {
 }
 
 /**
- * Anzeige-Rundung der Raumtabelle: Raumzeilen (Eingabereihenfolge) und
+ * Anzeige-Rundung der Raumtabelle: Raumzeilen (Gruppenreihenfolge) und
  * Fußzeilen auf Cent bzw. 0,1 h, Rest-Cents nach größtem Rest verteilt —
- * dieselbe Reihenfolge wie die Angebotspositionen (Räume, Rüstzeit, Wegezeit),
- * damit Tabelle und Angebot dieselben Zeilenbeträge zeigen. Σ Zeilen je Gruppe
- * = Gruppensumme, Σ Gruppen + Fußzeilen = Gesamtsumme.
+ * dieselbe Reihenfolge und dieselbe zweistufige Verteilung wie die
+ * Angebotspositionen (Räume | Rüst-/Wegezeit, `allocateNested`), damit
+ * Tabelle (mit und ohne Fußzeilen) und Angebot dieselben Zeilenbeträge zeigen.
+ * Σ Zeilen je Gruppe = Gruppensumme, Σ Gruppen + Fußzeilen = Gesamtsumme.
  */
 export function roundRoomsForDisplay(groups: readonly RoomGroup[], footer: readonly RoomsFooterAmount[] = []): RoomsDisplay {
-  const rows = groups.flatMap((g) => g.rows).sort((a, b) => a.index - b.index);
-  const prices = allocateRounded([...rows.map((r) => r.priceMonthly), ...footer.map((f) => f.priceMonthly)]);
-  const hours = allocateRounded([...rows.map((r) => r.hoursMonthly), ...footer.map((f) => f.hoursMonthly)], undefined, 1);
+  const rows = groups.flatMap((g) => g.rows);
+  const nested = (key: "priceMonthly" | "hoursMonthly", digits: number) => {
+    const parts = [rows.map((r) => r[key]), footer.map((f) => f[key])].filter((p) => p.length > 0);
+    return allocateNested(parts, undefined, digits).flat();
+  };
+  const prices = nested("priceMonthly", 2);
+  const hours = nested("hoursMonthly", 1);
   const byRoom = new Map(rows.map((r, i) => [r.room.id, { priceMonthly: prices[i], hoursMonthly: hours[i] }]));
   const shownGroups = groups.map((g) => {
     const shownRows = g.rows.map((r) => ({ ...r, ...(byRoom.get(r.room.id) ?? { priceMonthly: 0, hoursMonthly: 0 }) }));

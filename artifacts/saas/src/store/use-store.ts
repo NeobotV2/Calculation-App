@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { v4 as uuidv4 } from "uuid";
 import capacitorStorage from "@/lib/capacitor-storage";
-import { type HourlyRateConfig, getDefaultConfig, calcHourlyRate, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
+import { type HourlyRateConfig, adoptedRate, getDefaultConfig, calcHourlyRate, isDefaultRateSetting, DEFAULT_SCHICHTZUSCHLAEGE } from "@/lib/hourly-rate-calc";
 import { type ThemeMode } from "@/lib/tokens";
 import { type PlanId } from "@/lib/billing-config";
 import type { HmsConfig, ServiceActuals, WinterdienstConfig } from "@/lib/service-modules/types";
@@ -117,6 +117,12 @@ interface AppState {
   companyLogo: string;
   customRoomTypes: CustomRoomType[];
   hourlyRateConfig: HourlyRateConfig;
+  /**
+   * Auf der Seite „Verrechnungssatz“ ausdrücklich bestätigter Satz (auch
+   * unveränderte Standardwerte). Entspricht er `hourlyRate`, ist „Verrechnungssatz
+   * prüfen“ erledigt und der Hinweis „Standard-Verrechnungssatz“ entfällt.
+   */
+  confirmedHourlyRate: number | null;
   disabledWarnings: string[];
   targetMargin: number;
   theme: ThemeMode;
@@ -140,6 +146,8 @@ interface AppState {
   upgradePlan: (plan?: PlanId) => void;
   updateSettings: (data: Partial<{ companyName: string; companyStreet: string; companyZip: string; companyCity: string; companyPhone: string; companyEmail: string; companyTaxNumber: string; companyVatId: string; companyManagingDirector: string; hourlyRate: number; vatRate: number; defaultFrequency: FrequencyKey; pdfHeader: string; pdfFooter: string; companyLogo: string }>) => void;
   updateHourlyRateConfig: (config: HourlyRateConfig) => void;
+  /** Verrechnungssatz als geprüft bestätigen (Seite „Verrechnungssatz“). */
+  confirmHourlyRate: (rate: number) => void;
   setDisabledWarnings: (warnings: string[]) => void;
   setTargetMargin: (margin: number) => void;
   setTheme: (theme: ThemeMode) => void;
@@ -234,6 +242,27 @@ const DEMO_PROJECT_2: Project = {
 /** Demo-Objekte (Onboarding „Mit Beispieldaten“); exportiert für Tests und Vergleiche. */
 export const DEMO_PROJECTS: readonly Project[] = [DEMO_PROJECT, DEMO_PROJECT_2];
 
+const DEMO_PROJECT_BY_ID: ReadonlyMap<string, Project> = new Map(DEMO_PROJECTS.map((p) => [p.id, p]));
+
+/**
+ * Beispielobjekt aus dem Onboarding („Mit Beispieldaten erkunden“): zählt nicht
+ * zum Objektlimit und wird beim Anmelden nicht in die Cloud übernommen. Wer es
+ * umbenennt oder einem Kunden zuordnet, nutzt es als eigenes Objekt — dann
+ * zählt es wie jedes andere.
+ */
+export function isDemoProject(p: Pick<Project, "id"> & Partial<Pick<Project, "name" | "customer">>): boolean {
+  const sample = DEMO_PROJECT_BY_ID.get(p.id);
+  if (!sample) return false;
+  return (p.name ?? sample.name) === sample.name && (p.customer ?? "") === (sample.customer ?? "");
+}
+
+/** Import-Grenzen der Raum-Nachkalkulation (Ist-Stunden je Monat, Notizlänge). */
+const MAX_NK_MONTHLY_HOURS = 10_000;
+const MAX_NK_NOTE_LENGTH = 500;
+
+/** Firmenname vor dem Onboarding (= DEFAULT_COMPANY_NAME in offer-readiness). */
+const DEFAULT_COMPANY = "Meine Reinigungsfirma";
+
 /** Tiefe Kopie reiner JSON-Daten (Modul-Konfigurationen). */
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -266,6 +295,7 @@ export const useStore = create<AppState>()(
       companyLogo: "",
       customRoomTypes: [],
       hourlyRateConfig: getDefaultConfig(),
+      confirmedHourlyRate: null,
       disabledWarnings: [],
       targetMargin: getDefaultConfig().gewinnmarge,
       theme: "light" as ThemeMode,
@@ -279,13 +309,25 @@ export const useStore = create<AppState>()(
       setHasSeenSplash: () => set({ hasSeenSplash: true }),
 
       completeOnboarding: (data) =>
-        set(() => ({
-          hasOnboarded: true,
-          user: { name: data.companyName, email: "demo@cleancalc.pro", role: data.role },
-          companyName: data.companyName,
-          hourlyRate: data.hourlyRate,
-          projects: data.loadDemo ? [DEMO_PROJECT, DEMO_PROJECT_2] : [],
-        })),
+        set((state) => {
+          // Nicht-destruktiv: ein erneutes Onboarding verwirft weder Objekte noch
+          // einen eigenen Satz oder Firmennamen. Beispielobjekte nur ergänzen.
+          const demos = data.loadDemo
+            ? DEMO_PROJECTS.filter((d) => !state.projects.some((p) => p.id === d.id)).map((d) => cloneJson(d))
+            : [];
+          const keepRate = !isDefaultRateSetting(state.hourlyRate, state.hourlyRateConfig, state.confirmedHourlyRate);
+          const keepName = !!state.companyName.trim() && state.companyName !== DEFAULT_COMPANY;
+          const companyName = keepName ? state.companyName : data.companyName;
+          return {
+            hasOnboarded: true,
+            // Wer das Onboarding (auch per Direktlink) abschließt, hat die Begrüßung gesehen.
+            hasSeenSplash: true,
+            user: state.user ?? { name: companyName, email: "demo@cleancalc.pro", role: data.role },
+            companyName,
+            hourlyRate: keepRate ? state.hourlyRate : data.hourlyRate,
+            projects: [...demos, ...state.projects],
+          };
+        }),
 
       setDemoUser: (user) => set((state) => ({ isLoggedIn: true, isDemo: true, user: { name: user.name, email: user.email, role: user.role || state.user?.role || "Benutzer" } })),
       clearSession: () => {
@@ -304,6 +346,7 @@ export const useStore = create<AppState>()(
             tenderDraft: null,
             customRoomTypes: [],
             hourlyRateConfig: getDefaultConfig(),
+            confirmedHourlyRate: null,
             plan: "free" as PlanId,
             companyName: "Meine Reinigungsfirma",
             companyStreet: "",
@@ -335,13 +378,15 @@ export const useStore = create<AppState>()(
         const oldDefault = currentState.hourlyRateConfig.gewinnmarge;
         const updates: Partial<AppState> = {
           hourlyRateConfig: config,
-          hourlyRate: Math.round(breakdown.stundenverrechnungssatz * 100) / 100,
+          hourlyRate: adoptedRate(breakdown),
         };
         if (currentState.targetMargin === oldDefault) {
           updates.targetMargin = config.gewinnmarge;
         }
         set(updates);
       },
+
+      confirmHourlyRate: (rate) => set({ confirmedHourlyRate: Number.isFinite(rate) && rate > 0 ? rate : null }),
 
       setDisabledWarnings: (warnings) => set({ disabledWarnings: warnings }),
       setTargetMargin: (margin) => set({ targetMargin: margin }),
@@ -555,10 +600,12 @@ export const useStore = create<AppState>()(
           pdfFooter: s.pdfFooter,
           customRoomTypes: s.customRoomTypes,
           hourlyRateConfig: s.hourlyRateConfig,
+          confirmedHourlyRate: s.confirmedHourlyRate,
           disabledWarnings: s.disabledWarnings,
           targetMargin: s.targetMargin,
           projects: s.projects,
           templates: s.templates,
+          nachkalkulationen: s.nachkalkulationen,
         }, null, 2);
       },
 
@@ -594,6 +641,9 @@ export const useStore = create<AppState>()(
           if (isFiniteNum(data.hourlyRate) && data.hourlyRate > 0) updates.hourlyRate = data.hourlyRate;
           if (isFiniteNum(data.vatRate) && data.vatRate >= 0) updates.vatRate = data.vatRate;
           if (isFiniteNum(data.targetMargin)) updates.targetMargin = data.targetMargin;
+          if (data.confirmedHourlyRate === null || (isFiniteNum(data.confirmedHourlyRate) && data.confirmedHourlyRate > 0)) {
+            updates.confirmedHourlyRate = data.confirmedHourlyRate;
+          }
 
           if (isStr(data.defaultFrequency) && VALID_FREQUENCIES.has(data.defaultFrequency)) {
             updates.defaultFrequency = data.defaultFrequency as FrequencyKey;
@@ -645,6 +695,27 @@ export const useStore = create<AppState>()(
             ) as AppState["templates"];
           }
 
+          // Nachkalkulation (Unterhaltsreinigung): nur für importierte Objekte und
+          // nur Werte, die auch die Eingabe akzeptiert (Ist-Stunden > 0, plausibel begrenzt).
+          const nk = data.nachkalkulationen;
+          if (nk && typeof nk === "object" && !Array.isArray(nk)) {
+            const ids = new Set((updates.projects ?? get().projects).map((p) => p.id));
+            const entries: Record<string, Nachkalkulation> = {};
+            for (const [id, v] of Object.entries(obj(nk))) {
+              if (!ids.has(id) || !v || typeof v !== "object") continue;
+              const e = obj(v);
+              if (!isFiniteNum(e.actualMonthlyHours) || !(e.actualMonthlyHours > 0) || e.actualMonthlyHours > MAX_NK_MONTHLY_HOURS) continue;
+              const note = isStr(e.note) ? e.note.trim().slice(0, MAX_NK_NOTE_LENGTH) : "";
+              const recordedAt = isStr(e.recordedAt) && Number.isFinite(Date.parse(e.recordedAt)) ? e.recordedAt : new Date().toISOString();
+              entries[id] = {
+                actualMonthlyHours: e.actualMonthlyHours,
+                ...(note ? { note } : {}),
+                recordedAt,
+              };
+            }
+            updates.nachkalkulationen = entries;
+          }
+
           set(updates);
           return true;
         } catch {
@@ -670,6 +741,7 @@ export const useStore = create<AppState>()(
           pdfFooter: "",
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
+          confirmedHourlyRate: null,
           disabledWarnings: [],
           targetMargin: getDefaultConfig().gewinnmarge,
         }),
@@ -688,6 +760,7 @@ export const useStore = create<AppState>()(
           tenderDraft: null,
           customRoomTypes: [],
           hourlyRateConfig: getDefaultConfig(),
+          confirmedHourlyRate: null,
           disabledWarnings: [],
           targetMargin: getDefaultConfig().gewinnmarge,
           plan: "free" as PlanId,

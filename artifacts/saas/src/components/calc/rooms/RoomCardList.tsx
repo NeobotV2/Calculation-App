@@ -75,12 +75,15 @@ export function RoomCardList({
                 `${formatArea(room.area)} m²`,
                 `${formatHours(row.hoursMonthly)} h`,
               ].filter(Boolean);
+              const togglesDetails = !handlers?.onEdit;
               return (
                 <li key={room.id}>
                   <ListRow
                     title={name}
                     meta={metaParts.join(" · ")}
-                    onClick={handlers?.onEdit ? () => handlers.onEdit?.(room) : () => toggle(room.id)}
+                    onClick={togglesDetails ? () => toggle(room.id) : () => handlers?.onEdit?.(room)}
+                    aria-expanded={togglesDetails ? isOpen : undefined}
+                    aria-controls={togglesDetails && isOpen ? panelId : undefined}
                     chevron={false}
                     trailing={
                       <>

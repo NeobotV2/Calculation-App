@@ -140,8 +140,22 @@ export function AreaTable({ config, result, onEdit, onDuplicate, onRemove, empty
       footer: formatCount(totalM2, 2),
     },
     {
+      // Schmale Tabelle (Flow, Arbeitsbereich): Methode, Räumen/Streuen und Streugut in einer Spalte.
+      id: "leistung",
+      header: "Leistung",
+      onlyBelow: "lg",
+      cellClassName: "min-w-32",
+      cell: (r) => (
+        <span className="text-sm">
+          {areaWorkLabel(r.area, config, { short: true })}
+          <span className="block text-xs text-muted-foreground">{METHOD_LABELS[r.res?.effectiveMethod ?? r.area.method]}</span>
+        </span>
+      ),
+    },
+    {
       id: "methode",
       header: "Methode",
+      hideBelow: "lg",
       cell: (r) => (
         <span className="inline-flex flex-wrap items-center gap-1.5">
           {METHOD_LABELS[r.res?.effectiveMethod ?? r.area.method]}
@@ -153,14 +167,25 @@ export function AreaTable({ config, result, onEdit, onDuplicate, onRemove, empty
         </span>
       ),
     },
-    { id: "raeumen", header: "Räumen", align: "center", cell: (r) => <YesNo value={r.area.clear} label="Räumen" /> },
-    { id: "streuen", header: "Streuen", align: "center", cell: (r) => <YesNo value={r.area.spread} label="Streuen" /> },
+    { id: "raeumen", header: "Räumen", align: "center", hideBelow: "lg", cell: (r) => <YesNo value={r.area.clear} label="Räumen" /> },
+    { id: "streuen", header: "Streuen", align: "center", hideBelow: "lg", cell: (r) => <YesNo value={r.area.spread} label="Streuen" /> },
     { id: "streugut", header: "Streugut", hideBelow: "lg", cell: (r) => areaMaterialLabel(r.area, config) },
     {
       id: "zeit",
       header: "Zeit je Einsatz",
       unit: "Min.",
       numeric: true,
+      hideBelow: "lg",
+      cell: (r) => formatNumber(r.minutes, 0),
+      footer: formatNumber(totalMin, 0),
+    },
+    {
+      // Schmale Tabelle: kurzer Kopf, damit Zeilenaktionen ohne Querscrollen sichtbar bleiben.
+      id: "zeit_kompakt",
+      header: "Zeit",
+      unit: "Min.",
+      numeric: true,
+      onlyBelow: "lg",
       cell: (r) => formatNumber(r.minutes, 0),
       footer: formatNumber(totalMin, 0),
     },

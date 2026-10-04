@@ -1,5 +1,6 @@
 import * as React from "react";
 import { X } from "lucide-react";
+import { Button, type ButtonProps } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
@@ -14,6 +15,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { createBackGuard } from "@/components/ui/back-guard";
 import { useMediaQuery } from "@/lib/theme";
 import { MEDIA } from "@/lib/tokens";
 import { cn } from "@/lib/utils";
@@ -41,10 +43,78 @@ export interface ResponsiveSheetProps {
   onOpenAutoFocus?: (event: Event) => void;
 }
 
+interface ResponsiveSheetContextValue {
+  /** Schließen wie X/Escape/Overlay/Wischen: fragt bei `dirty` nach. */
+  requestClose: () => void;
+}
+
+const ResponsiveSheetContext = React.createContext<ResponsiveSheetContextValue | null>(null);
+
+/** Zugriff auf das umgebende `ResponsiveSheet` (z. B. für eigene Abbrechen-Buttons). */
+export function useResponsiveSheet(): ResponsiveSheetContextValue {
+  const ctx = React.useContext(ResponsiveSheetContext);
+  if (!ctx) throw new Error("useResponsiveSheet() ist nur innerhalb von <ResponsiveSheet> verfügbar.");
+  return ctx;
+}
+
+/**
+ * „Abbrechen" für die Fußleiste: schließt wie X/Escape und fragt bei `dirty`
+ * nach („Änderungen verwerfen?"), statt Eingaben stillschweigend zu verwerfen.
+ */
+export function ResponsiveSheetCancel({
+  children = "Abbrechen",
+  variant = "secondary",
+  ...props
+}: Omit<ButtonProps, "type" | "onClick" | "asChild">) {
+  const { requestClose } = useResponsiveSheet();
+  return (
+    <Button type="button" variant={variant} onClick={requestClose} {...props}>
+      {children}
+    </Button>
+  );
+}
+
+/**
+ * Haftendes Ergebnis am unteren Rand des Sheet-Inhalts (ab md): bündig mit der
+ * Fußleiste (gleicht das Innen-Padding des Inhalts aus) und mit eigener Fläche,
+ * damit kein gescrollter Inhalt darunter oder an den Ecken durchscheint.
+ */
+export const SHEET_STICKY_RESULT = "md:sticky md:-bottom-4 md:z-sticky md:-mx-6 md:bg-card md:px-6 md:pb-4 md:pt-2";
+
+/**
+ * Nebenaktionen der Fußleiste (z. B. „Abbrechen“ und „Speichern & nächste …“):
+ * auf dem Phone nebeneinander, damit die Fußleiste flach bleibt und das
+ * Formular sichtbar; ab sm reihen sie sich wie gewohnt ein.
+ */
+export function ResponsiveSheetFooterRow({ children }: { children: React.ReactNode }) {
+  return <div className="flex gap-2 *:min-w-0 *:flex-1 sm:contents">{children}</div>;
+}
+
+/**
+ * Browser-/Android-Zurück bei ungespeicherten Änderungen: erst nachfragen
+ * („Änderungen verwerfen?“), statt Seite und Eingaben zu verlassen (§ Sheets).
+ */
+function useBackRequestsClose(active: boolean, requestClose: () => void) {
+  const requestRef = React.useRef(requestClose);
+  requestRef.current = requestClose;
+  // Nach einem „Zurück“ neu scharf schalten (z. B. nach „Weiter bearbeiten“).
+  const [round, setRound] = React.useState(0);
+  React.useEffect(() => {
+    if (!active || typeof window === "undefined" || !window.history) return undefined;
+    const guard = createBackGuard(window, () => {
+      requestRef.current();
+      setRound((r) => r + 1);
+    });
+    guard.arm();
+    return () => guard.disarm();
+  }, [active, round]);
+}
+
 /**
  * Ein Editor-Overlay für alle Breiten: Drawer (Phone), Sheet (md) oder Dialog (lg).
- * Schließen per Escape, Overlay-Klick, Wischen oder „Schließen" fragt bei
- * `dirty` nach („Weiter bearbeiten" / „Verwerfen").
+ * Schließen per Escape, Overlay-Klick, Wischen, „Schließen", Browser-/Android-
+ * Zurück oder `ResponsiveSheetCancel` fragt bei `dirty` nach („Weiter
+ * bearbeiten" / „Verwerfen").
  */
 export function ResponsiveSheet({
   open,
@@ -70,6 +140,10 @@ export function ResponsiveSheet({
     if (dirty) setConfirmOpen(true);
     else onOpenChange(false);
   }, [dirty, onOpenChange]);
+
+  useBackRequestsClose(open && dirty, requestClose);
+
+  const contextValue = React.useMemo<ResponsiveSheetContextValue>(() => ({ requestClose }), [requestClose]);
 
   const handleOpenChange = React.useCallback(
     (next: boolean) => {
@@ -97,7 +171,7 @@ export function ResponsiveSheet({
 
   const footerNode =
     footer != null ? (
-      <div className="flex flex-col-reverse gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:justify-end md:px-6">
+      <div className="flex flex-col-reverse gap-2 border-t border-border bg-card px-4 py-3 sm:flex-row sm:flex-wrap sm:justify-end md:px-6">
         {footer}
       </div>
     ) : null;
@@ -150,7 +224,7 @@ export function ResponsiveSheet({
 
   return (
     <>
-      {overlay}
+      <ResponsiveSheetContext.Provider value={contextValue}>{overlay}</ResponsiveSheetContext.Provider>
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

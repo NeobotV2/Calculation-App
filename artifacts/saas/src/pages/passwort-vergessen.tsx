@@ -44,7 +44,7 @@ export default function PasswortVergessen() {
   if (sent) {
     return (
       <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+        <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
           <div className="mb-8 flex justify-center">
             <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
               <CircleCheck className="size-8" aria-hidden="true" strokeWidth={2} />
@@ -57,14 +57,14 @@ export default function PasswortVergessen() {
           <Button variant="secondary" size="lg" className="w-full" onClick={() => setLocation("/login")}>
             <ArrowLeft aria-hidden="true" /> Zurück zur Anmeldung
           </Button>
-        </div>
+        </main>
       </PageTransition>
     );
   }
 
   return (
     <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
         <div className="mb-10 flex justify-center">
           <span className="flex size-20 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-raised">
             <Sparkles className="size-10" strokeWidth={2} aria-hidden="true" />
@@ -117,7 +117,7 @@ export default function PasswortVergessen() {
             Zurück zur Anmeldung
           </Link>
         </div>
-      </div>
+      </main>
     </PageTransition>
   );
 }

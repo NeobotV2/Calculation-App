@@ -12,6 +12,7 @@ import {
   strategyLabel,
   strategyTone,
   verdictLabel,
+  nachkalkulationBadge,
   verdictTone,
   worstTone,
 } from "./status";
@@ -109,5 +110,13 @@ describe("tone tables", () => {
     expect(worstTone([])).toBe("neutral");
     expect(worstTone(["success", "info"])).toBe("info");
     expect(worstTone(["warning", "critical", "success"])).toBe("critical");
+  });
+});
+
+describe("nachkalkulationBadge", () => {
+  it("turns „Über Plan“ with a negative actual margin into „Kritisch – Verlust“ (cards and portfolio alike)", () => {
+    expect(nachkalkulationBadge({ verdict: "schlechter", actualMarginPct: -19.9 })).toEqual({ tone: "critical", label: "Kritisch – Verlust", loss: true });
+    expect(nachkalkulationBadge({ verdict: "schlechter", actualMarginPct: 3 })).toMatchObject({ label: verdictLabel("schlechter"), loss: false });
+    expect(nachkalkulationBadge({ verdict: "im_plan", actualMarginPct: -2 })).toMatchObject({ label: "Im Plan", loss: false });
   });
 });

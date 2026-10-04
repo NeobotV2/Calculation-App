@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Check, Copy, Ellipsis, Minus, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { DataTable, type Column } from "@/components/ui/data-table";
+import { DataTable, columnHideClass, type Column } from "@/components/ui/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,12 +119,6 @@ function ActiveCell({ task, onToggle }: { task: HmsTask; onToggle?: TaskRowHandl
   );
 }
 
-function hideClass(hideBelow?: "lg" | "xl") {
-  if (hideBelow === "lg") return "hidden lg:table-cell";
-  if (hideBelow === "xl") return "hidden xl:table-cell";
-  return undefined;
-}
-
 /**
  * Leistungstabelle des Hausmeisterservice mit Anfahrten-Zeile und Summe
  * (Ø €/Monat = `revenueMonthly`). Inaktive Leistungen erscheinen gedämpft
@@ -155,7 +149,7 @@ export function TaskTable({ config, result, onToggle, onEdit, onDuplicate, onRem
         const note = taskNote(r.task);
         return (
           <div className="flex min-w-0 items-start gap-1">
-            <div className="min-w-0">
+            <div className="min-w-0 hyphens-auto break-words">
               <div className={cn("font-medium", r.task.enabled ? "text-foreground" : "text-muted-foreground")}>
                 {taskDisplayName(r.task)}
                 {!r.task.enabled && (
@@ -175,6 +169,8 @@ export function TaskTable({ config, result, onToggle, onEdit, onDuplicate, onRem
         );
       },
       footer: "Gesamt",
+      // Nimmt die Restbreite und bricht lange Namen um, statt die Tabelle zu verbreitern.
+      cellClassName: "w-full max-w-0",
     },
     { id: "menge", header: "Menge", align: "end", cell: (r) => <span className="tabular-nums">{taskQuantityLabel(r.task)}</span> },
     { id: "zeit", header: "Zeitwert", hideBelow: "lg", cell: (r) => taskTimeLabel(r.task) },
@@ -183,6 +179,7 @@ export function TaskTable({ config, result, onToggle, onEdit, onDuplicate, onRem
       id: "stunden",
       header: "Std./Jahr",
       numeric: true,
+      hideBelow: "lg",
       cell: (r) => (r.res ? hours(rowHours(r)) : "–"),
       footer: hours(shown.laborHoursAnnual),
     },
@@ -216,7 +213,7 @@ export function TaskTable({ config, result, onToggle, onEdit, onDuplicate, onRem
         <TableCell
           key={col.id}
           numeric={col.numeric}
-          className={cn("py-1.5", col.align === "end" && "text-right", hideClass(col.hideBelow))}
+          className={cn("py-1.5", col.align === "end" && "text-right", columnHideClass(col.hideBelow, col.onlyBelow))}
         >
           {travelCells[col.id] ?? null}
         </TableCell>

@@ -157,6 +157,18 @@ export interface HourlyRateBreakdown {
   stundenverrechnungssatz: number;
 }
 
+/**
+ * Übernommener Verrechnungssatz aus dem Rechner: auf den nächsten Cent
+ * AUFgerundet. Ein abgerundeter Satz läge knapp unter der Zielmarge
+ * (z. B. 32,90 statt 32,9008 € → 9,0888 % statt 9,0909 %), und jedes Objekt
+ * meldete „Marge unter Zielwert“, obwohl der Satz aus dem Rechner stammt.
+ */
+export function adoptedRate(breakdown: Pick<HourlyRateBreakdown, "stundenverrechnungssatz">): number {
+  const v = breakdown.stundenverrechnungssatz;
+  if (!Number.isFinite(v) || v <= 0) return 0;
+  return Math.ceil(v * 100 - 1e-6) / 100;
+}
+
 export function calcHourlyRate(config: HourlyRateConfig): HourlyRateBreakdown {
   const sz = config.schichtzuschlaege ?? DEFAULT_SCHICHTZUSCHLAEGE;
   const nachtBetrag = (sz.nacht?.enabled)
@@ -245,4 +257,35 @@ export function calcHourlyRate(config: HourlyRateConfig): HourlyRateBreakdown {
     gewinnBetrag,
     stundenverrechnungssatz,
   };
+}
+
+/* ── Standard-Verrechnungssatz ─────────────────────────────────────────── */
+
+export const DEFAULT_HOURLY_RATE = 22.5;
+
+let defaultConfigJson: string | null = null;
+
+function isDefaultConfig(config: HourlyRateConfig): boolean {
+  if (defaultConfigJson === null) defaultConfigJson = JSON.stringify(getDefaultConfig());
+  return JSON.stringify(config) === defaultConfigJson;
+}
+
+/** Ergebnis des Verrechnungssatz-Rechners mit Standardwerten (`adoptedRate`, Vorbelegung im Onboarding). */
+let suggestedRate: number | null = null;
+export function suggestedDefaultRate(): number {
+  if (suggestedRate === null) suggestedRate = adoptedRate(calcHourlyRate(getDefaultConfig()));
+  return suggestedRate;
+}
+
+/**
+ * EINE Regel für „ungeprüfter Standard-Verrechnungssatz“ (Hinweis
+ * „Standard-Verrechnungssatz“, Risikofaktor, interne Kalkulation,
+ * Ausschreibung, Erste Schritte): unveränderte Standard-Konfiguration UND Satz
+ * = Store-Standard (22,50 €) oder Onboarding-Vorschlag — es sei denn, genau
+ * dieser Satz wurde auf der Seite „Verrechnungssatz“ bestätigt.
+ */
+export function isDefaultRateSetting(hourlyRate: number, config: HourlyRateConfig, confirmedRate?: number | null): boolean {
+  if (confirmedRate != null && confirmedRate === hourlyRate) return false;
+  if (hourlyRate !== DEFAULT_HOURLY_RATE && hourlyRate !== suggestedDefaultRate()) return false;
+  return isDefaultConfig(config);
 }

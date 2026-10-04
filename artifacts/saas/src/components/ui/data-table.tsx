@@ -20,6 +20,8 @@ export interface DataTableSort {
   dir: SortDirection;
 }
 
+export type ColumnBreakpoint = "lg" | "xl" | "2xl";
+
 export interface Column<T> {
   id: string;
   header: React.ReactNode;
@@ -29,8 +31,10 @@ export interface Column<T> {
   align?: "start" | "end" | "center";
   /** Rechtsbündig + `tabular-nums`. */
   numeric?: boolean;
-  /** Spalte erst ab diesem Breakpoint zeigen. */
-  hideBelow?: "lg" | "xl";
+  /** Spalte erst ab dieser Tabellenbreite zeigen (lg ≙ 48rem, xl ≙ 64rem, 2xl ≙ 72rem; Container-Query). */
+  hideBelow?: ColumnBreakpoint;
+  /** Kompaktspalte nur unterhalb dieser Tabellenbreite (fasst ausgeblendete Spalten zusammen). */
+  onlyBelow?: ColumnBreakpoint;
   /** CSS-Breite des Spaltenkopfs, z. B. "8rem" oder "20%". */
   width?: string;
   /** Inhalt der Summenzeile (tfoot) für diese Spalte. */
@@ -98,6 +102,18 @@ export interface DataTableProps<T> {
 const INTERACTIVE_SELECTOR =
   'a, button, input, select, textarea, label, summary, [role="button"], [role="menuitem"], [role="checkbox"], [role="switch"], [role="combobox"], [data-no-row-click]';
 
+/**
+ * Gilt ein Klick der Zeile selbst? Nein bei Bedienelementen in der Zeile und
+ * bei Klicks aus Portalen: React reicht Klicks aus dem Zeilenmenü (Dropdown-
+ * Inhalt) oder einem Dialog an die Zeile weiter, obwohl sie nicht im Zeilen-DOM liegen.
+ */
+export function isRowClick(row: Pick<Element, "contains">, target: EventTarget | null): boolean {
+  const node = target as Element | null;
+  if (!node || !row.contains(node)) return false;
+  const interactive = typeof node.closest === "function" ? node.closest(INTERACTIVE_SELECTOR) : null;
+  return !(interactive && row.contains(interactive));
+}
+
 function compareValues(a: unknown, b: unknown): number {
   const aEmpty = a === null || a === undefined || a === "";
   const bEmpty = b === null || b === undefined || b === "";
@@ -108,10 +124,36 @@ function compareValues(a: unknown, b: unknown): number {
   return String(a).localeCompare(String(b), "de", { numeric: true, sensitivity: "base" });
 }
 
-function hideClass(hideBelow?: "lg" | "xl") {
-  if (hideBelow === "lg") return "hidden lg:table-cell";
-  if (hideBelow === "xl") return "hidden xl:table-cell";
+/**
+ * Spalte erst ab dieser Tabellenbreite zeigen — Container-Query auf die
+ * Tabelle, nicht den Viewport: im Flow (schmale Spalte neben der
+ * Live-Kalkulation) und im Arbeitsbereich ist die Tabelle viel schmaler als
+ * der Bildschirm. lg ≙ ab 48rem, xl ≙ ab 64rem, 2xl ≙ ab 72rem Tabellenbreite.
+ */
+export function columnHideClass(hideBelow?: ColumnBreakpoint, onlyBelow?: ColumnBreakpoint): string | undefined {
+  if (hideBelow === "lg") return "hidden @3xl/table:table-cell";
+  if (hideBelow === "xl") return "hidden @5xl/table:table-cell";
+  if (hideBelow === "2xl") return "hidden @6xl/table:table-cell";
+  if (onlyBelow === "lg") return "@3xl/table:hidden";
+  if (onlyBelow === "xl") return "@5xl/table:hidden";
+  if (onlyBelow === "2xl") return "@6xl/table:hidden";
   return undefined;
+}
+
+/**
+ * Aktionsspalte rechts fixiert (sticky): Läuft eine Tabelle in schmalen
+ * Spalten (Flow, Arbeitsbereich, 1366-px-Laptop) über, bleibt das Zeilenmenü
+ * (Duplizieren, Entfernen …) trotzdem sichtbar und klickbar. Eigener,
+ * deckender Hintergrund je Bereich, damit gescrollte Inhalte nicht durchscheinen.
+ */
+export const ACTIONS_STICKY_CLASS = "sticky right-0";
+export function actionsCellClass(section: "head" | "body" | "foot", clickable = false): string {
+  if (section === "head" || section === "foot") return cn(ACTIONS_STICKY_CLASS, "bg-surface-sunken");
+  return cn(
+    ACTIONS_STICKY_CLASS,
+    "bg-card group-data-[state=selected]/row:bg-primary-soft",
+    clickable && "group-hover/row:bg-[color-mix(in_oklab,var(--color-muted)_50%,var(--color-card))]",
+  );
 }
 
 function alignClass<T>(col: Column<T>) {
@@ -273,7 +315,7 @@ export function DataTable<T>({
         style={col.width ? { width: col.width } : undefined}
         className={cn(
           alignClass(col),
-          hideClass(col.hideBelow),
+          columnHideClass(col.hideBelow, col.onlyBelow),
           stickyHeader && "sticky top-0 z-10 bg-surface-sunken",
           col.headerClassName,
         )}
@@ -310,10 +352,7 @@ export function DataTable<T>({
     const expanded = !!renderExpanded && !!expandedSet?.has(id);
 
     const handleClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
-      if (!clickable) return;
-      const target = e.target as HTMLElement;
-      const interactive = target.closest(INTERACTIVE_SELECTOR);
-      if (interactive && e.currentTarget.contains(interactive)) return;
+      if (!clickable || !isRowClick(e.currentTarget, e.target)) return;
       if (typeof window !== "undefined" && window.getSelection()?.toString()) return;
       if (href) navigate(href);
       else onRowClick?.(row);
@@ -335,6 +374,7 @@ export function DataTable<T>({
           onKeyDown={onRowClick && !href ? handleKeyDown : undefined}
           tabIndex={onRowClick && !href ? 0 : undefined}
           className={cn(
+            "group/row",
             clickable && "cursor-pointer hover:bg-muted/50",
             onRowClick && !href && "focus-visible:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
             expanded && "border-b-0",
@@ -346,7 +386,7 @@ export function DataTable<T>({
             return (
               <TableCell
                 key={col.id}
-                className={cn(cellPad, alignClass(col), hideClass(col.hideBelow), col.cellClassName)}
+                className={cn(cellPad, alignClass(col), columnHideClass(col.hideBelow, col.onlyBelow), col.cellClassName)}
               >
                 {index === 0 && href ? (
                   <Link
@@ -362,7 +402,7 @@ export function DataTable<T>({
             );
           })}
           {rowActions && (
-            <TableCell className={cn(cellPad, "w-12 text-right")}>
+            <TableCell className={cn(cellPad, "w-12 text-right", actionsCellClass("body", clickable))}>
               <div className="flex justify-end">{rowActions(row)}</div>
             </TableCell>
           )}
@@ -382,17 +422,17 @@ export function DataTable<T>({
     Array.from({ length: loadingRows }).map((_, i) => (
       <TableRow key={`sk-${i}`}>
         {columns.map((col) => (
-          <TableCell key={col.id} className={cn(cellPad, hideClass(col.hideBelow))}>
+          <TableCell key={col.id} className={cn(cellPad, columnHideClass(col.hideBelow, col.onlyBelow))}>
             <Skeleton className={cn("h-4", col.numeric || col.align === "end" ? "ml-auto w-16" : "w-3/4")} />
           </TableCell>
         ))}
-        {rowActions && <TableCell className={cellPad} />}
+        {rowActions && <TableCell className={cn(cellPad, actionsCellClass("body"))} />}
       </TableRow>
     ));
 
   return (
     <div
-      className={cn(framed && "overflow-hidden rounded-lg border border-border bg-card shadow-surface", className)}
+      className={cn("@container/table", framed && "overflow-hidden rounded-lg border border-border bg-card shadow-surface", className)}
     >
       <div
         role="region"
@@ -411,7 +451,7 @@ export function DataTable<T>({
             <TableRow>
               {columns.map(renderHeaderCell)}
               {rowActions && (
-                <TableHead className={cn("w-12", stickyHeader && "sticky top-0 z-10 bg-surface-sunken")}>
+                <TableHead className={cn("w-12", actionsCellClass("head"), stickyHeader && "top-0 z-10")}>
                   <span className="sr-only">Aktionen</span>
                 </TableHead>
               )}
@@ -446,11 +486,11 @@ export function DataTable<T>({
                 {hasGroups && section.footerCells && (
                   <TableRow className="bg-surface-sunken/60 font-medium">
                     {columns.map((col) => (
-                      <TableCell key={col.id} className={cn(cellPad, alignClass(col), hideClass(col.hideBelow))}>
+                      <TableCell key={col.id} className={cn(cellPad, alignClass(col), columnHideClass(col.hideBelow, col.onlyBelow))}>
                         {section.footerCells?.[col.id] ?? null}
                       </TableCell>
                     ))}
-                    {rowActions && <TableCell className={cellPad} />}
+                    {rowActions && <TableCell className={cn(cellPad, actionsCellClass("foot"))} />}
                   </TableRow>
                 )}
                 {hasGroups && section.footer != null && (
@@ -470,11 +510,11 @@ export function DataTable<T>({
               {hasColumnFooter && (
                 <TableRow>
                   {columns.map((col) => (
-                    <TableCell key={col.id} className={cn(cellPad, alignClass(col), hideClass(col.hideBelow))}>
+                    <TableCell key={col.id} className={cn(cellPad, alignClass(col), columnHideClass(col.hideBelow, col.onlyBelow))}>
                       {col.footer ?? null}
                     </TableCell>
                   ))}
-                  {rowActions && <TableCell className={cellPad} />}
+                  {rowActions && <TableCell className={cn(cellPad, actionsCellClass("foot"))} />}
                 </TableRow>
               )}
             </TableFooter>

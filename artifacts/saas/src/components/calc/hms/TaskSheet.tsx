@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel, ResponsiveSheetFooterRow } from "@/components/ui/responsive-sheet";
 import { NativeSelect } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { HMS_FREQUENCY_PRESETS } from "@/data/frequencies";
@@ -21,6 +21,7 @@ import {
   taskCategoryLabel,
   taskQuantityFieldLabel,
   taskTimeFieldLabel,
+  validateTaskDraft,
   withTaskSeason,
 } from "./hms-ui";
 
@@ -40,13 +41,16 @@ export function TaskSheet({ open, onOpenChange, task, isNew, onSave }: TaskSheet
   const [draft, setDraft] = React.useState<HmsTask | null>(task);
   const [initialJson, setInitialJson] = React.useState(() => JSON.stringify(task));
   const [labelError, setLabelError] = React.useState<string | undefined>();
+  const [quantityError, setQuantityError] = React.useState<string | undefined>();
   const labelRef = React.useRef<HTMLInputElement>(null);
+  const quantityRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     if (!open) return;
     setDraft(task);
     setInitialJson(JSON.stringify(task));
     setLabelError(undefined);
+    setQuantityError(undefined);
   }, [open, task]);
 
   if (!draft) {
@@ -67,12 +71,17 @@ export function TaskSheet({ open, onOpenChange, task, isNew, onSave }: TaskSheet
   const update = (next: HmsTask) => {
     setDraft(next);
     if (labelError && next.label.trim()) setLabelError(undefined);
+    if (quantityError && !validateTaskDraft(next).quantity) setQuantityError(undefined);
   };
 
   const submit = (next: boolean) => {
-    if (!draft.label.trim()) {
-      setLabelError("Bitte geben Sie eine Bezeichnung ein.");
-      labelRef.current?.focus();
+    const errors = validateTaskDraft(draft);
+    setLabelError(errors.label);
+    setQuantityError(errors.quantity);
+    const target = errors.label ? labelRef.current : errors.quantity ? quantityRef.current : null;
+    if (target) {
+      target.focus({ preventScroll: true });
+      requestAnimationFrame(() => target.scrollIntoView({ block: "center" }));
       return;
     }
     onSave({ ...draft, label: draft.label.trim() }, { next });
@@ -80,14 +89,14 @@ export function TaskSheet({ open, onOpenChange, task, isNew, onSave }: TaskSheet
 
   const footer = (
     <>
-      <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
-        Abbrechen
-      </Button>
-      {isNew && (
-        <Button type="button" variant="secondary" onClick={() => submit(true)}>
-          Speichern & nächste Leistung
-        </Button>
-      )}
+      <ResponsiveSheetFooterRow>
+        <ResponsiveSheetCancel />
+        {isNew && (
+          <Button type="button" variant="secondary" onClick={() => submit(true)}>
+            Speichern & nächste<span className="hidden sm:inline"> Leistung</span>
+          </Button>
+        )}
+      </ResponsiveSheetFooterRow>
       <Button type="button" onClick={() => submit(false)}>
         Speichern
       </Button>
@@ -133,10 +142,13 @@ export function TaskSheet({ open, onOpenChange, task, isNew, onSave }: TaskSheet
           <FormField
             id={`${uid}-qty`}
             label={taskQuantityFieldLabel(draft.unit)}
+            required={draft.enabled}
+            error={quantityError}
             hint={item && sameUnitAsCatalog ? `Richtwert ${formatCount(item.defaultQuantity, 2)} ${item.quantityLabel}` : undefined}
           >
             <NumberInput
-              value={draft.quantity}
+              ref={quantityRef}
+              value={draft.quantity > 0 ? draft.quantity : undefined}
               onValueChange={(v) => update({ ...draft, quantity: v ?? 0 })}
               decimals={2}
               min={HMS_LIMITS.quantity.min}

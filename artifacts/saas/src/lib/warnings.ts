@@ -30,7 +30,7 @@ export const WARNING_TYPES = [
   { key: "low_margin", label: "Marge unter Zielwert", severity: "warning" as WarningSeverity },
   { key: "perf", label: "Leistungswert unrealistisch", severity: "warning" as WarningSeverity },
   { key: "sanitaer", label: "Hoher Sanitäranteil", severity: "info" as WarningSeverity },
-  { key: "default_rate", label: "Standard-Stundensatz", severity: "info" as WarningSeverity },
+  { key: "default_rate", label: "Standard-Verrechnungssatz", severity: "info" as WarningSeverity },
   { key: "winterdienst", label: "Winterdienst-Plausibilität", severity: "warning" as WarningSeverity },
   { key: "hms", label: "Hausmeisterservice-Plausibilität", severity: "warning" as WarningSeverity },
 ] as const;
@@ -73,7 +73,7 @@ export function getProjectWarnings(
         severity: "critical",
         title: "Unter Vollkosten",
         message: `Der Verrechnungssatz (${fmt(effectiveRate)} €/h) liegt unter den Vollkosten (${fmt(breakdown.vollkosten)} €/h). Dieses Objekt wird mit Verlust kalkuliert.`,
-        action: "Verrechnungssatz im Stundensatz-Kalkulator oder in der Objektinfo erhöhen.",
+        action: "Verrechnungssatz unter Stammdaten › Verrechnungssatz oder in der Objektinfo erhöhen.",
       });
     }
 
@@ -132,9 +132,9 @@ export function getProjectWarnings(
     warnings.push({
       id: `${project.id}_default_rate`,
       severity: "info",
-      title: "Standard-Stundensatz",
-      message: "Es wird der Standard-Stundensatz verwendet. Für eine realistische Kalkulation sollte ein firmenspezifischer Satz berechnet werden.",
-      action: "Stundensatz-Kalkulator unter Einstellungen nutzen.",
+      title: "Standard-Verrechnungssatz",
+      message: "Es wird der Standard-Verrechnungssatz verwendet. Für eine realistische Kalkulation sollte ein firmenspezifischer Satz berechnet werden.",
+      action: "Verrechnungssatz unter Stammdaten › Verrechnungssatz prüfen.",
     });
   }
 

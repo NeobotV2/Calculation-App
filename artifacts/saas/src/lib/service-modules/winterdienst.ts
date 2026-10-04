@@ -130,7 +130,7 @@ export function calcWinterdienst(cfg: WinterdienstConfig, rates: ModuleRates): W
   let lossAboveEinsaetze: number | null = null;
   let lossBelowEinsaetze: number | null = null;
   if (pauschaleSeason !== null) {                                                // W21
-    const k0 = vc > 0 ? (pauschaleSeason - fixedCostSeason) / vc : Infinity;
+    const k0 = vc > 0 ? (pauschaleSeason - fixedCostSeason) / vc : pauschaleSeason < fixedCostSeason ? 0 : Infinity;
     if (cap === null || k0 <= cap) lossAboveEinsaetze = Number.isFinite(k0) ? Math.max(0, k0) : null;
     else if (vr < vc) lossAboveEinsaetze = cap + (pauschaleSeason - fixedCostSeason - cap * vc) / (vc - vr);
   } else {

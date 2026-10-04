@@ -30,8 +30,11 @@ export interface PageHeaderProps {
   subtitle?: ReactNode;
   /** Kleine Zeile über dem Titel (`text-overline uppercase`). */
   eyebrow?: ReactNode;
-  /** Zurück-Link als IconButton („Zurück zu {label}"). */
-  back?: { href: string; label: string };
+  /**
+   * Zurück-Link als IconButton („Zurück zu {label}"). `phoneOnly`: nur unter md,
+   * z. B. zum Hub „Mehr“, den es nur in der BottomNav gibt (Desktop: Seitenleiste).
+   */
+  back?: { href: string; label: string; phoneOnly?: boolean };
   /** Metazeile unter dem Titel (z. B. Kunde · Objektart · ModuleBadges). */
   meta?: ReactNode;
   /** Status neben dem Titel (z. B. `StatusBadge`). */
@@ -137,7 +140,7 @@ export function PageHeader({
               href={back.href}
               label={`Zurück zu ${back.label}`}
               icon={ArrowLeft}
-              className="-ml-2 shrink-0"
+              className={cn("-ml-2 shrink-0", back.phoneOnly && "md:hidden")}
             />
           )}
           <div className="min-w-0 flex-1 basis-48">

@@ -17,6 +17,10 @@ describe("plan helpers", () => {
     expect(isPaidPlan("business")).toBe(true);
   });
 
+  it("labels the founding plan in German, as on the upgrade page", () => {
+    expect(getPlanMeta("founding_annual").label).toBe("Gründer-Tarif");
+  });
+
   it("identifies the founding plan", () => {
     expect(isFoundingPlan("founding_annual")).toBe(true);
     expect(isFoundingPlan("pro_annual")).toBe(false);

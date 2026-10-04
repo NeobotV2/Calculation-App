@@ -35,7 +35,8 @@ import {
   travelRevenueMonthly,
   upsertTask,
   withTaskSeason,
-} from "./hms-ui";
+  validateTaskDraft,
+ } from "./hms-ui";
 
 /* Vertrags-Fixture (domain-spec §14). */
 const HMS_REF: HmsConfig = { schemaVersion: 1, enabled: true, travelMinutesPerVisitDay: 10, materialMarkupPct: 15, contingentOverageBilled: true, tasks: [
@@ -236,5 +237,15 @@ describe("hms-ui: Anzeige-Rundung der Leistungstabelle", () => {
     expect(rowTenths).toBe(tenths(shown.laborHoursAnnual));
     // Jede Zeile weicht höchstens 1 Cent vom exakten Wert ab.
     for (const t of r.tasks) expect(Math.abs(shown.monthlyById.get(t.id)! - taskMonthly(t))).toBeLessThanOrEqual(0.01 + 1e-9);
+  });
+});
+
+describe("validateTaskDraft", () => {
+  it("requires a label and, for active tasks, a quantity above 0", () => {
+    expect(validateTaskDraft({ label: "Mülltonnen", quantity: 6, enabled: true })).toEqual({});
+    expect(validateTaskDraft({ label: "Mülltonnen", quantity: 0, enabled: true }).quantity).toBe("Bitte geben Sie eine Menge größer als 0 ein.");
+    expect(validateTaskDraft({ label: " ", quantity: 1, enabled: true }).label).toBe("Bitte geben Sie eine Bezeichnung ein.");
+    // Inaktive Leistungen dürfen ohne Menge gespeichert werden (zählen nicht in die Summen).
+    expect(validateTaskDraft({ label: "Laub", quantity: 0, enabled: false })).toEqual({});
   });
 });

@@ -6,13 +6,24 @@
    calcRoom). Ohne DOM/Store, vollständig testbar.
    ───────────────────────────────────────────────────────────────────────── */
 import { calcRoom } from "@/lib/calc";
+import { displayModuleAmounts, displayOfferGroups, sumDisplay } from "@/lib/display-rounding";
+import { buildOfferPositions } from "@/lib/offer-positions";
 import { calcHourlyRate } from "@/lib/hourly-rate-calc";
 import { compareNachkalkulation, type NachkalkulationResult } from "@/lib/nachkalkulation";
 import { computeObjectEconomics, type EconomicsSettings, type ObjectEconomics } from "@/lib/object-economics";
 import type { ObjectComponentKey } from "@/lib/object-totals";
 import type { ObjectStatus, ObjectStatusKey } from "@/lib/offer-readiness";
-import { verdictLabel, verdictTone, type Tone, type Verdict } from "@/lib/status";
+import {
+  compareHmsNachkalkulation,
+  compareWinterNachkalkulation,
+  type HmsNachkalkulationResult,
+  type WinterNachkalkulationResult,
+} from "@/lib/service-modules/nachkalkulation";
+import type { HmsActual, HmsResult, WinterdienstActual, WinterdienstResult } from "@/lib/service-modules/types";
+import { nachkalkulationBadge, type Tone, type Verdict } from "@/lib/status";
 import { formatNumber } from "@/lib/utils";
+import { latestHmsActual } from "@/components/calc/hms/hms-ui";
+import { latestWinterActual } from "@/components/calc/winterdienst/winterdienst-ui";
 import type { Nachkalkulation, Project } from "@/store/use-store";
 
 /** Prozent mit einer Nachkommastelle und typografischem Minus (U+2212), z. B. „−3,2 %". */
@@ -141,6 +152,29 @@ export function revenueByModule(econs: readonly ObjectEconomics[]): ChartSlice[]
   });
 }
 
+/**
+ * Angezeigte Beträge von „Umsatz nach Leistung“: je Objekt dieselbe Rundung
+ * wie Prüfschritt, Arbeitsbereich und Angebot (`displayModuleAmounts`), dann
+ * über die Objekte summiert. Σ Zeilen = Σ gerundeter Objektpreise = KPI
+ * „Umsatz/Monat“ und Σ der Portfolio-Tabelle. Reihenfolge wie `slices`.
+ */
+export function moduleSliceDisplayValues(
+  objects: readonly { project: Project; econ: ObjectEconomics }[],
+  slices: readonly ChartSlice[],
+): number[] {
+  const byKey = new Map<string, number[]>();
+  const push = (key: ObjectComponentKey, v: number) => byKey.set(key, [...(byKey.get(key) ?? []), v]);
+  for (const { project, econ } of objects) {
+    const m = displayModuleAmounts(
+      displayOfferGroups(buildOfferPositions(project, econ.totals, econ.effectiveRate), econ.totals.priceMonthly),
+    );
+    for (const c of econ.totals.components) {
+      push(c.key, c.key === "reinigung" ? m.rooms : c.key === "ruest_wege" ? m.setup : c.key === "winterdienst" ? m.winterdienst : m.hms);
+    }
+  }
+  return slices.map((s) => (byKey.has(s.key) ? sumDisplay(byKey.get(s.key)!) : s.value));
+}
+
 interface GroupSum {
   name: string;
   hours: number;
@@ -216,6 +250,30 @@ export function objectRevenueSlices(project: Project, econ: ObjectEconomics): Ch
   return slices;
 }
 
+/**
+ * Angezeigte Beträge der Objekt-Anteile — dieselbe Rundung wie Prüfschritt,
+ * Arbeitsbereich und Angebot (Raumgruppe = Σ gerundeter Räume, Rüst-/Wegezeit,
+ * Winterdienst und HMS = gerundete Zwischensummen). Reihenfolge wie `slices`.
+ */
+export function objectSliceDisplayValues(project: Project, econ: ObjectEconomics, slices: readonly ChartSlice[]): number[] {
+  const shown = displayOfferGroups(buildOfferPositions(project, econ.totals, econ.effectiveRate), econ.totals.priceMonthly);
+  const m = displayModuleAmounts(shown);
+  const roomPositions = shown.find((g) => g.module === "unterhalt")?.positions.filter((p) => p.kind === "room") ?? [];
+  const byGroup = new Map<string, number[]>();
+  for (const r of project.rooms) {
+    const pos = roomPositions.find((x) => x.id === r.id);
+    if (!pos) continue;
+    byGroup.set(r.groupName, [...(byGroup.get(r.groupName) ?? []), pos.priceMonthly]);
+  }
+  return slices.map((s) => {
+    if (s.key.startsWith("group:")) return sumDisplay(byGroup.get(s.key.slice("group:".length)) ?? []);
+    if (s.key === SETUP_SLICE_KEY) return m.setup;
+    if (s.key === "winterdienst") return m.winterdienst;
+    if (s.key === "hms") return m.hms;
+    return s.value;
+  });
+}
+
 export function sumSlices(slices: readonly ChartSlice[]): number {
   return slices.reduce((s, x) => s + x.value, 0);
 }
@@ -279,7 +337,11 @@ export interface PortfolioVerdict {
   verdict: Verdict;
   tone: Tone;
   label: string;
-  result: NachkalkulationResult;
+  /** Leistung, aus deren Nachkalkulation das Urteil stammt. */
+  source: PortfolioModuleKey;
+  /** 0 Besser als geplant · 1 Im Plan · 2 Über Plan · 3 Kritisch – Verlust (Sortierung, „schlechtestes“ Urteil). */
+  severity: number;
+  result: NachkalkulationResult | WinterNachkalkulationResult | HmsNachkalkulationResult;
 }
 
 export interface PortfolioRow {
@@ -309,6 +371,15 @@ export function hasActivePortfolioFilter(filter: PortfolioFilter): boolean {
   return filter.module !== "all" || filter.status !== "all";
 }
 
+const VERDICT_SEVERITY: Record<Verdict, number> = { besser: 0, im_plan: 1, schlechter: 2 };
+const LOSS_SEVERITY = 3;
+
+/** Wie die Nachkalkulations-Karten: „Über Plan“ mit negativer Ist-Marge ist „Kritisch – Verlust“. */
+function toPortfolioVerdict(source: PortfolioModuleKey, result: PortfolioVerdict["result"]): PortfolioVerdict {
+  const { tone, label, loss } = nachkalkulationBadge(result);
+  return { verdict: result.verdict, tone, label, source, severity: loss ? LOSS_SEVERITY : VERDICT_SEVERITY[result.verdict], result };
+}
+
 /**
  * Urteil der Raum-Nachkalkulation (gleiche Eingaben wie RoomNachkalkulationCard:
  * Reinigungsstunden, -preis und -fläche, Vollkostensatz). null ohne Eintrag.
@@ -326,10 +397,51 @@ export function roomNachkalkulationVerdict(
     vollkosten: econ.breakdown.vollkosten,
     area: c.area,
   });
-  if (result.verdict === "schlechter" && result.actualMarginPct < 0) {
-    return { verdict: result.verdict, tone: "critical", label: "Kritisch – Verlust", result };
+  return toPortfolioVerdict("unterhalt", result);
+}
+
+/** Jüngste Winterdienst-Saison gegen den Plan (wie WinterNachkalkulationCard). null ohne Plan oder Saison. */
+export function winterNachkalkulationVerdict(
+  plan: WinterdienstResult | null,
+  actuals: readonly WinterdienstActual[] | undefined,
+): PortfolioVerdict | null {
+  const latest = latestWinterActual(actuals);
+  if (!plan || !latest) return null;
+  return toPortfolioVerdict("winterdienst", compareWinterNachkalkulation(plan, latest));
+}
+
+/** Jüngstes HMS-Jahr gegen den Plan (wie HmsNachkalkulationCard). null ohne Plan oder Jahr. */
+export function hmsNachkalkulationVerdict(
+  plan: HmsResult | null,
+  actuals: readonly HmsActual[] | undefined,
+  contingentOverageBilled: boolean,
+): PortfolioVerdict | null {
+  const latest = latestHmsActual(actuals);
+  if (!plan || !latest) return null;
+  return toPortfolioVerdict("hms", compareHmsNachkalkulation(plan, latest, contingentOverageBilled));
+}
+
+/**
+ * Nachkalkulations-Urteil eines Objekts im Portfolio: das schlechteste Urteil
+ * über die Leistungen, die das Controlling-Detail vergleicht (Unterhalt bei
+ * Räumen oder ohne Module, aktive Module Winterdienst/HMS). null ohne Ist-Werte.
+ */
+export function portfolioNachkalkulationVerdict(
+  project: Project,
+  econ: ObjectEconomics,
+  roomEntry: Nachkalkulation | undefined,
+): PortfolioVerdict | null {
+  const t = econ.totals;
+  const candidates = [
+    t.cleaning.count > 0 || !t.hasModules ? roomNachkalkulationVerdict(econ, roomEntry) : null,
+    winterNachkalkulationVerdict(t.winterdienst, project.serviceActuals?.winterdienst),
+    hmsNachkalkulationVerdict(t.hms, project.serviceActuals?.hms, project.hms?.contingentOverageBilled ?? false),
+  ];
+  let worst: PortfolioVerdict | null = null;
+  for (const v of candidates) {
+    if (v && (!worst || v.severity > worst.severity)) worst = v;
   }
-  return { verdict: result.verdict, tone: verdictTone(result.verdict), label: verdictLabel(result.verdict), result };
+  return worst;
 }
 
 /* ── Auswirkung eines geänderten Verrechnungssatzes ─────────────────────── */

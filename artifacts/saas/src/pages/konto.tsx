@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useStore } from "@/store/use-store";
 import { useAuth } from "@/lib/auth-context";
-import { getObjectLimit, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
+import { countLimitedProjects, getObjectLimit, getRoomLimit, isPaidPlan } from "@/lib/feature-gates";
 import { getPlanMeta, isFoundingPlan } from "@/lib/billing-config";
 import { isNative } from "@/lib/capacitor";
 import { trackUpgradeCtaClicked } from "@/services/analytics-service";
@@ -113,7 +113,7 @@ export default function Konto() {
   const paid = isPaidPlan(plan);
   const planMeta = getPlanMeta(plan);
   const emailConfirmed = authUser?.email_confirmed_at != null;
-  const activeProjects = projects.filter((p) => p.status !== "archived").length;
+  const activeProjects = countLimitedProjects(projects);
   const largestProjectRooms = projects.reduce((max, p) => Math.max(max, p.rooms.length), 0);
   const objectLimit = getObjectLimit();
   const roomLimit = getRoomLimit();
@@ -298,13 +298,11 @@ export default function Konto() {
                   <dt className="text-muted-foreground">Nächste Verlängerung</dt>
                   <dd className="text-muted-foreground">–</dd>
                 </div>
-                {isFoundingPlan(plan) && (
-                  <p className="pt-2 text-sm text-muted-foreground">
-                    Founding Member – Ihr Sondertarif bleibt dauerhaft erhalten.
-                  </p>
-                )}
               </dl>
             ) : null}
+            {paid && isFoundingPlan(plan) && (
+              <p className="pt-2 text-sm text-muted-foreground">Gründer-Tarif – Ihr Sondertarif bleibt dauerhaft erhalten.</p>
+            )}
 
             <CardFooter>
               {paid ? (

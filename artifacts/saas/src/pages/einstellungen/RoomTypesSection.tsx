@@ -7,7 +7,7 @@ import { FormField } from "@/components/ui/form-field";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
 import { NumberInput } from "@/components/ui/number-input";
-import { ResponsiveSheet } from "@/components/ui/responsive-sheet";
+import { ResponsiveSheet, ResponsiveSheetCancel } from "@/components/ui/responsive-sheet";
 import { NativeSelect } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useStoreActions } from "@/hooks/use-store-actions";
@@ -156,9 +156,7 @@ export function RoomTypesSection({ plan, customRoomTypes }: RoomTypesSectionProp
         dirty={dirty && !saving}
         footer={
           <div className="flex w-full justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setSheetOpen(false)} disabled={saving}>
-              Abbrechen
-            </Button>
+            <ResponsiveSheetCancel disabled={saving} />
             <Button type="button" onClick={() => void handleSave()} loading={saving}>
               {editing ? "Speichern" : "Hinzufügen"}
             </Button>

@@ -19,7 +19,7 @@ import { useStoreActions } from "@/hooks/use-store-actions";
 import { markupToRevenueMargin } from "@/lib/price-strategy";
 import { compareHmsNachkalkulation } from "@/lib/service-modules/nachkalkulation";
 import type { HmsActual, HmsResult, ServiceActuals } from "@/lib/service-modules/types";
-import { marginTone, verdictLabel, verdictTone } from "@/lib/status";
+import { marginTone, nachkalkulationBadge } from "@/lib/status";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { useStore, type Project } from "@/store/use-store";
 import { defaultHmsYear, latestHmsActual, sortHmsActuals } from "@/components/calc/hms/hms-ui";
@@ -245,7 +245,7 @@ export function HmsNachkalkulationCard({
               <p className="text-sm text-muted-foreground">
                 Jahr <span className="font-medium text-foreground">{latest.year}</span> · erfasst am {formatDate(latest.recordedAt)}
               </p>
-              <StatusBadge tone={verdictTone(cmp.verdict)} label={verdictLabel(cmp.verdict)} />
+              <StatusBadge tone={nachkalkulationBadge(cmp).tone} label={nachkalkulationBadge(cmp).label} />
             </div>
             <KpiGroup columns={3}>
               <Kpi

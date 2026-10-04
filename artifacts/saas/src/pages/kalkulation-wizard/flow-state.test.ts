@@ -24,6 +24,7 @@ import {
   flowReducer,
   initFlowDraft,
   isForeignStoredDraft,
+  mayClearStoredDraft,
   storedDraftLabel,
   effectiveEditDraft,
   isDraftDirty,
@@ -533,6 +534,18 @@ describe("single draft slot (calcDraft)", () => {
     expect(isForeignStoredDraft(create, create)).toBe(false);
     expect(isForeignStoredDraft(edit, edit)).toBe(false);
     expect(isForeignStoredDraft(createEmptyCalcDraft(NOW), edit)).toBe(false);
+  });
+
+  it("save/discard may clear only the own, an empty or no stored draft", () => {
+    const create = run(createEmptyCalcDraft(NOW), { type: "setBase", patch: { name: "Neues Objekt in Arbeit" } });
+    const edit = initFlowDraft("edit", makeProject(), null).draft;
+    expect(mayClearStoredDraft(null, edit)).toBe(true);
+    expect(mayClearStoredDraft(edit, edit)).toBe(true);
+    expect(mayClearStoredDraft(create, create)).toBe(true);
+    expect(mayClearStoredDraft(createEmptyCalcDraft(NOW), edit)).toBe(true);
+    expect(mayClearStoredDraft(create, edit)).toBe(false);
+    expect(mayClearStoredDraft(edit, create)).toBe(false);
+    expect(mayClearStoredDraft(edit, { editingId: "other" })).toBe(false);
   });
 
   it("labels the stored draft for the replace prompt", () => {

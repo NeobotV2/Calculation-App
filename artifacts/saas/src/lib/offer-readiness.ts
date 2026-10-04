@@ -6,6 +6,7 @@
 import type { Project } from "@/store/use-store";
 import type { WarningSeverity } from "@/lib/warnings";
 import type { ObjectEconomics } from "@/lib/object-economics";
+import { withMinusSign } from "@/lib/utils";
 
 export type ReadinessLevel = "blocker" | "critical" | "offer" | "hint";
 
@@ -55,7 +56,7 @@ export const DEFAULT_COMPANY_NAME = "Meine Reinigungsfirma";
 const blank = (v: string | undefined | null) => !v || v.trim() === "";
 
 const eur = (n: number) =>
-  n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  withMinusSign(n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
 
 /** Warning-ID → Suffix ohne Projekt-Präfix ("p1_wd_salt" → "wd_salt"). */
 function warningSuffix(project: Project, warningId: string): string {
@@ -166,11 +167,15 @@ export interface ObjectStatus {
   tone: ObjectStatusTone;
 }
 
+/** Hinweis mit Schwere Warnung/Kritisch: hält das Objekt in „Prüfung offen“. */
+export function isSeriousHint(h: Pick<ReadinessItem, "severity">): boolean {
+  return h.severity === "warning" || h.severity === "critical";
+}
+
 export function getObjectStatus(project: Project, r: OfferReadiness): ObjectStatus {
   if (project.status === "archived") return { key: "archiviert", label: "Archiviert", tone: "neutral" };
   if (r.blockers.length > 0) return { key: "entwurf", label: "Entwurf", tone: "neutral" };
-  const seriousHint = r.hints.some((h) => h.severity === "warning" || h.severity === "critical");
-  if (r.criticals.length > 0 || r.offerGaps.length > 0 || seriousHint) {
+  if (r.criticals.length > 0 || r.offerGaps.length > 0 || r.hints.some(isSeriousHint)) {
     return { key: "pruefung_offen", label: "Prüfung offen", tone: "warning" };
   }
   return { key: "angebotsbereit", label: "Angebotsbereit", tone: "success" };

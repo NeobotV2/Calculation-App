@@ -21,7 +21,7 @@ import { OfferPreviewDialog } from "@/components/offer/OfferPreviewDialog";
 import { useOfferAction } from "@/components/offer/use-offer-action";
 import { createDefaultWinterdienst } from "@/data/winterdienst";
 import { createDefaultHms } from "@/data/hausmeisterservice";
-import { canAddProject, canUseTemplates, type GateResult } from "@/lib/feature-gates";
+import { canAddProject, canRestoreProject, canUseTemplates, type GateResult } from "@/lib/feature-gates";
 import type { UpgradeTrigger } from "@/lib/billing-config";
 import { getNextStep, getObjectStatus } from "@/lib/offer-readiness";
 import type { HmsConfig, WinterdienstConfig } from "@/lib/service-modules/types";
@@ -240,6 +240,11 @@ export default function ObjektDetail() {
   };
 
   const handleRestore = async () => {
+    const gate = canRestoreProject(projectId);
+    if (!gate.allowed) {
+      showUpgrade(gate);
+      return;
+    }
     try {
       await actions.restoreProject(projectId);
       toast.success("Objekt wiederhergestellt");
@@ -264,7 +269,8 @@ export default function ObjektDetail() {
     try {
       await actions.deleteProject(projectId);
       toast.success("Objekt gelöscht");
-      navigate("/objekte");
+      // Ersetzen statt anhängen: „Zurück“ führt nicht auf das gelöschte Objekt.
+      navigate("/objekte", { replace: true });
     } catch (err) {
       setDeletedId(null);
       toast.error(errorMessage(err, "Das Objekt konnte nicht gelöscht werden."));
@@ -388,7 +394,7 @@ export default function ObjektDetail() {
         }
         rail={
           // Kleiner Abstand: Die Rail klebt unter dem (höheren) Objektkopf.
-          <div className="lg:pt-3">
+          <div className="xl:pt-3">
             <EconomicsCockpit
               {...cockpitProps}
               variant="rail"
@@ -397,12 +403,14 @@ export default function ObjektDetail() {
             />
           </div>
         }
+        railLabel="Wirtschaftlichkeit"
         railBelowLg="hidden"
+        railFrom="xl"
       >
         {archived && <ArchivedBanner onRestore={handleRestore} />}
 
         <KpiStrip economics={econ} />
-        <EconomicsCockpit {...cockpitProps} variant="compact" className="lg:hidden" />
+        <EconomicsCockpit {...cockpitProps} variant="compact" className="xl:hidden" />
 
         <Tabs value={tab} onValueChange={(v) => isWorkspaceTab(v) && goTab(v)}>
           {/* Container-Query: volle Tab-Namen erst ab 48rem Spaltenbreite, sonst Kurzlabels. */}
@@ -417,9 +425,12 @@ export default function ObjektDetail() {
                   warning={tabHasWarnings(t, econ.warnings, projectId) ? "Hinweise vorhanden" : undefined}
                 >
                   <span className="hidden @3xl/tabs:inline">{WORKSPACE_TAB_LABELS[t]}</span>
+                  {/* Kurzlabel bleibt Teil des Namens (WCAG 2.5.3), der volle Name folgt für Screenreader. */}
                   <span className="@3xl/tabs:hidden">
-                    <span aria-hidden="true">{WORKSPACE_TAB_SHORT_LABELS[t]}</span>
-                    <span className="sr-only">{WORKSPACE_TAB_LABELS[t]}</span>
+                    {WORKSPACE_TAB_SHORT_LABELS[t]}
+                    {WORKSPACE_TAB_SHORT_LABELS[t] !== WORKSPACE_TAB_LABELS[t] && (
+                      <span className="sr-only"> – {WORKSPACE_TAB_LABELS[t]}</span>
+                    )}
                   </span>
                   {t === "reinigung" && <span className="sr-only"> Räume:</span>}
                 </TabsTrigger>

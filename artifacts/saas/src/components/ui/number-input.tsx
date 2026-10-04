@@ -76,6 +76,9 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     }, [value, decimals, focused]);
 
     const inRange = (n: number) => (min === undefined || n >= min) && (max === undefined || n <= max);
+    // „1.200“ als Tausender nur, wo drei Nachkommastellen keine gültige Eingabe sind
+    // (Beträge, Flächen, Anzahlen); Felder mit mehr Stellen (Länge in m) lesen „4.375“ als 4,375.
+    const parse = (raw: string) => parseDecimal(raw, { thousandsDot: decimals !== undefined && decimals < 3 });
 
     const commit = () => {
       const trimmed = text.trim();
@@ -84,7 +87,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         setText("");
         return;
       }
-      const parsed = parseDecimal(trimmed);
+      const parsed = parse(trimmed);
       if (parsed === undefined) {
         setText(toText(value, decimals));
         return;
@@ -112,7 +115,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           onChange={(e) => {
             const raw = e.target.value;
             setText(raw);
-            const parsed = parseDecimal(raw);
+            const parsed = parse(raw);
             if (parsed !== undefined && inRange(parsed) && parsed !== value) onValueChange(parsed);
           }}
           onFocus={(e) => {

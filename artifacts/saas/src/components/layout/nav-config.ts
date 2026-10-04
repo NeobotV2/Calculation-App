@@ -219,6 +219,8 @@ export function resolveAuthGuard(location: string, s: GuardState): GuardDecision
   if (s.isAuthenticated) {
     if (path === "/login" || path === "/register") return { kind: "resume", fallback: "/" };
     if (path === "/") return { kind: "resume" };
+    // Kein erneutes Onboarding (würde Firmendaten und Satz überschreiben).
+    if (path === "/onboarding") return { kind: "redirect", to: "/", remember: false };
     return { kind: "allow" };
   }
   if (!s.hasSeenSplash) {
@@ -228,6 +230,7 @@ export function resolveAuthGuard(location: string, s: GuardState): GuardDecision
     return isPublic ? { kind: "allow" } : { kind: "redirect", to: "/onboarding", remember: path !== "/" };
   }
   if (path === "/") return { kind: "resume" };
+  if (path === "/onboarding") return { kind: "redirect", to: "/", remember: false };
   return { kind: "allow" };
 }
 

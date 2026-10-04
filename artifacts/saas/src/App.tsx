@@ -45,6 +45,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { CookieNotice } from "@/components/cookie-notice";
 import { useAndroidBack } from "@/hooks/use-android-back";
 import { AppShell } from "@/components/layout/AppShell";
+import { RouteScope } from "@/components/layout/RouteScope";
 import {
   consumeIntendedPath,
   getRouteTransitionKey,
@@ -185,43 +186,45 @@ function AppRouter() {
 
   const routes = (
     <AnimatePresence mode="wait" initial={false}>
-      <Switch location={location} key={getRouteTransitionKey(location)}>
-        {/* Öffentlich (ohne Shell) */}
-        <Route path="/willkommen" component={Willkommen} />
-        <Route path="/splash" component={Splash} />
-        <Route path="/onboarding" component={Onboarding} />
-        <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
-        <Route path="/passwort-vergessen" component={PasswortVergessen} />
-        <Route path="/passwort-reset" component={PasswortReset} />
-        <Route path="/impressum" component={Impressum} />
-        <Route path="/datenschutz" component={Datenschutz} />
-        <Route path="/agb" component={AGB} />
+      <RouteScope location={location} key={getRouteTransitionKey(location)}>
+        <Switch location={location}>
+          {/* Öffentlich (ohne Shell) */}
+          <Route path="/willkommen" component={Willkommen} />
+          <Route path="/splash" component={Splash} />
+          <Route path="/onboarding" component={Onboarding} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/passwort-vergessen" component={PasswortVergessen} />
+          <Route path="/passwort-reset" component={PasswortReset} />
+          <Route path="/impressum" component={Impressum} />
+          <Route path="/datenschutz" component={Datenschutz} />
+          <Route path="/agb" component={AGB} />
 
-        {/* App */}
-        <Route path="/" component={Home} />
-        <Route path="/objekte" component={ObjekteList} />
-        <Route path="/objekte/neu" component={ObjekteNeuRedirect} />
-        <Route path="/objekte/:id/:tab?" component={ObjektDetail} />
-        <Route path="/kalkulation" component={KalkulationListRedirect} />
-        <Route path="/kalkulation/:id/:schritt?" component={KalkulationWizard} />
-        <Route path="/verrechnungssatz" component={Verrechnungssatz} />
-        <Route path="/stundensatz" component={StundensatzRedirect} />
-        <Route path="/ausschreibung" component={Ausschreibung} />
-        <Route path="/vorlagen" component={Vorlagen} />
-        <Route path="/konto" component={Konto} />
-        <Route path="/upgrade" component={Upgrade} />
-        <Route path="/mehr" component={Mehr} />
-        <Route path="/auswertung" component={AuswertungGlobal} />
-        <Route path="/auswertung/:id" component={AuswertungDetail} />
-        <Route path="/einstellungen/:bereich?" component={Einstellungen} />
+          {/* App */}
+          <Route path="/" component={Home} />
+          <Route path="/objekte" component={ObjekteList} />
+          <Route path="/objekte/neu" component={ObjekteNeuRedirect} />
+          <Route path="/objekte/:id/:tab?" component={ObjektDetail} />
+          <Route path="/kalkulation" component={KalkulationListRedirect} />
+          <Route path="/kalkulation/:id/:schritt?" component={KalkulationWizard} />
+          <Route path="/verrechnungssatz" component={Verrechnungssatz} />
+          <Route path="/stundensatz" component={StundensatzRedirect} />
+          <Route path="/ausschreibung" component={Ausschreibung} />
+          <Route path="/vorlagen" component={Vorlagen} />
+          <Route path="/konto" component={Konto} />
+          <Route path="/upgrade" component={Upgrade} />
+          <Route path="/mehr" component={Mehr} />
+          <Route path="/auswertung" component={AuswertungGlobal} />
+          <Route path="/auswertung/:id" component={AuswertungDetail} />
+          <Route path="/einstellungen/:bereich?" component={Einstellungen} />
 
-        {/* Druck (ohne Shell) */}
-        <Route path="/print/:id/intern" component={InternPrintView} />
-        <Route path="/print/:id" component={PrintView} />
+          {/* Druck (ohne Shell) */}
+          <Route path="/print/:id/intern" component={InternPrintView} />
+          <Route path="/print/:id" component={PrintView} />
 
-        <Route component={NotFound} />
-      </Switch>
+          <Route component={NotFound} />
+        </Switch>
+      </RouteScope>
     </AnimatePresence>
   );
 

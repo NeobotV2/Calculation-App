@@ -52,7 +52,7 @@ export default function PasswortReset() {
   if (success) {
     return (
       <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 text-center">
+        <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 text-center outline-none">
           <div className="mb-8 flex justify-center">
             <span className="flex size-16 items-center justify-center rounded-full bg-success-soft text-success">
               <CircleCheck className="size-8" aria-hidden="true" strokeWidth={2} />
@@ -62,14 +62,14 @@ export default function PasswortReset() {
           <p role="status" className="text-base text-muted-foreground">
             Ihr Passwort wurde erfolgreich geändert. Sie werden weitergeleitet…
           </p>
-        </div>
+        </main>
       </PageTransition>
     );
   }
 
   return (
     <PageTransition className="flex min-h-dvh flex-col bg-background px-4 pb-safe pt-safe">
-      <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+      <main id="main-content" tabIndex={-1} className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10 outline-none">
         <div className="mb-10 flex justify-center">
           <span className="flex size-20 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-raised">
             <Sparkles className="size-10" strokeWidth={2} aria-hidden="true" />
@@ -120,7 +120,7 @@ export default function PasswortReset() {
             )}
           </Button>
         </form>
-      </div>
+      </main>
     </PageTransition>
   );
 }
