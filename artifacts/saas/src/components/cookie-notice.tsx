@@ -16,8 +16,8 @@ export function CookieNotice() {
   const [location] = useLocation();
   const shellMode = getShellMode(location);
   const aboveNav = shellMode === "app";
-  // Im Kalkulations-Flow (eigene Fußleiste) erst nach Verlassen anzeigen.
-  const suppressed = shellMode === "focus";
+  // Im Kalkulations-Flow und im Onboarding liegt die Hauptaktion am unteren Rand: erst danach anzeigen.
+  const suppressed = shellMode === "focus" || location === "/onboarding" || location.startsWith("/onboarding/");
 
   useEffect(() => {
     let consent: string | null = null;

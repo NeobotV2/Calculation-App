@@ -109,6 +109,9 @@ async function fetchAndApply(user: SyncUser): Promise<void> {
       pdfHeader: settings?.pdf_header ?? "",
       pdfFooter: settings?.pdf_footer ?? "",
     } satisfies AuthData);
+    if (settings && settings.confirmed_hourly_rate !== undefined) {
+      data.confirmedHourlyRate = settings.confirmed_hourly_rate;
+    }
   }
 
   if (subscriptionR.status === "fulfilled") {

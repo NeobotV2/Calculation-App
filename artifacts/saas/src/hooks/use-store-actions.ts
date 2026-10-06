@@ -213,6 +213,8 @@ export function useStoreActions() {
     companyVatId?: string;
     companyManagingDirector?: string;
     hourlyRate?: number;
+    /** Auf der Seite „Verrechnungssatz“ als geprüft bestätigter Satz (null = keine Bestätigung). */
+    confirmedHourlyRate?: number | null;
     vatRate?: number;
     defaultFrequency?: string;
     pdfHeader?: string;
@@ -222,6 +224,11 @@ export function useStoreActions() {
     if (isAuthenticated) {
       const dbUpdates: Record<string, unknown> = {};
       if (data.hourlyRate !== undefined) dbUpdates.hourly_rate = data.hourlyRate;
+      if (data.confirmedHourlyRate !== undefined) {
+        dbUpdates.confirmed_hourly_rate = data.confirmedHourlyRate;
+        // Sofort lokal; nach dem Reload gilt der Cloud-Wert (falls Migration 006 vorhanden).
+        useStore.getState().confirmHourlyRate(data.confirmedHourlyRate ?? 0);
+      }
       if (data.vatRate !== undefined) dbUpdates.vat_rate = data.vatRate;
       if (data.defaultFrequency !== undefined) dbUpdates.default_frequency = data.defaultFrequency;
       if (data.pdfHeader !== undefined) dbUpdates.pdf_header = data.pdfHeader;
@@ -258,6 +265,7 @@ export function useStoreActions() {
     if (data.companyVatId !== undefined) store.updateSettings({ companyVatId: data.companyVatId });
     if (data.companyManagingDirector !== undefined) store.updateSettings({ companyManagingDirector: data.companyManagingDirector });
     if (data.hourlyRate !== undefined) store.updateSettings({ hourlyRate: data.hourlyRate });
+    if (data.confirmedHourlyRate !== undefined) store.confirmHourlyRate(data.confirmedHourlyRate ?? 0);
     if (data.vatRate !== undefined) store.updateSettings({ vatRate: data.vatRate });
     if (data.defaultFrequency !== undefined) store.updateSettings({ defaultFrequency: data.defaultFrequency as import("@/store/use-store").FrequencyKey });
     if (data.pdfHeader !== undefined) store.updateSettings({ pdfHeader: data.pdfHeader });

@@ -185,13 +185,15 @@ export default function Kalkulation() {
       toast.success("Verrechnungssatz bestätigt", {
         description: "Die Standardwerte passen zu Ihrem Betrieb – der Satz gilt als geprüft.",
       });
+      // In der Cloud merken, damit die Bestätigung nach erneutem Anmelden und auf anderen Geräten gilt.
+      void actions.updateSettings({ confirmedHourlyRate: currentHourlyRate }).catch(() => {});
       return;
     }
     const note = impact ? rateImpactText(impact) : undefined;
     setIsSaving(true);
     try {
       useStore.getState().updateHourlyRateConfig(config);
-      await actions.updateSettings({ hourlyRate: newRate });
+      await actions.updateSettings({ hourlyRate: newRate, confirmedHourlyRate: newRate });
       confirmHourlyRate(newRate);
       toast.success("Verrechnungssatz übernommen", note ? { description: note } : undefined);
     } catch (err) {

@@ -47,7 +47,9 @@ export function AddServiceMenu({ project, cleaningVisible, onAdd, className }: A
       <DropdownMenuTrigger asChild>
         <Button type="button" variant="ghost" size="sm" className={cn("shrink-0", className)}>
           <Plus aria-hidden="true" />
-          Leistung<span className="sr-only"> hinzufügen</span>
+          {/* Schmale Spalte (Phone): nur das Plus, damit die Tabs Platz haben. */}
+          <span className="hidden @md/tabs:inline" aria-hidden="true">Leistung</span>
+          <span className="sr-only">Leistung hinzufügen</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-64">
